@@ -94,6 +94,7 @@ More details: [Notion Documentation](https://www.notion.so/your-notion-link-plac
 ## Files & Downloads
 
 * KiCad Files (.SCH, .BRD)
+* BOM with JLC Parts Number
 * STL/STEP Enclosure
 
 ## References
