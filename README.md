@@ -95,9 +95,6 @@ More details: [Notion Documentation](https://www.notion.so/your-notion-link-plac
 
 * KiCad Files (.SCH, .BRD)
 * STL/STEP Enclosure
-* Bill of Materials (BOM)
-* Workshop Slides
-* Assembly Guide (PDF)
 
 ## References
 
