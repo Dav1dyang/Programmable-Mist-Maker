@@ -1,4 +1,4 @@
-#Programmable Mist Maker
+# Programmable Mist Maker
 
 **Created by Shuang Cai & David Yang**
 
