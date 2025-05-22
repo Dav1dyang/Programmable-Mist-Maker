@@ -1,4 +1,4 @@
-# Programmable Mist Maker
+# Programmable Mist Maker V1
 
 **Created by Shuang Cai & David Yang**
 
@@ -32,7 +32,7 @@ Mist generation involves:
 * **PWM Switching**: An ESP32-C6 sends a 108.7 kHz PWM signal to a MOSFET.
 * **Power Supply**: TPS61023 provides stable 5V from LiPo or USB input.
 
-More details: [Notion Documentation](https://www.notion.so/your-notion-link-placeholder)
+More details: [Notion Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
 
 ## Key Components
 
@@ -82,20 +82,38 @@ More details: [Notion Documentation](https://www.notion.so/your-notion-link-plac
 5. Seal in container (keep electronics dry)
 6. Power on and activate mist
 
+## Programming Notes
+
+### Important Note on Power Sequence and Serial Connectivity
+
+When connecting the board for development or testing:
+
+* Always connect the USB cable first before applying battery power
+* If battery power is connected before USB, the serial port will not be detected in the Arduino IDE
+* The proper sequence is: connect USB → establish serial connection → apply battery power (if needed)
+* Once the USB connection is established, battery power can be applied without disrupting the serial connection
+* When operating in standalone mode without a computer, either power source can be used independently
+
 ## Code & Firmware
 
-* GitHub Repository: Coming Soon
+This repository includes:
 
-**Example Sketches:**
+* Example code: [108kHz_Output_3V3_XIAOC6.ino](example-code/108kHz_Output_3V3_XIAOC6/108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control
 
-* `mist_blink.ino`: Basic test
-* `mist_iot.ino`: Zigbee/WiFi mist control (in development)
+The example sketch provides:
+* 108.7kHz PWM output for the mist maker
+* Button toggle for mist on/off
+* Serial output with status information
 
 ## Files & Downloads
 
-* KiCad Files (.SCH, .BRD)
-* BOM with JLC Parts Number
-* STL/STEP Enclosure
+* KiCad Files:
+  * [MistMakerV1-4.kicad_sch](hardware/MistMakerV1-4.kicad_sch)
+  * [MistMakerV1-4.kicad_pcb](hardware/MistMakerV1-4.kicad_pcb)
+* PDF Exports:
+  * [Schematic (PDF)](hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
+  * [PCB Layout (PDF)](hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
+* [Bill of Materials (CSV)](hardware/bom.csv)
 
 ## References
 
