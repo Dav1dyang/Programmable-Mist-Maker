@@ -11,7 +11,7 @@ Full Documentation on Notion: [Mist Maker Documentation](https://dav1dyang.notio
 
 ## Overview
 
-![PCB Board Design](assets/V1-4_Board_Full_Assembly.jpg)
+![PCB Board Design](assets/2025-05-22_V1-4_Assembled.jpg)
 
 This project explain ultrasonic mist maker designs and provides:
 
@@ -35,6 +35,7 @@ Mist generation involves:
 More details: [Notion Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
 
 ## Key Components
+![PCB Board Components](assets/2025-05-22_V1-4_Board_Only.jpg)
 
 | Component                  | Function                            |
 | -------------------------- | ----------------------------------- |
