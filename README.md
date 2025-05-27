@@ -99,6 +99,25 @@ When connecting the board for development or testing:
 
 This repository includes:
 
+Library Example Code:
+You must install the library for this example to work. [Library installation instruction](https://github.com/owochel/MistMaker/tree/main)
+
+* [SimpleControl.ino](example-code/WithLibrary/SimpleControl/SimpleControl.ino) - Basic test with button control using the libary
+
+The example sketch provides:
+* 108.7kHz PWM output for the mist maker
+* Button toggle for mist on/off
+* Serial output with status information
+
+* [Blink.ino]](example-code/WithLibrary/Blink/Blink.ino) - Basic blink test that turn on and off the mist maker on a 2 second interval
+
+The example sketch provides:
+* 108.7kHz PWM output for the mist maker
+* Blink toggle of the mist maker
+* Serial output with status information
+
+
+
 * Example code: [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
 
 The example sketch provides:
@@ -106,14 +125,6 @@ The example sketch provides:
 * Button toggle for mist on/off
 * Serial output with status information
 
-* Example code: [SimpleControl.ino](example-code/WithLibrary/SimpleControl/SimpleControl.ino) - Basic test with button control using the libary
-
-The example sketch provides:
-* 108.7kHz PWM output for the mist maker
-* Button toggle for mist on/off
-* Serial output with status information
-
-You must install the library for this example to work. [Library installation instruction](https://github.com/owochel/MistMaker/tree/main)
 
 
 ## Files & Downloads
