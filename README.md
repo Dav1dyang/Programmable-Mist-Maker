@@ -115,7 +115,7 @@ The example sketch provides:
   * [Schematic (PDF)](hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
   * [PCB Layout (PDF)](hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
 * [Bill of Materials (CSV)](hardware/bom.csv)
-* 3D printable models (To be added)
+* [3D printable models for enclosures](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/3DPrintModels)
 
 ## References
 
