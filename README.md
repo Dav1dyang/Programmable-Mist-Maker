@@ -99,12 +99,22 @@ When connecting the board for development or testing:
 
 This repository includes:
 
-* Example code: [108kHz_Output_3V3_XIAOC6.ino](example-code/108kHz_Output_3V3_XIAOC6/108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control
+* Example code: [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
 
 The example sketch provides:
 * 108.7kHz PWM output for the mist maker
 * Button toggle for mist on/off
 * Serial output with status information
+
+* Example code: [SimpleControl.ino](example-code/WithLibrary/SimpleControl/SimpleControl.ino) - Basic test with button control using the libary
+
+The example sketch provides:
+* 108.7kHz PWM output for the mist maker
+* Button toggle for mist on/off
+* Serial output with status information
+
+You must install the library for this example to work. [Library installation instruction](https://github.com/owochel/MistMaker/tree/main)
+
 
 ## Files & Downloads
 
