@@ -1,11 +1,11 @@
 # Programmable Mist Maker V1
 
-**Created by Shuang Cai & David Yang**
+**Created by shuang cai & David Yang**
 
 ![Mist Maker PCB](assets/Ducky_and_Container.jpg)
 
 
-This open-source ultrasonic mist maker project transforms recycled containers and a custom PCB into a small-form-factor mist device. It is a fully documented, low-cost circuit with accessible explanations of misting mechanics, design challenges, and power needs.
+This [Open Source Hardware Certified](https://certification.oshwa.org/us002742.html) ultrasonic mist maker project transforms recycled containers and a custom PCB into a small-form-factor mist device. It is a fully documented, low-cost circuit with accessible explanations of misting mechanics, design challenges, and power needs.
 
 Full Documentation on Notion: [Mist Maker Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
 
@@ -115,6 +115,7 @@ The example sketch provides:
   * [Schematic (PDF)](hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
   * [PCB Layout (PDF)](hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
 * [Bill of Materials (CSV)](hardware/bom.csv)
+* 3D printable models (To be added)
 
 ## References
 
@@ -137,6 +138,6 @@ All technical data was reviewed and validated against physical test results and 
 
 ## License & Attribution
 
-Open-source under MIT License. Designed and tested by Shuang Cai and David Yang.
+Open-source under MIT License. Designed and tested by [David Yang](https://davidyang.work/) and [shuang cai](https://shuangcai.cargo.site/)
 
 Inspired by community reverse-engineering, YouTube teardowns, and a desire to share back with the open hardware world.
