@@ -15,6 +15,8 @@
 
 4. You're done! Now you can access example code via:  
    `File > Examples > MistMaker > SimpleControl`
+   or
+   `File > Examples > MistMaker > Blink`
 
 ---
 
