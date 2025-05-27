@@ -1,0 +1,28 @@
+# Ignore Arduino build output
+*.elf
+*.bin
+*.hex
+*.eep
+*.map
+*.d
+*.o
+
+# IDE settings and cache
+*.swp
+*.tmp
+*.bak
+*.log
+.DS_Store
+.vscode/
+*.code-workspace
+__MACOSX/
+
+# Arduino cache and temp folders
+sketchbook/
+.cache/
+build/
+*.sketches/
+*.arduinoIDE-unsaved*/
+
+# Platform-specific
+Thumbs.db
