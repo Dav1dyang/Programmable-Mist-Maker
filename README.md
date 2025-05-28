@@ -97,24 +97,27 @@ When connecting the board for development or testing:
 
 ## Code & Firmware
 
-This repository includes:
+This repository includes example sketches using the MistMaker library.
 
-Library Example Code:
-You must install the library for this example to work. [Library installation instruction](https://github.com/owochel/MistMaker/tree/main)
+> 💡 **Note:** You must [install the MistMaker library](https://github.com/owochel/MistMaker/tree/main) for these examples to compile and run properly.
 
-* [SimpleControl.ino](example-code/WithLibrary/SimpleControl/SimpleControl.ino) - Basic test with button control using the libary
+### Library Example Code
 
-The example sketch provides:
-* 108.7kHz PWM output for the mist maker
-* Button toggle for mist on/off
-* Serial output with status information
+- [`SimpleControl.ino`](example-code/WithLibrary/SimpleControl/SimpleControl.ino)  
+  A basic test sketch that uses a button to toggle the mist maker on and off.
 
-* [Blink.ino](example-code/WithLibrary/Blink/Blink.ino) - Basic blink test that turn on and off the mist maker on a 2 second interval
+  Features:
+  - 108.7kHz PWM output for the mist maker
+  - Button toggle for mist on/off
+  - Serial output with status information
 
-The example sketch provides:
-* 108.7kHz PWM output for the mist maker
-* Blink toggle of the mist maker
-* Serial output with status information
+- [`Blink.ino`](example-code/WithLibrary/Blink/Blink.ino)  
+  A blink-style sketch that turns the mist maker on and off at a fixed 2-second interval.
+
+  Features:
+  - 108.7kHz PWM output for the mist maker
+  - Automatic on/off blinking every 2 seconds
+  - Serial output with status information
 
 
 
@@ -136,7 +139,7 @@ The example sketch provides:
   * [Schematic (PDF)](hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
   * [PCB Layout (PDF)](hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
 * [Bill of Materials (CSV)](hardware/bom.csv)
-* [3D printable models for enclosures](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/3DPrintModels)
+* [Enclosure Models and PCB Footprint](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/EnclosureDesignMaterials)
 
 ## References
 
