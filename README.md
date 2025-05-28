@@ -37,14 +37,14 @@ More details: [Notion Documentation](https://dav1dyang.notion.site/programmable-
 ## Key Components
 ![PCB Board Components](assets/2025-05-22_V1-4_Board_Only.jpg)
 
-| Component                  | Function                            |
-| -------------------------- | ----------------------------------- |
-| Piezo Disc (108.7 kHz)     | Vibrates water to generate mist     |
-| Tapped Inductor (3-legged) | Boosts voltage through LC resonance |
-| AO3400A MOSFET             | Switches circuit at high frequency  |
-| TPS61023 Boost Converter   | Powers piezo from battery or USB    |
-| MCP73831                   | LiPo charging and protection        |
-| Xiao ESP32-C6              | Controls mist and PWM               |
+| Component                      | Function                            |
+| ----------------------------   | ----------------------------------- |
+| Piezo Disc (108.7 kHz)         | Vibrates water to generate mist     |
+| Tapped Inductor (3-legged)     | Boosts voltage through LC resonance |
+| AO3400A MOSFET                 | Switches circuit at high frequency  |
+| TPS61023 Boost Converter       | Powers piezo from battery or USB    |
+| MCP73831                       | LiPo charging and protection        |
+| [Seeed Studio XIAO ESP32-C6](https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C6-Pre-Soldered-p-6328.html)     | Controls mist and PWM               |
 
 ## Circuit Operation
 
