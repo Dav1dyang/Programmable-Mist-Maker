@@ -119,9 +119,11 @@ This repository includes example sketches using the MistMaker library.
   - Automatic on/off blinking every 2 seconds
   - Serial output with status information
 
+### NON-Library Example Code
 
+> 💡 **Note:** You don't need the library to run the code below.
 
-* Example code: [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
+* [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
 
 The example sketch provides:
 * 108.7kHz PWM output for the mist maker
