@@ -109,7 +109,7 @@ The example sketch provides:
 * Button toggle for mist on/off
 * Serial output with status information
 
-* [Blink.ino]](example-code/WithLibrary/Blink/Blink.ino) - Basic blink test that turn on and off the mist maker on a 2 second interval
+* [Blink.ino](example-code/WithLibrary/Blink/Blink.ino) - Basic blink test that turn on and off the mist maker on a 2 second interval
 
 The example sketch provides:
 * 108.7kHz PWM output for the mist maker
