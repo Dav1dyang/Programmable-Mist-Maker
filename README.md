@@ -7,9 +7,9 @@
 
 This [Open Source Hardware Certified](https://certification.oshwa.org/us002742.html) ultrasonic mist maker project transforms recycled containers and a custom PCB into a small-form-factor mist device. It is a fully documented, low-cost circuit with accessible explanations of misting mechanics, design challenges, and power needs.
 
-Full Documentation on Notion: [Mist Maker Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
+[Full Documentation on Notion](https://dav1dyang.notion.site/programmable-mist-maker)
 
-Full Documentation on Hackster.io: [Mist Maker Documentation](https://www.hackster.io/dav1dyang/waste-into-wonder-making-programmable-mist-makers-fe3ae7)
+[Full Documentation on Hackster.io](https://www.hackster.io/dav1dyang/waste-into-wonder-making-programmable-mist-makers-fe3ae7)
 
 
 ## Overview
