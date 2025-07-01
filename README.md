@@ -9,6 +9,9 @@ This [Open Source Hardware Certified](https://certification.oshwa.org/us002742.h
 
 Full Documentation on Notion: [Mist Maker Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
 
+Full Documentation on Hackster.io: [Mist Maker Documentation](https://www.hackster.io/dav1dyang/waste-into-wonder-making-programmable-mist-makers-fe3ae7)
+
+
 ## Overview
 
 ![PCB Board Design](assets/2025-05-22_V1-4_Assembled.jpg)
