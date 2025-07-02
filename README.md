@@ -136,7 +136,7 @@ The example sketch provides:
 
 ## Use and Care
 
-> [!IMPORTANT]
+> [!Warning]
 Because the device uses a water reservoir and cotton sticks to introduce water into the electronic systems, careless operation may lead to bacterial growth or contamination over time.
 
 Please make sure to fully clean the container every day and that the cotton sticks are fully cleaned and dried between each use.
