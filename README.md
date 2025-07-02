@@ -76,6 +76,7 @@ More details: [Notion Documentation](https://dav1dyang.notion.site/programmable-
 * Soldering tools
 * Battery or USB-C cable
 * Recycled container
+* Cotton Sticks
 
 **Steps:**
 
@@ -133,6 +134,12 @@ The example sketch provides:
 * Button toggle for mist on/off
 * Serial output with status information
 
+## Use and Care
+
+[!IMPORTANT]
+Because the device uses a water reservoir and cotton sticks to introduce water into the electronic systems, careless operation may lead to bacterial growth or contamination over time.
+
+Please make sure to fully clean the container every day and that the cotton sticks are fully cleaned and dried between each use.
 
 
 ## Files & Downloads
