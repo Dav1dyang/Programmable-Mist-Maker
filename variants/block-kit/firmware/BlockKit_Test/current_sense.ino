@@ -20,8 +20,13 @@ static uint32_t g_lastScopeUs    = 0;
 static uint32_t g_lastPlotMs     = 0;
 
 void currentSenseInit() {
-  analogReadResolution(12);                // 0..4095
-  analogSetPinAttenuation(PIN_CURRENT_ADC, ADC_11db);  // ~0..3.3 V range
+  // Match the bench-validated test sketch exactly: pinMode(INPUT) and rely on
+  // arduino-esp32 v3.x defaults (12-bit resolution, ~3.3 V full-scale). Calling
+  // analogReadResolution()/analogSetPinAttenuation() on ESP32-C6 v3.x has been
+  // observed to leave the ADC stuck returning 0 — the bench sketch omits them
+  // and works, so we follow the same recipe here.
+  pinMode(PIN_CURRENT_ADC, INPUT);
+
   // Pre-seed the window with one read so the first mean is sensible.
   const uint16_t s = analogRead(PIN_CURRENT_ADC);
   for (uint16_t i = 0; i < CURRENT_WINDOW_N; ++i) g_window[i] = s;

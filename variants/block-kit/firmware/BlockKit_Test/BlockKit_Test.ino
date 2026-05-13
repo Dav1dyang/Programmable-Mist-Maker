@@ -14,7 +14,8 @@
 // ---- Forward declarations of helpers defined in sibling .ino files ----
 // (Enum types referenced below live in pins.h so this block doesn't need them.)
 void mistInit(); void mistOn(); void mistOff(); bool mistIsRunning();
-void containerInit(); bool containerIsPresent(); ContainerEvent containerPoll();
+void containerInit(); bool containerIsPresent(); bool containerRawPresent();
+ContainerEvent containerPoll();
 void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledTick(); void ledAllOff(); void ledWalk();
 void ledSetAnimationEnabled(bool); void ledSetMax(uint8_t); void ledSetMin(uint8_t);
@@ -73,6 +74,7 @@ static void printHelp() {
   Serial.println(F("  w             - run ledWalk (~14 s, blocks)"));
   Serial.println(F("  k             - recalibrate baseline (Phase B)"));
   Serial.println(F("  s             - toggle current-sense scope mode"));
+  Serial.println(F("  r             - dump reed state (raw + debounced)"));
 }
 
 // Parse the numeric tail after the command letter (e.g. "b80" -> 80). Returns
@@ -143,6 +145,15 @@ static void handleCommand(const char* cmd, uint8_t len) {
     case 'w': ledWalk(); return;
     case 'k': Serial.println("[CUR] recalibrate is a Phase B feature"); return;
     case 's': currentSenseToggleScope(); return;
+    case 'r': {
+      // Print live reed state. raw == HIGH means no magnet; LOW means magnet
+      // closing the reed. Debounced is what the state machine actually uses.
+      Serial.print("[REED] raw=");
+      Serial.print(containerRawPresent() ? "1(LOW/magnet)" : "0(HIGH/open)");
+      Serial.print(" debounced=");
+      Serial.println(containerIsPresent() ? "1(present)" : "0(absent)");
+      return;
+    }
     default:
       Serial.print("[CMD] unknown: ");
       Serial.write(cmd, len);
@@ -220,7 +231,8 @@ static void onButtonEvent(ButtonEvent ev) {
 // ---------- Arduino entry points ----------
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  delay(50);  // brief settle for USB-CDC; we're still in setup()
+  delay(1000);  // USB-CDC enumeration on XIAO ESP32-C6 takes hundreds of ms;
+                // shorter delays drop the first banner/help lines silently.
   Serial.println();
   Serial.println("[APP] Block Kit V0.1 bring-up (Phase A)");
 

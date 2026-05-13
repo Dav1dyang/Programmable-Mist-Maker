@@ -26,6 +26,7 @@ void mistOn() {
 void mistOff() {
   if (!g_mistRunning) return;
   ledcWrite(PIN_MIST_PWM, 0);
+  digitalWrite(PIN_MIST_PWM, LOW);      // safety belt — force D0 low after PWM stop
   digitalWrite(PIN_BOOST_EN, LOW);      // drop 5 V rail to save energy
   g_mistRunning = false;
   Serial.println("[MIST] off");

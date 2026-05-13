@@ -27,6 +27,12 @@ bool containerIsPresent() {
   return g_containerPresent;
 }
 
+// Returns the raw reed read on this call (LOW = magnet present).
+// Useful for the `r` Serial command — bypasses debounce for instant feedback.
+bool containerRawPresent() {
+  return (digitalRead(PIN_REED) == LOW);
+}
+
 // Poll the reed once. Returns Inserted/Removed on a confirmed debounced edge,
 // or None otherwise. Call from the main loop every iteration.
 ContainerEvent containerPoll() {
