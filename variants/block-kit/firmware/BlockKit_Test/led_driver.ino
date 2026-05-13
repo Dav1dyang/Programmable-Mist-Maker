@@ -1,15 +1,17 @@
-// IS31FL3731 driver + gentle upward-traveling swirl.
+// IS31FL3731 driver — uniform breathing across all 14 LEDs.
 //
 // Matrix-B addressing: the 14 populated LEDs sit on CB1/CB2 and are written via
-// setLEDPWM(lednum, pwm, 0) where lednum maps to the chip's PWM register space.
-// drawPixel(x,y,…) goes through Adafruit_GFX and writes Matrix A by default,
-// which on this PCB is unpopulated — that path looks "correct" in code but lights
-// nothing on the board.
+// setLEDPWM(lednum, pwm, 0). drawPixel(x,y,…) writes Matrix A which is unpopulated.
 //
-// Animation uses a 64-entry integer sine LUT (no sinf() — ESP32-C6 has no FPU)
-// followed by a 256-entry gamma 2.2 LUT for perceptual smoothness. The wave
-// travels upward: at any given moment the brighter LEDs sit higher in the column,
-// and the highlight slides toward the top over `period_ms`.
+// Render pipeline per tick:
+//   1. Smoothed `baseLevel` (0..255) is passed in by the main loop.
+//   2. Apply a uniform breath modulation around baseLevel using a 64-entry
+//      sine LUT with linear interpolation for continuous motion.
+//   3. Gamma-correct (2.2) so perceived brightness scales smoothly.
+//   4. Write the same PWM value to all 14 LEDs.
+//
+// No swirl. The animation is identical across LEDs by design — the breath
+// reads as a single column gently pulsing rather than a moving wave.
 
 #include <Adafruit_IS31FL3731.h>
 #include "pins.h"
@@ -22,7 +24,7 @@ static const int8_t SINE_LUT[64] = {
  -127,-126,-125,-122,-117,-112,-106, -98, -90, -81, -71, -60, -48, -37, -24, -12,
 };
 
-// Standard 2.2 gamma table — same values as Adafruit NeoPixel reference.
+// 2.2 gamma table — same values as Adafruit NeoPixel reference.
 static const uint8_t GAMMA_LUT[256] = {
     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,   1,
@@ -43,13 +45,24 @@ static const uint8_t GAMMA_LUT[256] = {
 };
 
 static Adafruit_IS31FL3731 g_is31;
-static bool     g_ledReady       = false;
-static bool     g_animEnabled    = true;
-static uint8_t  g_maxBright      = LED_DEFAULT_MAX;
-static uint8_t  g_minBright      = LED_DEFAULT_MIN;
-static uint16_t g_periodMs       = LED_DEFAULT_PERIOD_MS;
-static uint8_t  g_wavelength     = LED_DEFAULT_WAVELEN;
-static uint32_t g_ledLastTickMs  = 0;
+static bool      g_ledReady          = false;
+static bool      g_breathEnabled     = true;
+static uint16_t  g_breathPeriodMs    = LED_BREATH_PERIOD_MS;
+static uint8_t   g_breathDepth       = LED_BREATH_DEPTH;
+static uint32_t  g_ledLastRenderMs   = 0;
+
+// Interpolated sine in -127..+127 from a fractional phase in [0, 64*256).
+// Linear interpolation between adjacent LUT entries removes the stair-step
+// artifact you'd otherwise see at the slow ~4 s breath period.
+static inline int16_t sineQ(uint32_t phaseQ8) {
+  const uint8_t idx  = uint8_t((phaseQ8 >> 8) & 63u);
+  const uint8_t next = uint8_t((idx + 1) & 63u);
+  const uint8_t frac = uint8_t(phaseQ8 & 0xFFu);
+  const int16_t s0 = SINE_LUT[idx];
+  const int16_t s1 = SINE_LUT[next];
+  // Equivalent to s0 + (s1 - s0) * frac/256, but in integer.
+  return s0 + (((s1 - s0) * int16_t(frac)) >> 8);
+}
 
 void ledInit() {
   // Wire.begin() is called once in the main sketch setup.
@@ -58,77 +71,69 @@ void ledInit() {
     Serial.println("[LED] IS31FL3731 not found");
     return;
   }
-  g_is31.clear();
+  // Zero all 14 positions explicitly — stock Adafruit_IS31FL3731 has clear()
+  // but going through the populated map is cheap and avoids touching the
+  // unpopulated Matrix A registers.
+  for (uint8_t i = 0; i < LED_COUNT; ++i) {
+    g_is31.setLEDPWM(LED_MAP[i], 0, LED_IS31_FRAME);
+  }
   Serial.println("[LED] init ok");
+}
+
+// Push all 14 LEDs to the same gamma-corrected PWM value.
+static void writeAll(uint8_t pwm) {
+  for (uint8_t i = 0; i < LED_COUNT; ++i) {
+    g_is31.setLEDPWM(LED_MAP[i], pwm, LED_IS31_FRAME);
+  }
 }
 
 void ledAllOff() {
   if (!g_ledReady) return;
-  for (uint8_t i = 0; i < LED_COUNT; ++i) {
-    g_is31.setLEDPWM(LED_MAP[i], 0, LED_IS31_FRAME);
-  }
+  writeAll(0);
 }
 
-// Compute one frame of the wave and push to the chip. Cheap if not due yet.
-void ledTick() {
+// Render one frame. `baseLevel` is the smoothed level (0..255) coming from the
+// main loop. The breath modulation is added on top.
+void ledRender(uint8_t baseLevel) {
   if (!g_ledReady) return;
   const uint32_t now = millis();
-  if (now - g_ledLastTickMs < LED_TICK_MS) return;
-  g_ledLastTickMs = now;
+  if (now - g_ledLastRenderMs < LED_TICK_MS) return;
+  g_ledLastRenderMs = now;
 
-  // Continuous phase in LUT entries; wraps naturally via the &63 mask.
-  const uint32_t phaseEntries = (now * 64u) / g_periodMs;
-
-  const int32_t range = int32_t(g_maxBright) - int32_t(g_minBright);
-
-  for (uint8_t i = 0; i < LED_COUNT; ++i) {
-    uint8_t bright;
-    if (g_animEnabled) {
-      // Spatial offset = (i / wavelength) cycles, in LUT entries.
-      const uint32_t spatial = (uint32_t(i) * 64u) / g_wavelength;
-      const uint8_t idx = uint8_t((phaseEntries + spatial) & 63u);
-      const int16_t s = SINE_LUT[idx];                 // -127..+127
-      // lerp(min, max, (s+127)/254)
-      const int32_t v = int32_t(g_minBright) + (range * (int32_t(s) + 127)) / 254;
-      bright = uint8_t(v < 0 ? 0 : (v > 255 ? 255 : v));
-    } else {
-      bright = g_maxBright;
-    }
-    g_is31.setLEDPWM(LED_MAP[i], GAMMA_LUT[bright], LED_IS31_FRAME);
+  if (baseLevel == 0) {
+    writeAll(0);
+    return;
   }
+
+  int16_t bright = baseLevel;
+  if (g_breathEnabled && g_breathDepth > 0) {
+    // Q8 phase so the breath is smooth (no stair-stepping) even at slow periods.
+    const uint32_t phaseQ8 = (uint32_t(now) * 64u * 256u) / g_breathPeriodMs;
+    const int16_t s = sineQ(phaseQ8);                     // -127..+127
+    // Amplitude scales with baseLevel so the breath disappears at low levels
+    // instead of dragging the LEDs to 0.
+    const int16_t amp = (int16_t(g_breathDepth) * int16_t(baseLevel)) >> 8;
+    const int16_t delta = (s * amp) / 127;
+    bright += delta;
+    if (bright < 0)   bright = 0;
+    if (bright > 255) bright = 255;
+  }
+  writeAll(GAMMA_LUT[bright]);
 }
 
-void ledSetAnimationEnabled(bool on) { g_animEnabled = on; }
-void ledSetMax(uint8_t v)            { g_maxBright = v; }
-void ledSetMin(uint8_t v)            { g_minBright = v; }
-void ledSetPeriodMs(uint16_t v)      {
+void ledSetBreathEnabled(bool on) { g_breathEnabled = on; }
+void ledSetBreathPeriodMs(uint16_t v) {
   if (v < 1000)  v = 1000;
   if (v > 20000) v = 20000;
-  g_periodMs = v;
+  g_breathPeriodMs = v;
 }
-void ledSetWavelength(uint8_t v)     {
-  if (v < 2)  v = 2;
+void ledSetBreathDepth(uint8_t v) {
   if (v > 64) v = 64;
-  g_wavelength = v;
-}
-uint8_t ledGetMax() { return g_maxBright; }
-
-// Ramp the peak brightness one LED_DIM_STEP in `dir` (-1 dimmer, +1 brighter).
-// The trough scales proportionally so the contrast stays sensible at low levels.
-uint8_t ledDimRampStep(int8_t dir) {
-  int16_t v = int16_t(g_maxBright) + int16_t(dir) * LED_DIM_STEP;
-  if (v < 0)   v = 0;
-  if (v > 255) v = 255;
-  g_maxBright = uint8_t(v);
-  // Keep min below max by at least one step.
-  if (g_minBright >= g_maxBright) {
-    g_minBright = g_maxBright > 1 ? g_maxBright - 1 : 0;
-  }
-  return g_maxBright;
+  g_breathDepth = v;
 }
 
-// Bring-up: light each populated LED 0..LED_COUNT-1 in order, ~1 s each.
-// Blocking by design — only invoked from the `w` Serial command.
+// Bring-up: light each LED in sequence at the same fixed brightness so the
+// physical (top→bottom) order can be verified by eye. Blocking by design.
 void ledWalk() {
   if (!g_ledReady) {
     Serial.println("[LED] walk: not ready");
@@ -136,7 +141,7 @@ void ledWalk() {
   }
   Serial.println("[LED] walk: 0..13, 1s each");
   for (uint8_t i = 0; i < LED_COUNT; ++i) {
-    ledAllOff();
+    writeAll(0);
     g_is31.setLEDPWM(LED_MAP[i], 200, LED_IS31_FRAME);
     Serial.print("[LED] walk i=");
     Serial.print(i);
@@ -144,5 +149,5 @@ void ledWalk() {
     Serial.println(LED_MAP[i]);
     delay(1000);
   }
-  ledAllOff();
+  writeAll(0);
 }
