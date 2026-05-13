@@ -102,25 +102,54 @@ constexpr uint8_t  LED_IS31_ADDR         = 0x74;
 constexpr uint8_t  LED_IS31_FRAME        = 0;       // begin() activates frame 0
 constexpr uint16_t LED_TICK_MS           = 20;      // 50 fps render — smooth motion
 
-// Uniform breathing (LedMode::BREATH) — all 14 LEDs share brightness modulated
-// around the current base level via a 64-entry sine LUT with linear inter-
-// polation between entries (so the curve is continuous to the eye, not stair-
-// stepped). Used while idle (no container) and during ramp-up before swirl
-// kicks in. Depth is the half-amplitude; user asked for subtle high dim.
-constexpr uint8_t  LED_BREATH_DEPTH      = 16;      // 16/255 ≈ ±6% on each side
-constexpr uint16_t LED_BREATH_PERIOD_MS  = 4000;    // one inhale/exhale cycle
-
-// Vertical chase (LedMode::SWIRL) — used while a container is docked and the
-// ring is at full brightness. A bright "head" rises continuously from bottom
-// (index 13) toward top (index 0), with a SWIRL_TAIL_LEDS-long fading tail
-// trailing behind it. Wraps seamlessly: as one head leaves the top, the
-// trailing tail re-emerges from the bottom on the next cycle.
+// ---- BREATH (idle, no container) — "deep dim, dramatic" --------------------
 //
-// In TRANSITION_FROM_RUNNING (container just removed), the swirl decelerates
-// proportionally to the current level so motion slows as it dims, producing
-// a soft "wind down" feel.
-constexpr uint16_t SWIRL_PERIOD_MS       = 1500;    // one head traverses 14 LEDs
-constexpr uint8_t  SWIRL_TAIL_LEDS       = 6;       // fading tail length, in LED units
+// All 14 LEDs share the same brightness, driven by an exp(sin) curve LUT
+// (ThingPulse / FastLED-style). exp(sin) lingers near zero on each exhale
+// and pulses to a soft peak on each inhale — much more natural-looking than
+// plain (1-cos)/2, which dwells equally at both extremes. The visible peak
+// is capped to LED_BREATH_PEAK so the ring stays *very dim* in idle (the
+// previous design used baseLevel±depth, which left the LEDs near full
+// brightness during idle — the explicit complaint we're fixing).
+//
+// Period is long (5.5 s) so the breath reads as slow ambient calm, not a
+// status blink.
+constexpr uint8_t  LED_BREATH_PEAK       = 38;      // ~15% post-gamma — dramatic dim peak
+constexpr uint16_t LED_BREATH_PERIOD_MS  = 5500;    // slow inhale → exhale → dwell at dark
+
+// ---- WAVE (docked) — "soft broad swell, all LEDs always lit" ---------------
+//
+// Every LED holds at WAVE_BASE_LEVEL (always-on glow). On top of that, a
+// single gaussian-shaped brightness *swell* travels slowly from below the
+// strip (off-screen) up through it and off the top, then re-enters from
+// below — no wrapping seam. Sigma is wide (4 LEDs) so the bump is a broad
+// gradient, not a discrete blob — that's what makes it "wave" rather than
+// "chase". At the swell peak the LED reaches WAVE_BASE_LEVEL + WAVE_SWELL_PEAK
+// (≈255 = full).
+//
+// Period is 7.5 s for one swell traversal — slow & meditative, per the
+// premium-ambient UX brief.
+constexpr uint8_t  WAVE_BASE_LEVEL       = 92;      // ~12% post-gamma baseline — every LED always visible
+constexpr uint8_t  WAVE_SWELL_PEAK       = 163;     // base + peak = 255 (full at crest)
+constexpr uint16_t WAVE_PERIOD_MS        = 7500;    // one swell crosses the strip — slow, meditative
+// Gaussian standard deviation in Q8 LED units (256 = 1 LED). Wider σ = softer,
+// broader swell that affects more of the strip at once.
+constexpr uint16_t WAVE_SIGMA_LEDS_Q8    = 4 * 256; // σ = 4 LEDs (very broad)
+// The swell enters off-screen below and exits off-screen above, so we never
+// see a "spawn" or "vanish" — the gaussian tail is already below the visible
+// threshold at ±3σ from center. Travel span = LED_COUNT + 6σ (3σ pad each end).
+constexpr int16_t  WAVE_TRAVEL_PAD_Q8    = 3 * 4 * 256;  // = 3σ in Q8 LED units = 3072
+
+// ---- Mode crossfade (BREATH ↔ WAVE) ----------------------------------------
+//
+// When the LED mode changes (idle→docked or docked→idle), led_driver renders
+// BOTH the previous and new mode for LED_CROSSFADE_MS, linearly blending in
+// pre-gamma space. That means the breath fades OUT as the wave fades IN —
+// no snap, no "fade up then start chasing" two-step. This replaces the old
+// `g_pendingSwirl` flag from the previous design (which made the breath fade
+// up THEN snap to chase — the user's specific complaint about the dock-
+// transition feeling like "nothing").
+constexpr uint16_t LED_CROSSFADE_MS      = 1100;    // 1.1 s — slow enough to read as a single gesture
 
 // 14 LED numbers on Matrix B, ordered top (index 0) to bottom (index 13).
 constexpr uint8_t LED_MAP[LED_COUNT] = {
@@ -134,13 +163,18 @@ constexpr uint8_t LED_MAP[LED_COUNT] = {
 // brightness so they always move together. State transitions and the long-
 // press button event set `g_targetLevel`; a smoother in the main loop ramps
 // `g_currentLevel` toward target over time. All "smooth fade" UX comes from
-// here. Step sizes are tuned for ~800 ms 0→255 ramp (luxurious).
-constexpr uint16_t LEVEL_SMOOTH_TICK_MS  = 10;      // smoother tick
-constexpr uint8_t  LEVEL_SMOOTH_STEP_UP  = 3;       // ~850 ms 0→255 (luxurious)
-constexpr uint8_t  LEVEL_SMOOTH_STEP_DN  = 4;       // slightly faster fade-out
-// Fast step-up used ONLY for the post-removal breath restore so the entire
-// container-lift cinematic (swirl-fade ~640 ms + breath restore) lands near 1 s.
-constexpr uint8_t  LEVEL_SMOOTH_STEP_UP_FAST = 6;   // ~425 ms 0→255
+// here.
+//
+// Steps are intentionally tiny (1–2 PWM per tick at 10 ms) so the ramp reads
+// as one continuous slide rather than discrete jumps — the user complaint
+// about "snappy" feel was largely the old +3/+4-per-tick stepping.
+constexpr uint16_t LEVEL_SMOOTH_TICK_MS      = 10;  // smoother tick
+constexpr uint8_t  LEVEL_SMOOTH_STEP_UP      = 2;   // ~1.28 s 0→255 (luxurious & smooth)
+constexpr uint8_t  LEVEL_SMOOTH_STEP_DN      = 3;   // ~0.85 s 255→0 (slightly faster fade-out)
+// Fast step-up used ONLY for the post-removal breath restore — keeps the full
+// container-lift cinematic (wave dim ~0.85 s + breath restore) feeling brisk
+// without breaking continuity. The mode crossfade itself runs in parallel.
+constexpr uint8_t  LEVEL_SMOOTH_STEP_UP_FAST = 4;   // ~0.64 s 0→255
 
 // Default level on first boot — bold first impression (full mist).
 constexpr uint8_t  LEVEL_DEFAULT         = 255;
@@ -158,28 +192,33 @@ constexpr uint32_t PLOT_PRINT_HZ        = 20;       // [PLOT] CSV rate when scop
 //   Boot lands in IDLE_LEDS_ON (soft breath waiting). Short-press toggles to
 //   IDLE_LEDS_OFF and back. Container docking always wins: any state +
 //   container → RUNNING. Container removal in RUNNING goes through a brief
-//   TRANSITION_FROM_RUNNING (swirl-fade + breath restore) before landing
-//   back in IDLE_LEDS_ON, giving a cinematic ~1 s wind-down.
+//   TRANSITION_FROM_RUNNING (wave decelerates + dims to 0, then breath fades
+//   back in) before landing back in IDLE_LEDS_ON.
+//
+//   The BREATH ↔ WAVE swap on dock/undock is always a CROSSFADE (mixed in
+//   pre-gamma space by led_driver), not a snap. So when you dock a container
+//   in idle, the dim breath dissolves smoothly into a slow swelling wave —
+//   reads as one continuous gesture, not "fade up then start chasing".
 //
 //   ┌─────────────────┐   short-press   ┌─────────────────────────────┐
 //   │ IDLE_LEDS_OFF   │ ──────────────► │ IDLE_LEDS_ON  (default boot) │
-//   │ ring dark, D7 ▒│ ◄────────────── │ ring breath ✻, D7 ▒          │
+//   │ ring dark, D7 ▒│ ◄────────────── │ deep dim breath, D7 ▒        │
 //   └────────┬────────┘   short-press   └─────────────┬───────────────┘
 //            │                                        │
 //       container ↓                              container ↓
-//            ▼                                        ▼
+//            ▼                                        ▼ (BREATH→WAVE crossfade)
 //                ┌────────────────────────────────────────────┐
 //                │  RUNNING                                   │
-//                │  fade up (breath) ➜ swirl at max          │
-//                │  mist on, D7 off, ring chase ↑             │
+//                │  soft gaussian swell traveling bottom→top │
+//                │  mist on, D7 off, every LED always lit    │
 //                └─────────────────┬──────────────────────────┘
 //                                  │ container removed
-//                                  ▼
+//                                  ▼ (mist hard-stops; wave dims to 0)
 //                ┌────────────────────────────────────────────┐
 //                │  TRANSITION_FROM_RUNNING                   │
-//                │  mist hard-stopped, swirl decelerates &   │
-//                │  dims to 0, then auto-enters IDLE_LEDS_ON  │
-//                │  with a fast breath fade-up                │
+//                │  level fades 255→0 with wave still         │
+//                │  rendering, then auto-enters IDLE_LEDS_ON  │
+//                │  → WAVE→BREATH crossfade as level rises    │
 //                └────────────────────────────────────────────┘
 //   Short-press from RUNNING / TRANSITION → IDLE_LEDS_OFF (skips cinematic).
 enum class AppState : uint8_t {
@@ -190,10 +229,11 @@ enum class AppState : uint8_t {
 };
 
 // LED render mode — owned by the state machine, consumed by led_driver.ino.
-// State transitions call ledSetMode(); led_driver dispatches per-tick.
+// State transitions call ledSetMode(); led_driver dispatches per-tick and
+// runs an automatic crossfade between the previous and new mode.
 enum class LedMode : uint8_t {
-  BREATH,   // uniform sine-modulated breath, all 14 LEDs same brightness
-  SWIRL,    // rising-chase head + fading tail, bottom→top
+  BREATH,   // idle: deep dim exp(sin) breath, all 14 LEDs share brightness
+  WAVE,     // docked: soft gaussian swell traveling bottom→top, all LEDs lit
 };
 
 // ---------- Event enums (declared here so every .ino can use them as args) ----------

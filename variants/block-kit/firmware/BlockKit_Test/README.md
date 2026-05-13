@@ -6,34 +6,37 @@ Phase A intentionally has **no water-level classifier**. The reed switch is the 
 
 ## States
 
-Three top-level states, all transitions handled in `BlockKit_Test.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is, so every transition is a soft ~800 ms fade rather than a snap.
+Four top-level states, all transitions handled in `BlockKit_Test.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is in tiny per-tick steps (+2 / 10 ms ≈ 1.3 s 0→255), so every brightness change reads as a continuous slide. The LED driver runs an automatic 1.1 s **crossfade** whenever the mode swaps between BREATH and WAVE — there is never a snap.
 
-| State            | When                          | Mist        | LED ring                | D7 white       |
-|------------------|-------------------------------|-------------|-------------------------|----------------|
-| `IDLE_LEDS_OFF`  | No container docked, default  | off         | dark                    | dim (~10 %)    |
-| `IDLE_LEDS_ON`   | No container, LEDs toggled on | off         | breathing at user level | dim (~10 %)    |
-| `RUNNING`        | Container docked              | PWM at level | breathing at user level | off            |
+| State                     | When                              | Mist         | LED ring                                          | D7 white    |
+|---------------------------|-----------------------------------|--------------|---------------------------------------------------|-------------|
+| `IDLE_LEDS_OFF`           | No container, muted               | off          | dark                                              | dim (~10 %) |
+| `IDLE_LEDS_ON` *(default)*| No container, awake (boot lands here) | off       | deep-dim exp(sin) BREATH; exhale dwells at black  | dim (~10 %) |
+| `RUNNING`                 | Container docked                  | PWM at level | WAVE — every LED always lit, single slow gaussian swell rising bottom→top over 7.5 s | off |
+| `TRANSITION_FROM_RUNNING` | Container just lifted             | hard-stopped | Wave dims to 0 (~0.85 s), then auto-enters `IDLE_LEDS_ON` for the BREATH crossfade | dim (~10 %) |
 
 ### Transition map
 
-| From state       | Event                                | To state         | Notes                                       |
-|------------------|--------------------------------------|------------------|---------------------------------------------|
-| `IDLE_LEDS_OFF`  | Container inserted (reed 500 ms)     | `RUNNING`        | Mist + LEDs ramp up over ~800 ms            |
-| `IDLE_LEDS_OFF`  | Button short-press (no container)    | `IDLE_LEDS_ON`   | LEDs fade in to user level                  |
-| `IDLE_LEDS_ON`   | Container inserted (reed 500 ms)     | `RUNNING`        | Mist engages immediately at current level   |
-| `IDLE_LEDS_ON`   | Button short-press                   | `IDLE_LEDS_OFF`  | LEDs fade out                               |
-| `RUNNING`        | Container removed (reed 100 ms)      | `IDLE_LEDS_OFF`  | **Mist hard-stops** (safety); LEDs fade out |
-| `RUNNING`        | Button short-press                   | `IDLE_LEDS_OFF`  | Mist hard-stops; LEDs fade out              |
-| `RUNNING` or `IDLE_LEDS_ON` | Button long-press         | (no transition)  | Ramps `g_userLevel`; mist + LEDs follow live |
-| any state where level dims past 8 | (auto)              | `IDLE_LEDS_OFF`  | Avoids "stuck dim" — user can re-engage     |
+| From state                  | Event                              | To state                  | Notes                                                                                  |
+|-----------------------------|------------------------------------|---------------------------|----------------------------------------------------------------------------------------|
+| `IDLE_LEDS_OFF`             | Container inserted (reed 500 ms)   | `RUNNING`                 | Mist + LEDs ramp up; BREATH→WAVE crossfade (1.1 s)                                     |
+| `IDLE_LEDS_OFF`             | Button short-press (no container)  | `IDLE_LEDS_ON`            | Deep-dim BREATH fades in (~1.3 s)                                                      |
+| `IDLE_LEDS_ON`              | Container inserted (reed 500 ms)   | `RUNNING`                 | BREATH→WAVE crossfade — dim breath dissolves into slow swell                           |
+| `IDLE_LEDS_ON`              | Button short-press                 | `IDLE_LEDS_OFF`           | Breath fades out                                                                       |
+| `RUNNING`                   | Container removed (reed 100 ms)    | `TRANSITION_FROM_RUNNING` | **Mist hard-stops** (safety); wave dims naturally as baseLevel ramps 255→0             |
+| `RUNNING`                   | Button short-press                 | `IDLE_LEDS_OFF`           | Mist hard-stops; LEDs fade out (skips cinematic)                                       |
+| `TRANSITION_FROM_RUNNING`   | Smoother lands at 0                | `IDLE_LEDS_ON`            | Mode→BREATH (WAVE→BREATH crossfade); fast restore (~0.64 s)                            |
+| `TRANSITION_FROM_RUNNING`   | Container re-inserted              | `RUNNING`                 | Crossfade engine takes over mid-fade — clean recovery, no special case                 |
+| `RUNNING` or `IDLE_LEDS_ON` | Button long-press                  | (no transition)           | Ramps `g_userLevel`; mist + LED brightness follow live (wave traverse rate unchanged)  |
+| any state where level dims past 8 | (auto)                       | `IDLE_LEDS_OFF`           | Avoids "stuck dim" — user can re-engage                                                |
 
 ### One level to rule them all
 
 `g_userLevel` (0..255) is the user-set "intensity". It controls:
 - **Mist PWM duty** = `(level × MIST_DUTY_MAX) / 255` — level 255 ⇒ 50 % duty (full mist).
-- **LED ring brightness** — base brightness directly, breath modulation layered on top.
+- **LED ring brightness** — scales the entire render (BREATH cap and WAVE base+swell) uniformly.
 
-`g_targetLevel` is what the current state wants the level to be (0 for IDLE_LEDS_OFF, `g_userLevel` otherwise). `g_currentLevel` is exponentially smoothed toward target each tick — that's the actual value applied to mist + LEDs. Both move together, fading luxuriously on state changes.
+`g_targetLevel` is what the current state wants the level to be (0 for IDLE_LEDS_OFF / TRANSITION_FROM_RUNNING, `g_userLevel` otherwise). `g_currentLevel` is smoothed toward target each tick in deliberately tiny steps so the fade reads as continuous, not stepped. Both mist and LEDs move together.
 
 ### Lift-off is a SAFETY event
 
@@ -91,16 +94,13 @@ On boot you'll see the banner, the resolved pin map, and the command list. Every
 | `help` | Print this list |
 | `1` / `0` / `t` | Mist on / off / toggle (requires container for on) |
 | `vN` | Set `g_userLevel` directly, 0..255 (e.g. `v180`) |
-| `a0` / `a1` | LED breathing animation off / on |
-| `dN` | LED breath depth, 0..64 (default 16 ≈ ±6 % subtle) |
-| `pN` | LED breath period in ms, 1000..20000 (default 4000) |
 | `w` | Run `ledWalk` (lights LEDs 0..13 in sequence — blocks ~14 s) |
 | `k` | (Phase B placeholder) recalibrate current-sense baseline |
 | `s` | Toggle current-sense scope mode |
 | `r` | Dump reed state — raw (LOW=magnet present, HIGH=open) and debounced |
 | `m` | Mute / unmute the periodic `[PLOT]` stream |
 
-The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(lednum, pwm, 0)` — `lednum` 8..15 are CB1 (top row, LEDs 1..8) and 24..29 are CB2 (bottom row, LEDs 9..14), per IS31FL3731 datasheet Rev F Table 7. Breath modulation uses a 64-entry sine LUT with linear interpolation, then a 256-entry 2.2 gamma table — smooth and FPU-free.
+The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(lednum, pwm, 0)` — `lednum` 8..15 are CB1 (top row, LEDs 1..8) and 24..29 are CB2 (bottom row, LEDs 9..14), per IS31FL3731 datasheet Rev F Table 7. BREATH uses a 64-entry exp(sin) curve LUT (asymmetric — lingers at black on the exhale for a dramatic dim-idle); WAVE uses a 64-entry gaussian LUT for the swell shape (σ=4 LEDs, so the bump occupies ~⅓ of the strip at any moment). Both are linear-interpolated for sub-quantum smoothness and pass through a 256-entry 2.2 gamma table — smooth and FPU-free. Mode swaps run a 1.1 s linear crossfade in pre-gamma space.
 
 ## Bring-up checklist
 

@@ -1,38 +1,46 @@
 // Block Kit V0.1 — bring-up firmware (Phase A).
 //
 // Phase A scope: mist control + reed switch (magnetic-on UX) + button override
-// + dual-mode LED effects (breath / vertical chase) + D7 dim indicator +
-// scope-mode current logging. The water-level classifier (Phase B) is
-// intentionally NOT in this build.
+// + dual-mode LED effects (deep-dim breath / soft gaussian swell wave) + D7
+// dim indicator + scope-mode current logging. The water-level classifier
+// (Phase B) is intentionally NOT in this build.
 //
 // State machine — four states, all centralized here:
 //
 //   IDLE_LEDS_OFF           — muted: LEDs dark. Reached only via short-press.
 //   IDLE_LEDS_ON            — DEFAULT idle: container undocked, LED strip
-//                             doing a soft uniform breath at user level.
+//                             holding a *very dim, dramatic* exp(sin) breath
+//                             — the exhale lingers at full black for a beat.
 //                             Boot lands here.
-//   RUNNING                 — container docked, mist active. LED strip fades
-//                             up in BREATH mode, then switches to SWIRL
-//                             (rising vertical chase) at peak brightness.
+//   RUNNING                 — container docked, mist active. LED strip runs
+//                             the WAVE animation: every LED always lit at a
+//                             baseline, plus a single slow gaussian swell
+//                             traveling bottom→top. The BREATH→WAVE swap
+//                             on docking is a 1.1 s crossfade — no snap.
 //   TRANSITION_FROM_RUNNING — container just lifted: mist hard-stopped,
-//                             swirl decelerates + dims to 0, then auto-enters
-//                             IDLE_LEDS_ON with a fast breath fade-up. The
-//                             full cinematic is ~1 s. Re-docking during the
-//                             transition cleanly re-enters RUNNING.
+//                             wave dims to 0 (mode stays WAVE during the dim
+//                             so it reads as continuous), then auto-enters
+//                             IDLE_LEDS_ON which kicks off the WAVE→BREATH
+//                             crossfade as the breath fades back in. Re-
+//                             docking during this transition cleanly re-
+//                             enters RUNNING.
 //
 // One `g_userLevel` variable (0..255) drives both mist PWM duty and LED
 // brightness scale. Mist duty = (level * MIST_DUTY_MAX) / 255 so level=255
 // means 50% duty (full mist). `g_targetLevel` is what each state wants the
-// level to be; `smoothLevel()` ramps `g_currentLevel` toward target so every
-// transition fades luxuriously instead of snapping.
+// level to be; `smoothLevel()` ramps `g_currentLevel` toward target with
+// step=2 per 10 ms tick (~1.3 s 0→255) so every fade feels continuous, not
+// stepped — addressing the prior "snappy" complaint.
 //
 // Container lift is a SAFETY event: mist hard-stops the moment the reed
 // opens (mistHardStop), while the LED smoother continues the visual fade.
 // Everything else uses the smooth path.
 //
-// The LED ring is a 14-LED vertical strip (top=LED 1, bottom=LED 14). All
-// strip animation logic lives in led_driver.ino; this file just flips the
-// mode via ledSetMode() at the right state transitions.
+// The LED ring is a 14-LED vertical strip on an IS31FL3731 driver (Matrix
+// B, top=LED 1, bottom=LED 14). All strip animation + per-mode crossfade
+// logic lives in led_driver.ino; this file just flips the mode via
+// ledSetMode() at the right state transitions and the LED driver handles
+// the rest.
 
 #include <Wire.h>
 #include "pins.h"
@@ -44,9 +52,7 @@ void containerInit(); bool containerIsPresent(); bool containerRawPresent();
 ContainerEvent containerPoll();
 void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledRender(uint8_t); void ledAllOff(); void ledWalk();
-void ledSetBreathEnabled(bool); void ledSetBreathPeriodMs(uint16_t);
-void ledSetBreathDepth(uint8_t);
-void ledSetMode(LedMode); void ledSetSwirlFading(bool);
+void ledSetMode(LedMode);
 void statusLedInit(); void statusLedSet(bool);
 void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
@@ -62,15 +68,10 @@ static int8_t   g_dimDir          = -1;              // -1 = next long-press dim
 static uint32_t g_lastSmoothMs    = 0;
 static uint32_t g_lastRampMs      = 0;
 static uint32_t g_lastStatMs      = 0;
-// Pending swirl-engage flag: when entering RUNNING we hold the LED in BREATH
-// mode and let the smoother fade up to target. Once it lands, the smoother
-// flips to SWIRL — that's how "smoothly brighten up to max, AND THEN start
-// swirling" reads as sequential rather than simultaneous.
-static bool     g_pendingSwirl    = false;
 // One-shot flag: use the fast STEP_UP for the next 0→target ramp. Set when
-// entering IDLE_LEDS_ON from TRANSITION_FROM_RUNNING so the breath restore is
-// snappy (~425 ms) instead of luxurious (~850 ms). Cleared automatically when
-// the smoother reaches target.
+// entering IDLE_LEDS_ON from TRANSITION_FROM_RUNNING so the breath restore
+// after a container lift feels brisk (~640 ms) rather than luxurious (~1.3 s).
+// Cleared automatically once the smoother reaches target.
 static bool     g_fastFadeUp      = false;
 
 static void enterIdleLedsOff();
@@ -97,28 +98,30 @@ static void enterIdleLedsOff() {
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE_LEDS_OFF;
   g_targetLevel = 0;
-  g_pendingSwirl = false;
   g_fastFadeUp = false;
-  ledSetMode(LedMode::BREATH);             // strip dark via baseLevel=0; mode irrelevant
-  ledSetSwirlFading(false);
+  // Force a snap to BREATH so the next IDLE_LEDS_ON entry doesn't trigger a
+  // BREATH-to-BREATH "crossfade" (no-op anyway). Strip is dark at baseLevel=0
+  // so mode is invisible during this state.
+  ledSetMode(LedMode::BREATH);
   if (leavingMist) mistEnable(false);      // hard-stop + inhibit
   Serial.println("[APP] -> IDLE_LEDS_OFF");
 }
 
 static void enterIdleLedsOn() {
   // Special wiring: when called from TRANSITION_FROM_RUNNING, the breath
-  // restore should be faster than the normal luxurious 850 ms fade — capture
-  // that BEFORE the idempotency check so the flag flips even if we somehow
-  // call it twice in the same frame.
+  // restore uses a faster smoother step — capture that BEFORE the
+  // idempotency check so the flag flips even if we somehow call it twice
+  // in the same frame.
   const bool fromTransition = (g_state == AppState::TRANSITION_FROM_RUNNING);
   if (g_state == AppState::IDLE_LEDS_ON) return;
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE_LEDS_ON;
   g_targetLevel = g_userLevel;
-  g_pendingSwirl = false;
   g_fastFadeUp = fromTransition;
+  // BREATH triggers the WAVE→BREATH crossfade in led_driver when coming
+  // from RUNNING / TRANSITION; from IDLE_LEDS_OFF it's a no-op (already
+  // BREATH). led_driver collapses no-op mode changes for us.
   ledSetMode(LedMode::BREATH);
-  ledSetSwirlFading(false);
   if (leavingMist) mistEnable(false);
   Serial.println("[APP] -> IDLE_LEDS_ON");
 }
@@ -127,12 +130,13 @@ static void enterRunning() {
   if (g_state == AppState::RUNNING) return;
   g_state = AppState::RUNNING;
   g_targetLevel = g_userLevel;
-  // Stay in BREATH while we fade up — the smoother flips us to SWIRL once
-  // g_currentLevel reaches g_targetLevel. This makes "brighten up to max
-  // AND THEN start swirling" sequential rather than simultaneous.
-  ledSetMode(LedMode::BREATH);
-  ledSetSwirlFading(false);
-  g_pendingSwirl = true;
+  // Mode flip directly to WAVE — led_driver runs an automatic 1.1 s
+  // crossfade from whatever the previous mode was (BREATH in idle, or
+  // WAVE-still-fading if we re-dock mid-transition). The old design used a
+  // `g_pendingSwirl` flag to delay the mode flip until after the smoother
+  // landed at target; that produced a visible "fade up then snap to chase"
+  // moment — the specific complaint we're fixing here.
+  ledSetMode(LedMode::WAVE);
   g_fastFadeUp = false;
   mistEnable(true);                        // re-arm the mist path
   Serial.println("[APP] -> RUNNING");
@@ -142,10 +146,10 @@ static void enterTransitionFromRunning() {
   if (g_state == AppState::TRANSITION_FROM_RUNNING) return;
   g_state = AppState::TRANSITION_FROM_RUNNING;
   g_targetLevel = 0;
-  // Mode stays whatever it was (SWIRL if we hit peak, BREATH if removal
-  // happened mid-ramp). Swirl decelerates with baseLevel during the fade.
-  ledSetSwirlFading(true);
-  g_pendingSwirl = false;
+  // Mode STAYS as WAVE — the wave naturally dims to black as baseLevel
+  // ramps 255→0 (it scales the whole render uniformly). When the smoother
+  // lands at 0 it auto-enters IDLE_LEDS_ON which kicks off the WAVE→BREATH
+  // crossfade for the restore.
   g_fastFadeUp = false;
   mistEnable(false);                       // hard-stop + inhibit
   Serial.println("[APP] -> TRANSITION_FROM_RUNNING");
@@ -153,16 +157,17 @@ static void enterTransitionFromRunning() {
 
 // ----------------------------------------------------------------------
 // Level smoother — runs every LEVEL_SMOOTH_TICK_MS, advances g_currentLevel
-// toward g_targetLevel. Tuned for ~850 ms 0→255 ramp normally; ~425 ms when
-// g_fastFadeUp is set (one-shot, used to make the post-removal breath
-// restore feel snappy).
+// toward g_targetLevel. Tuned for ~1.3 s 0→255 ramp normally (step 2 per
+// 10 ms — tiny enough that the eye reads it as a continuous slide, not a
+// staircase); ~0.85 s 255→0; ~0.64 s when g_fastFadeUp is set (one-shot,
+// used to make the post-removal breath restore feel brisk).
 //
-// Two state-machine side effects fire here, both when the smoother lands
-// on target:
-//   * If state == RUNNING and g_pendingSwirl, flip LED mode to SWIRL. This
-//     is what makes "fade up, THEN start swirling" sequential.
-//   * If state == TRANSITION_FROM_RUNNING and target == 0, the swirl-fade
-//     just finished; auto-enter IDLE_LEDS_ON so the breath fades back in.
+// One state-machine side effect fires here: when the smoother lands on 0
+// while in TRANSITION_FROM_RUNNING, auto-enter IDLE_LEDS_ON to kick off the
+// WAVE→BREATH crossfade as the breath fades back in. The RUNNING-side
+// "fade up then engage swirl" two-step from the prior design is gone —
+// led_driver crossfades BREATH↔WAVE directly the moment ledSetMode is
+// called, so the smoother no longer drives mode changes.
 // ----------------------------------------------------------------------
 static void smoothLevel() {
   const uint32_t now = millis();
@@ -180,14 +185,10 @@ static void smoothLevel() {
 
   if (g_currentLevel != g_targetLevel) return;
 
-  // Landed on target. Resolve any pending state-machine side effects.
+  // Landed on target.
   g_fastFadeUp = false;
-  if (g_state == AppState::RUNNING && g_pendingSwirl) {
-    ledSetMode(LedMode::SWIRL);
-    g_pendingSwirl = false;
-    Serial.println("[APP] swirl engaged");
-  } else if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
-    enterIdleLedsOn();                     // fast breath fade-up
+  if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
+    enterIdleLedsOn();                     // kicks off WAVE→BREATH crossfade
   }
 }
 
@@ -230,9 +231,6 @@ static void printHelp() {
   Serial.println(F("  help          - print this list"));
   Serial.println(F("  1 / 0 / t     - mist on / off / toggle (requires container)"));
   Serial.println(F("  vN            - set user level (mist + LED level), 0..255"));
-  Serial.println(F("  a0 / a1       - LED breathing off / on"));
-  Serial.println(F("  dN            - LED breath depth (0..64), default 16"));
-  Serial.println(F("  pN            - LED breath period_ms (1000..20000)"));
   Serial.println(F("  w             - run ledWalk (~14 s, blocks)"));
   Serial.println(F("  k             - recalibrate baseline (Phase B)"));
   Serial.println(F("  s             - toggle current-sense scope mode"));
@@ -294,25 +292,6 @@ static void handleCommand(const char* cmd, uint8_t len) {
         Serial.print(v);
         Serial.println(" (stored; applies on next wake)");
       }
-      return;
-    }
-    case 'a': {
-      const long v = parseTail(cmd, len);
-      if (v == 0)      { ledSetBreathEnabled(false); Serial.println("[LED] breath off"); }
-      else if (v == 1) { ledSetBreathEnabled(true);  Serial.println("[LED] breath on");  }
-      else Serial.println("[CMD] use a0 or a1");
-      return;
-    }
-    case 'd': {
-      const long v = parseTail(cmd, len);
-      if (v >= 0 && v <= 64) { ledSetBreathDepth(uint8_t(v)); Serial.print("[LED] depth="); Serial.println(v); }
-      else Serial.println("[CMD] d: 0..64");
-      return;
-    }
-    case 'p': {
-      const long v = parseTail(cmd, len);
-      if (v >= 1000 && v <= 20000) { ledSetBreathPeriodMs(uint16_t(v)); Serial.print("[LED] period_ms="); Serial.println(v); }
-      else Serial.println("[CMD] p: 1000..20000");
       return;
     }
     case 'w': ledWalk(); return;
