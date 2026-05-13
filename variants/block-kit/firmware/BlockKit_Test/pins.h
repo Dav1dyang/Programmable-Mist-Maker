@@ -4,44 +4,59 @@
 #pragma once
 #include <Arduino.h>
 
-// ---------- Board portability shim ----------
-// The Block Kit V0.1 PCB physically only mates with a XIAO socket, but we keep
-// the sketch buildable on other ESP32 dev boards (e.g. Adafruit QT Py ESP32-S3)
-// so cross-compilation / porting work doesn't require gutting the pin map.
+// ---------- GPIO assignments ----------
 //
-// CRITICAL: XIAO platform headers declare `D0..D10` as C++ constants
-// (`static const uint8_t D0 = 0;`), NOT preprocessor `#define`s. The C
-// preprocessor cannot see C++ constants, so `#if !defined(D0)` is ALWAYS
-// true and a naive guard would clobber the XIAO pin map. Guard on the
-// board-variant ARDUINO_xxx macro (defined by the Arduino IDE / arduino-cli
-// from boards.txt) instead.
-#if !defined(ARDUINO_XIAO_ESP32C6) && !defined(ARDUINO_XIAO_ESP32S3) && \
-    !defined(ARDUINO_XIAO_ESP32S3_PLUS)
-  // Fallback for boards without XIAO-style Dx labels (e.g. Adafruit QT Py
-  // ESP32-S3). These GPIOs are NOT the real Block Kit pinout — they only
-  // ensure the sketch builds and pinMode/digitalRead/ledcAttach resolve.
-  #ifndef D0
-    #define D0  5    // TX  — mist PWM
-    #define D1  16   // RX  — (unused on Block Kit firmware)
-    #define D2  18   // A0  — INA180 ADC
-    #define D3  8    // A3  — boost EN
-    #define D4  SDA  // board default SDA
-    #define D5  SCL  // board default SCL
-    #define D6  9    // A2  — button
-    #define D7  17   // A1  — status LED
-    #define D8  35   // MOSI — spare
-    #define D9  37   // MISO — spare
-    #define D10 36   // SCK  — reed
-  #endif
-#endif
+// The Block Kit V0.1 PCB physically only mates with a XIAO socket. The XIAO
+// platform headers already expose D0..D10 as C++ constants that match the
+// silkscreened pin labels, so on XIAO boards we just use those directly —
+// no preprocessor remapping, nothing for the C preprocessor to get wrong.
+//
+// For non-XIAO ESP32 dev boards (Adafruit QT Py family) we keep the sketch
+// buildable as a porting / "does it compile" target, by picking GPIOs from
+// labels (A0..A3, TX, RX) that those board variants do expose. The Block
+// Kit PCB itself does not mate with these boards — the firmware will run,
+// but won't drive any real hardware.
+//
+// Any other board → #error so silent miswiring (the original V0.1 bug) is
+// impossible.
 
-// ---------- GPIO assignments (XIAO ESP32-C6, Block Kit V0.1 schematic) ----------
-constexpr uint8_t PIN_MIST_PWM     = D0;   // 108.7 kHz PWM to MOSFET gate driver
-constexpr uint8_t PIN_REED         = D10;  // Reed switch, INPUT_PULLUP, LOW = container present
-constexpr uint8_t PIN_CURRENT_ADC  = D2;   // INA180A3 output via 1k+1uF filter
-constexpr uint8_t PIN_BOOST_EN     = D3;   // TPS61023 enable (HIGH = 5V rail on); also lights red LED2
-constexpr uint8_t PIN_BUTTON       = D6;   // Active-HIGH momentary, 10k pull-down on PCB
-constexpr uint8_t PIN_STATUS_LED   = D7;   // White LED, breathing in idle
+#if defined(ARDUINO_XIAO_ESP32C6) || \
+    defined(ARDUINO_XIAO_ESP32S3) || \
+    defined(ARDUINO_XIAO_ESP32S3_PLUS)
+
+  // ---- XIAO socket form factor — Block Kit V0.1 production target ----
+  // Pin assignments match the Driver PCB schematic exactly. See
+  // variants/block-kit/hardware/README.md for the inter-board wiring map.
+  constexpr uint8_t PIN_MIST_PWM     = D0;   // 108.7 kHz PWM to MOSFET gate
+  constexpr uint8_t PIN_REED         = D10;  // Reed switch (INPUT_PULLUP), LOW=docked
+  constexpr uint8_t PIN_CURRENT_ADC  = D2;   // INA180A3 via 1k+1uF filter
+  constexpr uint8_t PIN_BOOST_EN     = D3;   // TPS61023 EN (HIGH = 5V rail on)
+  constexpr uint8_t PIN_BUTTON       = D6;   // Active-HIGH, PCB 10k pull-down
+  constexpr uint8_t PIN_STATUS_LED   = D7;   // White LED, breathing in idle
+
+#elif defined(ARDUINO_ADAFRUIT_QTPY_ESP32S3_NOPSRAM) || \
+      defined(ARDUINO_ADAFRUIT_QTPY_ESP32S3_N4R2)    || \
+      defined(ARDUINO_ADAFRUIT_QTPY_ESP32S2)         || \
+      defined(ARDUINO_ADAFRUIT_QTPY_ESP32C3)         || \
+      defined(ARDUINO_ADAFRUIT_QTPY_ESP32_PICO)
+
+  // ---- Adafruit QT Py family — compile-only target, not real hardware ----
+  // QT Py boards expose A0..A3 + TX/RX/SDA/SCL labels on the silkscreen, but
+  // no XIAO-style D0..D10. The Block Kit PCB does not physically mate with
+  // any QT Py — this block exists so the sketch still builds for porting.
+  // I2C (SDA/SCL) comes from Wire.begin() defaults and isn't pinned here.
+  constexpr uint8_t PIN_MIST_PWM     = TX;   // generic output header pin
+  constexpr uint8_t PIN_REED         = RX;   // generic input header pin
+  constexpr uint8_t PIN_CURRENT_ADC  = A0;   // ADC-capable header pin
+  constexpr uint8_t PIN_BOOST_EN     = A3;
+  constexpr uint8_t PIN_BUTTON       = A2;
+  constexpr uint8_t PIN_STATUS_LED   = A1;
+
+#else
+  #error "Block Kit V0.1 firmware: please select a supported board in Arduino IDE \
+> Tools > Board. Supported: XIAO_ESP32C6 (production), XIAO_ESP32S3, \
+XIAO_ESP32S3_PLUS, or any Adafruit QT Py ESP32 variant (compile-only)."
+#endif
 
 // ---------- Mist PWM ----------
 constexpr uint32_t MIST_FREQ_HZ    = 108700;  // ceramic disc resonance

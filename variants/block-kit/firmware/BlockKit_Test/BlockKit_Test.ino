@@ -240,10 +240,15 @@ void setup() {
   Serial.println();
   Serial.println("[APP] Block Kit V0.1 bring-up (Phase A)");
 
-  // Print the resolved GPIO numbers for the input pins so the user can sanity-check
-  // pin map vs schematic from the serial log alone.
-  Serial.print("[APP] PIN_REED=D10 (GPIO ");   Serial.print(PIN_REED);   Serial.print(") ");
-  Serial.print("PIN_BUTTON=D6 (GPIO ");        Serial.print(PIN_BUTTON); Serial.println(")");
+  // Print every resolved GPIO so the schematic vs board-variant map is visible
+  // in the log — catches "wrong board selected in Arduino IDE" before it eats
+  // an hour of bring-up debugging.
+  Serial.print("[APP] PIN_MIST_PWM=D0 (GPIO ");    Serial.print(PIN_MIST_PWM);    Serial.println(")");
+  Serial.print("[APP] PIN_BOOST_EN=D3 (GPIO ");    Serial.print(PIN_BOOST_EN);    Serial.println(")");
+  Serial.print("[APP] PIN_CURRENT_ADC=D2 (GPIO "); Serial.print(PIN_CURRENT_ADC); Serial.println(")");
+  Serial.print("[APP] PIN_BUTTON=D6 (GPIO ");      Serial.print(PIN_BUTTON);      Serial.println(")");
+  Serial.print("[APP] PIN_STATUS_LED=D7 (GPIO ");  Serial.print(PIN_STATUS_LED);  Serial.println(")");
+  Serial.print("[APP] PIN_REED=D10 (GPIO ");       Serial.print(PIN_REED);        Serial.println(")");
 
   Wire.begin();
 
