@@ -17,9 +17,9 @@ void mistInit(); void mistOn(); void mistOff(); bool mistIsRunning();
 void containerInit(); bool containerIsPresent(); ContainerEvent containerPoll();
 void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledTick(); void ledAllOff(); void ledWalk();
-void ledSetAnimationEnabled(bool); void ledSetOverall(uint8_t);
-void ledSetContrast(uint8_t); void ledSetPeriodMs(uint16_t);
-uint8_t ledGetOverall(); uint8_t ledDimRampStep(int8_t);
+void ledSetAnimationEnabled(bool); void ledSetMax(uint8_t); void ledSetMin(uint8_t);
+void ledSetPeriodMs(uint16_t); void ledSetWavelength(uint8_t);
+uint8_t ledGetMax(); uint8_t ledDimRampStep(int8_t);
 void statusLedInit(); void statusLedSet(bool); void statusLedTick();
 void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
@@ -66,9 +66,10 @@ static void printHelp() {
   Serial.println(F("  help          - print this list"));
   Serial.println(F("  1 / 0 / t     - mist on / off / toggle (requires container)"));
   Serial.println(F("  a0 / a1       - LED swirl off / on"));
-  Serial.println(F("  bN            - LED overall brightness 0..255"));
-  Serial.println(F("  cN            - LED contrast 0..64"));
+  Serial.println(F("  bN            - LED max brightness (wave peak)  0..255"));
+  Serial.println(F("  cN            - LED min brightness (wave floor) 0..255"));
   Serial.println(F("  pN            - LED period_ms 1000..20000"));
+  Serial.println(F("  lN            - LED wavelength (LEDs/cycle) 2..64"));
   Serial.println(F("  w             - run ledWalk (~14 s, blocks)"));
   Serial.println(F("  k             - recalibrate baseline (Phase B)"));
   Serial.println(F("  s             - toggle current-sense scope mode"));
@@ -117,20 +118,26 @@ static void handleCommand(const char* cmd, uint8_t len) {
     }
     case 'b': {
       const long v = parseTail(cmd, len);
-      if (v >= 0 && v <= 255) { ledSetOverall(uint8_t(v)); Serial.print("[LED] overall="); Serial.println(v); }
+      if (v >= 0 && v <= 255) { ledSetMax(uint8_t(v)); Serial.print("[LED] max="); Serial.println(v); }
       else Serial.println("[CMD] b: 0..255");
       return;
     }
     case 'c': {
       const long v = parseTail(cmd, len);
-      if (v >= 0 && v <= 64) { ledSetContrast(uint8_t(v)); Serial.print("[LED] contrast="); Serial.println(v); }
-      else Serial.println("[CMD] c: 0..64");
+      if (v >= 0 && v <= 255) { ledSetMin(uint8_t(v)); Serial.print("[LED] min="); Serial.println(v); }
+      else Serial.println("[CMD] c: 0..255");
       return;
     }
     case 'p': {
       const long v = parseTail(cmd, len);
       if (v >= 1000 && v <= 20000) { ledSetPeriodMs(uint16_t(v)); Serial.print("[LED] period_ms="); Serial.println(v); }
       else Serial.println("[CMD] p: 1000..20000");
+      return;
+    }
+    case 'l': {
+      const long v = parseTail(cmd, len);
+      if (v >= 2 && v <= 64) { ledSetWavelength(uint8_t(v)); Serial.print("[LED] wavelength="); Serial.println(v); }
+      else Serial.println("[CMD] l: 2..64");
       return;
     }
     case 'w': ledWalk(); return;
@@ -196,7 +203,8 @@ static void onButtonEvent(ButtonEvent ev) {
       g_lastDimMs = now;
       const uint8_t v = ledDimRampStep(g_dimDir);
       if (g_dimDir < 0 && v <= LED_DIM_OFF_THRESHOLD) {
-        ledSetOverall(0);  // snap to off, mist stays on
+        ledSetMax(0);    // snap to off, mist stays on
+        ledSetMin(0);
       }
       return;
     }

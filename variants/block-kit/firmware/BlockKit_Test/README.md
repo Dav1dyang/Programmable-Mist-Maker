@@ -53,12 +53,15 @@ The single `[PLOT] mean_mA,var_mA2,state` CSV line at 20 Hz is what the Arduino 
 | `0` | Mist off |
 | `t` | Toggle mist |
 | `a0` / `a1` | LED swirl animation off / on |
-| `bN` | LED overall brightness, `0..255` (e.g. `b80`) |
-| `cN` | LED contrast (wave amplitude), `0..64` |
+| `bN` | LED **max** brightness — peak of the wave, `0..255` (e.g. `b200`) |
+| `cN` | LED **min** brightness — trough of the wave, `0..255` (e.g. `c12`) |
 | `pN` | LED swirl period in ms, `1000..20000` |
+| `lN` | LED wavelength in LEDs per cycle, `2..64` (default 18 = gentle breath) |
 | `w` | Run `ledWalk` (lights LEDs 0..13 in sequence — blocks ~14 s) |
 | `k` | (Phase B placeholder) recalibrate current-sense baseline |
 | `s` | Toggle current-sense scope mode |
+
+The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(lednum, …)` — `lednum` 8..15 are CB1 (top row, LEDs 1..8) and 24..29 are CB2 (bottom row, LEDs 9..14), per IS31FL3731 datasheet Rev F Table 7. The wave shape comes from a 64-entry integer sine LUT followed by a 256-entry gamma 2.2 LUT for perceptual smoothness.
 
 ## Bring-up checklist
 

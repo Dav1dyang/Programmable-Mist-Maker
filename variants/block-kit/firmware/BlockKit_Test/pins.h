@@ -64,24 +64,33 @@ constexpr uint16_t REED_INSERT_DWELL_MS  = 500;     // require stable LOW for 50
 constexpr uint16_t REED_REMOVE_DWELL_MS  = 100;     // faster removal so shut-off isn't sluggish
 
 // ---------- IS31FL3731 swirl animation ----------
+//
+// The 14 populated LEDs sit on Matrix B of the IS31FL3731 (CB1.C1-9..C1-16 and
+// CB2.C2-9..C2-14 per the datasheet). We address them directly through
+// setLEDPWM(lednum, …) rather than the drawPixel(x,y,…) GFX interface, because
+// drawPixel hits Matrix A by default and the unpopulated side won't light.
+//
+// LED numbering reference (IS31FL3731 datasheet Rev F, Table 7):
+//   CB1.C1-9..C1-16  -> lednum 8..15
+//   CB2.C2-9..C2-14  -> lednum 24..29
 constexpr uint8_t  LED_COUNT          = 14;
 constexpr uint8_t  LED_IS31_ADDR      = 0x74;
-constexpr uint8_t  LED_DEFAULT_OVERALL  = 60;       // resting brightness 0..255
-constexpr uint8_t  LED_DEFAULT_CONTRAST = 12;       // wave amplitude 0..64
-constexpr uint16_t LED_DEFAULT_PERIOD_MS = 6000;    // wave period
-constexpr uint16_t LED_TICK_MS        = 30;         // ~33 fps
+constexpr uint8_t  LED_IS31_FRAME     = 0;          // begin() activates frame 0
+constexpr uint8_t  LED_DEFAULT_MAX    = 200;        // peak brightness 0..255 (pre-gamma)
+constexpr uint8_t  LED_DEFAULT_MIN    = 12;         // trough brightness 0..255 (pre-gamma)
+constexpr uint16_t LED_DEFAULT_PERIOD_MS = 4000;    // wave period
+constexpr uint8_t  LED_DEFAULT_WAVELEN = 18;        // LEDs per spatial cycle
+constexpr uint16_t LED_TICK_MS        = 20;         // 50 fps
 constexpr uint16_t LED_DIM_RAMP_TICK_MS = 13;       // long-press LED dim step rate
-constexpr uint8_t  LED_DIM_STEP        = 1;         // overall delta per dim tick
-constexpr uint8_t  LED_DIM_OFF_THRESHOLD = 8;       // overall <= this clamps to 0
+constexpr uint8_t  LED_DIM_STEP        = 1;         // brightness delta per dim tick
+constexpr uint8_t  LED_DIM_OFF_THRESHOLD = 8;       // max <= this snaps to 0
 
-// 14-LED (x,y) positions on the IS31FL3731 Matrix B frame buffer.
-// First guess from the schematic's CB1..CB9 wiring; verify with `ledWalk()`
-// (Serial command `w`) at bring-up and reorder so index 0 = top, 13 = bottom.
-constexpr uint8_t LED_POSITIONS[LED_COUNT][2] = {
-  // Row 1 (CB1 anode -> CB2..CB9 cathodes): 8 LEDs
-  {0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0}, {7, 0},
-  // Row 2 (CB2 anode -> CB3..CB8 cathodes): 6 LEDs
-  {0, 1}, {1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1},
+// 14 LED numbers on Matrix B of the IS31FL3731, top-to-bottom.
+// Index 0 = top of column (LED 1 silkscreen), index 13 = bottom (LED 14).
+// Verify with `ledWalk()` (Serial command `w`) at bring-up and reorder if needed.
+constexpr uint8_t LED_MAP[LED_COUNT] = {
+   8,  9, 10, 11, 12, 13, 14, 15,   // CB1 row: top, LEDs 1..8
+  24, 25, 26, 27, 28, 29,           // CB2 row: LEDs 9..14 (bottom)
 };
 
 // ---------- Serial ----------
