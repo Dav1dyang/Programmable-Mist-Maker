@@ -8,23 +8,31 @@
 // The Block Kit V0.1 PCB physically only mates with a XIAO socket, but we keep
 // the sketch buildable on other ESP32 dev boards (e.g. Adafruit QT Py ESP32-S3)
 // so cross-compilation / porting work doesn't require gutting the pin map.
-// If the board variant doesn't define the XIAO-style `Dx` labels, fall back to
-// safe per-board GPIO numbers. These fallbacks are NOT the real Block Kit
-// pinout — they only ensure `pinMode`/`digitalRead`/`ledcAttach` calls resolve.
-#if !defined(D0)
-  // QT Py ESP32-S3 has TX=5, RX=16, SDA=7, SCL=6, A0=18, A1=17, A2=9, A3=8.
-  // We pick GPIOs that don't conflict with the I2C bus the IS31FL3731 needs.
-  #define D0  5    // TX  — mist PWM
-  #define D1  16   // RX  — (unused on Block Kit firmware)
-  #define D2  18   // A0  — INA180 ADC
-  #define D3  8    // A3  — boost EN
-  #define D4  SDA  // board default SDA
-  #define D5  SCL  // board default SCL
-  #define D6  9    // A2  — button
-  #define D7  17   // A1  — status LED
-  #define D8  35   // MOSI — spare
-  #define D9  37   // MISO — spare
-  #define D10 36   // SCK  — reed
+//
+// CRITICAL: XIAO platform headers declare `D0..D10` as C++ constants
+// (`static const uint8_t D0 = 0;`), NOT preprocessor `#define`s. The C
+// preprocessor cannot see C++ constants, so `#if !defined(D0)` is ALWAYS
+// true and a naive guard would clobber the XIAO pin map. Guard on the
+// board-variant ARDUINO_xxx macro (defined by the Arduino IDE / arduino-cli
+// from boards.txt) instead.
+#if !defined(ARDUINO_XIAO_ESP32C6) && !defined(ARDUINO_XIAO_ESP32S3) && \
+    !defined(ARDUINO_XIAO_ESP32S3_PLUS)
+  // Fallback for boards without XIAO-style Dx labels (e.g. Adafruit QT Py
+  // ESP32-S3). These GPIOs are NOT the real Block Kit pinout — they only
+  // ensure the sketch builds and pinMode/digitalRead/ledcAttach resolve.
+  #ifndef D0
+    #define D0  5    // TX  — mist PWM
+    #define D1  16   // RX  — (unused on Block Kit firmware)
+    #define D2  18   // A0  — INA180 ADC
+    #define D3  8    // A3  — boost EN
+    #define D4  SDA  // board default SDA
+    #define D5  SCL  // board default SCL
+    #define D6  9    // A2  — button
+    #define D7  17   // A1  — status LED
+    #define D8  35   // MOSI — spare
+    #define D9  37   // MISO — spare
+    #define D10 36   // SCK  — reed
+  #endif
 #endif
 
 // ---------- GPIO assignments (XIAO ESP32-C6, Block Kit V0.1 schematic) ----------

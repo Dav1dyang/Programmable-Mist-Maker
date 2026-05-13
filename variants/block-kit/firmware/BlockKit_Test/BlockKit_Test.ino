@@ -24,6 +24,7 @@ uint8_t ledGetMax(); uint8_t ledDimRampStep(int8_t);
 void statusLedInit(); void statusLedSet(bool); void statusLedTick();
 void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
+void currentSenseTogglePlotMute();
 float currentMeanMa(); float currentVarMa2();
 
 // ---- App-level state ----
@@ -76,6 +77,7 @@ static void printHelp() {
   Serial.println(F("  k             - recalibrate baseline (Phase B)"));
   Serial.println(F("  s             - toggle current-sense scope mode"));
   Serial.println(F("  r             - dump reed state (raw + debounced)"));
+  Serial.println(F("  m             - mute / unmute the [PLOT] stream"));
 }
 
 // Parse the numeric tail after the command letter (e.g. "b80" -> 80). Returns
@@ -155,6 +157,7 @@ static void handleCommand(const char* cmd, uint8_t len) {
       Serial.println(containerIsPresent() ? "1(present)" : "0(absent)");
       return;
     }
+    case 'm': currentSenseTogglePlotMute(); return;
     default:
       Serial.print("[CMD] unknown: ");
       Serial.write(cmd, len);

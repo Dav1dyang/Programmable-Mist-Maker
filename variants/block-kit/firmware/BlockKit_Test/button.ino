@@ -22,10 +22,6 @@ void buttonInit() {
 }
 
 ButtonEvent buttonPoll() {
-  // Defensive re-apply of pinMode every poll. Same rationale as the reed —
-  // downstream peripheral inits on XIAO ESP32-C6 have been observed to leave
-  // D6 floating without the configured pull-down active. ~1 µs overhead.
-  pinMode(PIN_BUTTON, INPUT_PULLDOWN);
   const bool raw = (digitalRead(PIN_BUTTON) == HIGH);
   const uint32_t now = millis();
 

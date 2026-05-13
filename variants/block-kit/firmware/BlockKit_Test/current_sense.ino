@@ -16,6 +16,7 @@ static uint16_t g_filled     = 0;    // count of samples seen, capped at N
 
 static uint32_t g_lastSampleUs   = 0;
 static bool     g_scopeMode      = false;
+static bool     g_plotMuted      = false;
 static uint32_t g_lastScopeUs    = 0;
 static uint32_t g_lastPlotMs     = 0;
 
@@ -93,6 +94,7 @@ void currentSenseTick() {
 // `state` is the AppState as int so the plotter shows a state trace too.
 void currentSenseLogPlot(uint8_t stateInt) {
   if (g_scopeMode) return;  // scope mode owns the [PLOT] stream
+  if (g_plotMuted)  return; // user has muted the periodic plot (Serial cmd `m`)
   const uint32_t now = millis();
   if (now - g_lastPlotMs < (1000u / PLOT_PRINT_HZ)) return;
   g_lastPlotMs = now;
@@ -108,4 +110,10 @@ void currentSenseToggleScope() {
   g_scopeMode = !g_scopeMode;
   Serial.print("[CUR] scope mode ");
   Serial.println(g_scopeMode ? "ON" : "OFF");
+}
+
+void currentSenseTogglePlotMute() {
+  g_plotMuted = !g_plotMuted;
+  Serial.print("[CUR] plot mute ");
+  Serial.println(g_plotMuted ? "ON (no [PLOT] until you send `m` again)" : "OFF");
 }

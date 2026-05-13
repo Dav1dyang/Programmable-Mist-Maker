@@ -27,25 +27,15 @@ bool containerIsPresent() {
   return g_containerPresent;
 }
 
-// Re-apply pinMode every poll. On XIAO ESP32-C6 with arduino-esp32 v3.x,
-// downstream peripheral inits (Wire, LEDC, IS31FL3731) can leave GPIO 18 in a
-// state where the internal pull-up isn't asserted — observed empirically when
-// the same pin reads correctly under a minimal sketch. Calling pinMode in the
-// hot loop costs ~1 µs and is bulletproof against anything quietly clobbering
-// the pin between polls. Repeat for the button.
-static inline void reedAssert() { pinMode(PIN_REED, INPUT_PULLUP); }
-
 // Returns the raw reed read on this call (LOW = magnet present).
 // Useful for the `r` Serial command — bypasses debounce for instant feedback.
 bool containerRawPresent() {
-  reedAssert();
   return (digitalRead(PIN_REED) == LOW);
 }
 
 // Poll the reed once. Returns Inserted/Removed on a confirmed debounced edge,
 // or None otherwise. Call from the main loop every iteration.
 ContainerEvent containerPoll() {
-  reedAssert();
   const bool raw = (digitalRead(PIN_REED) == LOW);
   const uint32_t now = millis();
 

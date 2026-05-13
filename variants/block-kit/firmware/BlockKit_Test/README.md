@@ -61,6 +61,7 @@ The single `[PLOT] mean_mA,var_mA2,state` CSV line at 20 Hz is what the Arduino 
 | `k` | (Phase B placeholder) recalibrate current-sense baseline |
 | `s` | Toggle current-sense scope mode |
 | `r` | Dump reed state — raw (LOW=magnet present, HIGH=open) and debounced |
+| `m` | Mute / unmute the periodic `[PLOT]` stream (useful while reading other log lines) |
 
 The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(lednum, …)` — `lednum` 8..15 are CB1 (top row, LEDs 1..8) and 24..29 are CB2 (bottom row, LEDs 9..14), per IS31FL3731 datasheet Rev F Table 7. The wave shape comes from a 64-entry integer sine LUT followed by a 256-entry gamma 2.2 LUT for perceptual smoothness.
 
