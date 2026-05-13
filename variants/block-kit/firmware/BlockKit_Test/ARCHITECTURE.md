@@ -41,37 +41,38 @@ Mist drive: 108.7 kHz / 0–50 % PWM into a piezo disc. Container has a magnet t
 ## State Machine
 
 ```
-                     ┌─────────────────────┐
-                     │ IDLE_LEDS_ON (boot) │
-                     │ strip = BREATH      │
-                     │ uniform soft pulse  │
-                     └────┬────────────────┘
+                     ┌─────────────────────────────┐
+                     │ IDLE_LEDS_ON (boot default) │
+                     │ strip: dim breath, 10..45 % │
+                     │ very dim & dramatic, 6.5 s  │
+                     └────┬────────────────────────┘
                           │ short-press ▲ / ▼ short-press
-                     ┌────▼────────────────┐
-                     │ IDLE_LEDS_OFF       │
-                     │ strip dark          │
-                     └─────────────────────┘
+                     ┌────▼─────────────────┐
+                     │ IDLE_LEDS_OFF        │
+                     │ strip dark           │
+                     └──────────────────────┘
 
   IDLE_LEDS_ON / IDLE_LEDS_OFF
-        │ container docked (500 ms dwell)
+        │ container docked (500 ms reed dwell)
         ▼
-  ┌─────────────────────────────────────────┐
-  │ RUNNING                                 │
-  │   1) strip = BREATH while fading up     │
-  │   2) at peak, strip = SWIRL (rising ↑)  │
-  │   mist on, D7 off                       │
-  └─────┬───────────────────────────────────┘
-        │ container removed
-        ▼
-  ┌─────────────────────────────────────────┐
-  │ TRANSITION_FROM_RUNNING                 │
-  │   mist hard-stopped                     │
-  │   swirl decelerates & dims (~640 ms)    │
-  │   auto-enters IDLE_LEDS_ON →            │
-  │   fast breath fade-up (~425 ms)         │
-  └─────┬───────────────────────────────────┘
-        │ smoother reaches 0
-        ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │ RUNNING                                                    │
+  │   wave activation crossfades 0 → full over ~3 s:           │
+  │   center brightness rises, breath fades out, slow drifting │
+  │   wave fades in (single continuous motion — no mode flip)  │
+  │   wave: one broad swell, bottom→top, 4.5 s per traversal   │
+  │   mist on, D7 off                                          │
+  └────┬───────────────────────────────────────────────────────┘
+       │ container removed
+       ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │ TRANSITION_FROM_RUNNING                                    │
+  │   mist hard-stopped                                        │
+  │   envelope dims to 0 (~640 ms) preserving the wave shape   │
+  │   auto-enters IDLE_LEDS_ON with fast breath restore (~425 ms) │
+  └────┬───────────────────────────────────────────────────────┘
+       │ base16 reaches 0
+       ▼
        IDLE_LEDS_ON  (cinematic total ≈ 1 s)
 ```
 
@@ -80,53 +81,73 @@ Re-docking during `TRANSITION_FROM_RUNNING` cleanly re-enters `RUNNING`.
 
 | From → To | Trigger | Effect |
 |---|---|---|
-| IDLE → RUNNING | reed Inserted (500 ms dwell) **or** button short-press + container docked | mist on, strip fades up in BREATH, **then** flips to SWIRL at peak |
-| RUNNING → TRANSITION_FROM_RUNNING | reed Removed (100 ms dwell) | **mist hard-stop**; swirl decelerates + dims over ~640 ms |
-| TRANSITION_FROM_RUNNING → IDLE_LEDS_ON | smoother lands on 0 | mode→BREATH, fast fade-up to `g_userLevel` (~425 ms) |
-| RUNNING / TRANSITION → IDLE_LEDS_OFF | button short-press | snap to mute (skips cinematic) |
-| IDLE_LEDS_OFF ↔ IDLE_LEDS_ON | button short-press (no container) | breath fades in/out |
-| RUNNING / IDLE_LEDS_ON | button long-press | ramps `g_userLevel`; brightness scales live (chase speed stays constant in RUNNING) |
+| IDLE → RUNNING | reed Inserted (500 ms dwell) **or** button short-press + container docked | mist on; `g_waveActivation16` ramps 0→full over ~3 s — single crossfade |
+| RUNNING → TRANSITION_FROM_RUNNING | reed Removed (100 ms dwell) | **mist hard-stop**; `g_baseLevel16` ramps to 0 over ~640 ms, wave shape preserved |
+| TRANSITION_FROM_RUNNING → IDLE_LEDS_ON | smoother lands `base16` on 0 | `g_waveActivation16` snaps to 0 (invisible at dark); base ramps up at fast rate (~425 ms) |
+| RUNNING / TRANSITION → IDLE_LEDS_OFF | button short-press | snap target both to 0 (skips cinematic) |
+| IDLE_LEDS_OFF ↔ IDLE_LEDS_ON | button short-press (no container) | breath fades in/out via base16 ramp |
+| RUNNING / IDLE_LEDS_ON | button long-press | ramps `g_userLevel`; base target follows live. Wave rate stays constant in RUNNING (dim is brightness-only) |
 | any | level dims past `LEVEL_OFF_THRESHOLD` (8) | snap to `IDLE_LEDS_OFF`, reset `userLevel = LEVEL_DEFAULT`, flip ramp direction |
 
-## Level Model (the trick)
+## Lighting Model (the trick)
 
-One scalar drives both mist and LEDs so they always move together.
+**There is no LED mode.** One formula renders every frame; the visible look is a continuous interpolation between two endpoint envelopes ("idle" and "running") driven by two smoothed inputs.
 
 ```
-g_userLevel    (0..255)   ← user's intent; long-press ramps this
-g_targetLevel  (0..255)   ← state-driven goal (0 in IDLE_LEDS_OFF /
-                            TRANSITION_FROM_RUNNING, g_userLevel otherwise)
-g_currentLevel (0..255)   ← smoothed actual; ramps toward target ~3 / 10 ms
-                            (≈ 850 ms 0→255, "luxurious"). Post-removal
-                            breath restore uses STEP_UP_FAST (~425 ms) so
-                            the full cinematic lands ≈ 1 s.
+For each LED i in [0..13]   (i=0 = top, i=13 = bottom):
 
-mist duty   = (g_currentLevel × MIST_DUTY_MAX) / 255    // 127 = 50 %
-LED bright  = led_driver(g_currentLevel, g_ledMode)
-              where:
-                BREATH:  uniform + sineLUT(t) × depth × baseLevel/255
-                SWIRL:   per-LED 0..255 from distance behind rising head,
-                         × baseLevel/255, gamma-corrected. Phase advance
-                         scales with baseLevel iff ledSetSwirlFading(true)
-                         (set during TRANSITION_FROM_RUNNING).
+  center    = lerp(IDLE_CENTER,    RUNNING_CENTER,    waveAct)  × base / 255
+  breathAmp = lerp(IDLE_BREATH_AMP, 0,                waveAct)  × base / 255
+  waveAmp   = lerp(0,               RUNNING_WAVE_AMP, waveAct)  × base / 255
+
+  bright[i] = center
+            + breathAmp · sin(2π · t / BREATH_PERIOD)
+            + waveAmp   · sin(2π · t / WAVE_PERIOD + 2π · (13-i) / 14)
+
+  pwm[i]    = GAMMA_LUT[clamp(bright[i], 0, 255)]
 ```
+
+Two state-driven 16-bit smoothed inputs:
+
+```
+g_userLevel        (0..255)    ← user's intent; long-press ramps this
+g_baseLevel16      (0..65535)  ← envelope amplitude. Target = g_userLevel×257
+                                  in IDLE_LEDS_ON / RUNNING, 0 in IDLE_LEDS_OFF
+                                  and TRANSITION_FROM_RUNNING. Also drives mist:
+                                    mist_duty = (base8 × MIST_DUTY_MAX) / 255
+g_waveActivation16 (0..65535)  ← 0 = pure breath (idle look)
+                                  65535 = pure wave (running look)
+                                  3 s ramp on dock/undock = single crossfade
+```
+
+Smoother math is fully 16-bit so per-tick increments are sub-8-bit: fractional bits accumulate between ticks so the visible 8-bit output advances smoothly even on short ramps. Mist consumes `base8 = base16 >> 8`; ledRender consumes both 8-bit views.
+
+Both sine generators have **free-running phase** (`now % period`) so they NEVER restart at a state change — the lighting feels alive through every transition.
+
+Per-state targets:
+
+| State | base16 target | waveAct16 target | step rate |
+|---|---|---|---|
+| IDLE_LEDS_OFF | 0 | 0 | normal |
+| IDLE_LEDS_ON | `userLevel × 257` | 0 | normal (fast on auto-promotion from TRANSITION) |
+| RUNNING | `userLevel × 257` | 65535 | base normal, waveAct slow (3 s) |
+| TRANSITION_FROM_RUNNING | 0 | *(unchanged — wave shape preserved)* | down rate |
 
 Pieces sitting outside the smoother:
-- **Reed lift** → `mistHardStop()` cuts boost rail + PWM immediately and sets an inhibit flag so the still-fading `g_currentLevel` can't re-engage the boost. `enterRunning()` clears the inhibit.
+- **Reed lift** → `mistHardStop()` cuts boost rail + PWM immediately and sets an inhibit flag so the still-fading `g_baseLevel16` can't re-engage the boost. `enterRunning()` clears the inhibit.
 - **D7** is driven once per loop from `containerIsPresent()` — independent of `state` and `level`.
-- **`g_pendingSwirl`** — when `enterRunning()` fires, the strip starts in BREATH and the smoother flips it to SWIRL on landing at target. Makes "brighten up, *then* swirl" sequential.
 
 ## User Interactions
 
 | User does | Result |
 |---|---|
-| Power on | Boots to `IDLE_LEDS_ON` — strip starts a soft uniform breath at full user level |
-| Dock container | ~500 ms reed dwell → mist on; strip fades up in BREATH, **then** flips to SWIRL (rising chase) at peak |
-| Lift container | Mist hard-stops instantly. Swirl decelerates + dims ~640 ms, then auto-restores the BREATH at user level over ~425 ms (cinematic total ≈ 1 s) |
-| Tap button (no container) | Toggles BREATH on / off |
+| Power on | Boots to `IDLE_LEDS_ON` — strip fades up from dark to a very dim "dramatic breath" (10 %..45 %, 6.5 s cycle) |
+| Dock container | ~500 ms reed dwell → mist on; `g_waveActivation16` ramps 0→full over ~3 s. Brightness rises, breath fades out, slow drifting wave fades in — **one continuous motion** |
+| Lift container | Mist hard-stops instantly. Envelope dims to 0 over ~640 ms with the wave shape preserved, then auto-restores the breath over ~425 ms (cinematic total ≈ 1 s) |
+| Tap button (no container) | Toggles breath on / off |
 | Tap button (any active state) | Snaps to `IDLE_LEDS_OFF` (skips the removal cinematic if mid-transition) |
-| Tap button when muted, container docked | Resumes RUNNING (fade-up → swirl) |
-| Hold button (RUNNING or IDLE_LEDS_ON) | Ramps `g_userLevel` — brightness scales live. Swirl rotation speed stays constant in RUNNING (dim is brightness-only). Direction alternates on release |
+| Tap button when muted, container docked | Resumes RUNNING (full crossfade replays) |
+| Hold button (RUNNING or IDLE_LEDS_ON) | Ramps `g_userLevel` — base16 target follows live so the whole envelope dims uniformly. Wave rate stays constant. Direction alternates on release |
 | Hold button past `LEVEL_OFF_THRESHOLD` (8) | Auto-snap to `IDLE_LEDS_OFF`, user level resets to default so the next wake comes back at full |
 
 ## Files
@@ -136,7 +157,7 @@ Pieces sitting outside the smoother:
 | `BlockKit_Test.ino` | state machine, smoother, serial parser, glue |
 | `pins.h` | pin defs, tunables, enums — single source of truth |
 | `mist.ino` | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
-| `led_driver.ino` | `ledRender(baseLevel)` — dispatches BREATH (sine LUT + linear interp) or SWIRL (Q8 phase + per-LED chase), gamma + per-LED I2C write cache |
+| `led_driver.ino` | `ledRender(base8, waveAct8)` — unified continuous-modulation renderer: per-LED `center + breathAmp·sin(t) + waveAmp·sin(t+i)`, sine LUT + linear interp, gamma + per-LED I2C write cache |
 | `status_led.ino` | D7 dim-on / off |
 | `container.ino` | reed debounce, edge events |
 | `button.ino` | debounce, short/long-press events |
@@ -151,9 +172,8 @@ Arduino concatenates all `.ino` files into one translation unit, so file-scope `
 | `help` | print list |
 | `1` / `0` / `t` | mist on / off / toggle |
 | `vN` | set `g_userLevel` 0..255 |
-| `a0` / `a1` | LED breathing off / on |
-| `dN` | breath depth 0..64 (default 16) |
-| `pN` | breath period_ms 1000..20000 (default 4000) |
+| `pN` | breath period_ms 1000..20000 (default 6500) |
+| `qN` | wave   period_ms 1000..20000 (default 4500) |
 | `w` | LED walk (sequence 14 LEDs, ~14 s, blocks) |
 | `r` | dump reed state (raw + debounced) |
 | `s` | toggle scope mode (raw current samples @ 100 Hz) |
@@ -169,13 +189,15 @@ Log line prefixes: `[APP]`, `[MIST]`, `[LED]`, `[REED]`, `[BTN]`, `[CUR]`, `[STA
 | `MIST_FREQ_HZ` | 108 700 | Piezo disc resonance |
 | `MIST_DUTY_MAX` | 127 | 50 % of 8-bit PWM = full mist |
 | `LEVEL_DEFAULT` | 255 | First-boot mist + brightness |
-| `LEVEL_SMOOTH_TICK_MS` / `STEP_UP` / `STEP_DN` | 10 / 3 / 4 | ~850 ms fade-in, ~640 ms fade-out |
-| `LEVEL_SMOOTH_STEP_UP_FAST` | 6 | ~425 ms breath restore after removal — keeps the cinematic ≈ 1 s |
+| `LEVEL_SMOOTH_TICK_MS` | 10 | Smoother tick rate |
+| `LEVEL_BASE_STEP_UP_16` / `STEP_DN_16` | 770 / 1024 | ~850 ms fade-in / ~640 ms fade-out (16-bit step per tick) |
+| `LEVEL_BASE_STEP_UP_FAST_16` | 1540 | ~425 ms post-removal breath restore — cinematic ≈ 1 s |
+| `LEVEL_WAVE_ACT_STEP_16` | 219 | ~3 s dock/undock crossfade |
 | `LEVEL_OFF_THRESHOLD` | 8 | Snap-to-off cutoff during dim ramp |
-| `LED_BREATH_DEPTH` | 16 | ±~6 % modulation — subtle |
-| `LED_BREATH_PERIOD_MS` | 4000 | One inhale/exhale |
-| `SWIRL_PERIOD_MS` | 1500 | Head traverses 14 LEDs bottom→top |
-| `SWIRL_TAIL_LEDS` | 6 | Fading tail length behind the head |
+| `LED_IDLE_CENTER_MAX` / `_BREATH_AMP_MAX` | 70 / 44 | Idle envelope: ~10 %..45 % range after gamma |
+| `LED_RUNNING_CENTER_MAX` / `_WAVE_AMP_MAX` | 185 / 60 | Running envelope: ~25 %..85 % range after gamma |
+| `LED_BREATH_PERIOD_MS` | 6500 | Very dim & dramatic — slow inhale/exhale |
+| `LED_WAVE_PERIOD_MS` | 4500 | Slow & meditative — one peak drifts bottom→top |
 | `LED_TICK_MS` | 20 | 50 fps render |
 | `REED_INSERT_DWELL_MS` / `REMOVE_DWELL_MS` | 500 / 100 | Asymmetric: slow on, fast off |
 | `BUTTON_LONGPRESS_MS` / `LONGTICK_MS` | 500 / 13 | ~77 steps/sec while held |
