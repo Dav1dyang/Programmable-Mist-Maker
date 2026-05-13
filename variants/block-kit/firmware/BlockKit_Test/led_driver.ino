@@ -80,11 +80,16 @@ void ledInit() {
   Serial.println("[LED] init ok");
 }
 
-// Push all 14 LEDs to the same gamma-corrected PWM value.
+// Push all 14 LEDs to the same gamma-corrected PWM value. Skips the I2C
+// burst entirely if the value hasn't changed since last call — typical
+// when LEDs are at steady max/zero between breath ticks.
 static void writeAll(uint8_t pwm) {
+  static uint16_t lastWritten = 0xFFFF;  // sentinel — first call always writes
+  if (pwm == lastWritten) return;
   for (uint8_t i = 0; i < LED_COUNT; ++i) {
     g_is31.setLEDPWM(LED_MAP[i], pwm, LED_IS31_FRAME);
   }
+  lastWritten = pwm;
 }
 
 void ledAllOff() {
@@ -107,8 +112,11 @@ void ledRender(uint8_t baseLevel) {
 
   int16_t bright = baseLevel;
   if (g_breathEnabled && g_breathDepth > 0) {
-    // Q8 phase so the breath is smooth (no stair-stepping) even at slow periods.
-    const uint32_t phaseQ8 = (uint32_t(now) * 64u * 256u) / g_breathPeriodMs;
+    // Reduce `now` mod period BEFORE the *64*256 multiply so the intermediate
+    // result stays bounded. Without this, `now * 16384` overflows uint32_t
+    // every ~262 s and the breath glitches at each wrap.
+    const uint32_t t = uint32_t(now) % g_breathPeriodMs;
+    const uint32_t phaseQ8 = (t * 64u * 256u) / g_breathPeriodMs;
     const int16_t s = sineQ(phaseQ8);                     // -127..+127
     // Amplitude scales with baseLevel so the breath disappears at low levels
     // instead of dragging the LEDs to 0.

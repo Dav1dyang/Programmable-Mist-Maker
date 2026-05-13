@@ -102,16 +102,16 @@ Two pieces sit outside the smoother:
 
 ## Files
 
-| File | Lines | Role |
-|---|---|---|
-| `BlockKit_Test.ino` | ~280 | state machine, smoother, serial parser, glue |
-| `pins.h` | ~150 | pin defs, tunables, enums — single source of truth |
-| `mist.ino` | ~70 | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
-| `led_driver.ino` | ~125 | `ledRender(baseLevel)` — uniform breath, sine LUT + linear interp + gamma |
-| `status_led.ino` | ~20 | D7 dim-on / off |
-| `container.ino` | ~55 | reed debounce, edge events |
-| `button.ino` | ~60 | debounce, short/long-press events |
-| `current_sense.ino` | ~110 | INA180 ADC @ 1 kHz, rolling mean+variance, scope mode |
+| File | Role |
+|---|---|
+| `BlockKit_Test.ino` | state machine, smoother, serial parser, glue |
+| `pins.h` | pin defs, tunables, enums — single source of truth |
+| `mist.ino` | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
+| `led_driver.ino` | `ledRender(baseLevel)` — uniform breath, sine LUT + linear interp + gamma |
+| `status_led.ino` | D7 dim-on / off |
+| `container.ino` | reed debounce, edge events |
+| `button.ino` | debounce, short/long-press events |
+| `current_sense.ino` | INA180 ADC @ 1 kHz, rolling mean+variance, scope mode |
 
 Arduino concatenates all `.ino` files into one translation unit, so file-scope `static` only scopes per file by convention — names use module prefixes (`g_btnLastTickMs`, `g_ledLastRenderMs`, …) to avoid collisions.
 

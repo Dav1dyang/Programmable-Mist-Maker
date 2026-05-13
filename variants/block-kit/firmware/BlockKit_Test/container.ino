@@ -39,7 +39,8 @@ ContainerEvent containerPoll() {
   const bool raw = (digitalRead(PIN_REED) == LOW);
   const uint32_t now = millis();
 
-  // Edge restart: any change in raw read resets the dwell timer.
+  // Restart dwell on any bounce so the 500 ms is measured from the LAST
+  // raw edge — a noisy reed transition can't slip past as one stable read.
   if (raw != g_lastRawPresent) {
     g_lastRawPresent = raw;
     g_edgeStartMs = now;

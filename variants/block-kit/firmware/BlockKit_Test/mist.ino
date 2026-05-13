@@ -62,11 +62,13 @@ void mistApply(uint8_t level) {
 // Immediately stop mist regardless of the smoother — used on container lift
 // for safety. Also locks mistApply() as a no-op until mistEnable(true) is
 // called, so the LED ring's gradual fade-down doesn't re-engage the boost.
+// Idempotent: if mist was already off we just (re)assert the inhibit flag
+// without churning the pins.
 void mistHardStop() {
-  ledcWrite(PIN_MIST_PWM, 0);
-  digitalWrite(PIN_MIST_PWM, LOW);
-  digitalWrite(PIN_BOOST_EN, LOW);
   if (g_mistBoostOn) {
+    ledcWrite(PIN_MIST_PWM, 0);
+    digitalWrite(PIN_MIST_PWM, LOW);
+    digitalWrite(PIN_BOOST_EN, LOW);
     g_mistBoostOn = false;
     Serial.println("[MIST] hard-stop");
   }

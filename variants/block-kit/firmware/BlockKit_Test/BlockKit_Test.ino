@@ -125,10 +125,12 @@ static void rampUserLevel() {
   // doesn't react to long-press, so we wouldn't be here in that state.
   g_targetLevel = g_userLevel;
 
-  // Dim-to-zero snap: drop into IDLE_LEDS_OFF, reset direction so the next
-  // long-press starts brightening, and restore g_userLevel to the default so
-  // a subsequent short-press into RUNNING / IDLE_LEDS_ON wakes at a visible
-  // level (otherwise it would come up at 0 and look broken).
+  // Dim-to-zero snap: drop into IDLE_LEDS_OFF and reset g_userLevel to the
+  // default so a subsequent short-press into RUNNING / IDLE_LEDS_ON wakes at
+  // a visible level (otherwise it would come up at 0 and look broken).
+  // We set g_dimDir = +1 here so the LongPressEnd flip on release lands at
+  // -1, which is the correct direction for the natural next gesture: "I'm
+  // back at full level, long-press to dim again."
   if (g_dimDir < 0 && g_userLevel <= LEVEL_OFF_THRESHOLD) {
     g_userLevel = LEVEL_DEFAULT;
     g_dimDir = +1;
@@ -186,12 +188,20 @@ static void handleCommand(const char* cmd, uint8_t len) {
       return;
     case 'v': {
       const long v = parseTail(cmd, len);
-      if (v >= 0 && v <= 255) {
-        g_userLevel = uint8_t(v);
-        if (g_state != AppState::IDLE_LEDS_OFF) g_targetLevel = g_userLevel;
+      if (v < 0 || v > 255) { Serial.println("[CMD] v: 0..255"); return; }
+      g_userLevel = uint8_t(v);
+      if (g_state != AppState::IDLE_LEDS_OFF) {
+        // Active state — apply immediately, smoother takes us there.
+        g_targetLevel = g_userLevel;
         Serial.print("[APP] user level=");
         Serial.println(v);
-      } else Serial.println("[CMD] v: 0..255");
+      } else {
+        // Device is idle; store the level for next wake so a `v200` followed
+        // by a short-press or container dock starts at the new level.
+        Serial.print("[APP] user level=");
+        Serial.print(v);
+        Serial.println(" (stored; device idle, applies on next wake)");
+      }
       return;
     }
     case 'a': {
@@ -352,7 +362,11 @@ void setup() {
 
   // Boot in IDLE_LEDS_OFF. If a container is already docked at power-on the
   // first poll will edge-trigger Inserted after the 500 ms safety dwell.
+  // enterIdleLedsOff is idempotent and returns silently here (the static
+  // initializer already set state); print the initial state explicitly so
+  // the serial log isn't ambiguous about what state we boot into.
   enterIdleLedsOff();
+  Serial.println("[APP] state=IDLE_LEDS_OFF (boot)");
   printHelp();
 }
 
