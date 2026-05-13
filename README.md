@@ -24,6 +24,20 @@ This project explain ultrasonic mist maker designs and provides:
 
 Most mist circuits online lack documentation—this guide fills that gap with working examples and full KiCad/Arduino files.
 
+## Variants
+
+The repository is being split into four hardware variants, each with their own PCB, firmware, and enclosure. The original single-PCB revision is preserved under [`legacy/v1-4/`](legacy/v1-4/) for anyone reproducing the kit as documented below.
+
+| Variant | Folder | MCU | Power | Sensing | LEDs | Status |
+|---|---|---|---|---|---|---|
+| **Xiao Extension Kit** | [`variants/xiao-extension-kit/`](variants/xiao-extension-kit/) | XIAO ESP32-C6 | USB / breadboard | — | — | planned |
+| **Battery Kit**        | [`variants/battery-kit/`](variants/battery-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | — | — | planned |
+| **Block Kit**          | [`variants/block-kit/`](variants/block-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | INA180 + reed switch | IS31FL3731 × 14 | V0.1 — Phase A firmware shipped |
+| **I2C MultiPack Kit**  | [`variants/i2c-multipack-kit/`](variants/i2c-multipack-kit/) | XIAO ESP32-C6 | TBD | — | — | planned |
+| **V1.4 (legacy)**      | [`legacy/v1-4/`](legacy/v1-4/) | XIAO ESP32-C6 | USB / Li-Po | — | — | shipped, no further changes |
+
+Safety, cleaning, and known-issues notes (later in this file) apply to every variant.
+
 ## How It Works
 
 ![PCB Board Progess](assets/PCB_Board_Design_Progress.gif)
@@ -107,7 +121,7 @@ This repository includes example sketches using the MistMaker library.
 
 ### Library Example Code
 
-- [`SimpleControl.ino`](example-code/WithLibrary/SimpleControl/SimpleControl.ino)  
+- [`SimpleControl.ino`](legacy/v1-4/example-code/WithLibrary/SimpleControl/SimpleControl.ino)  
   A basic test sketch that uses a button to toggle the mist maker on and off.
 
   Features:
@@ -115,7 +129,7 @@ This repository includes example sketches using the MistMaker library.
   - Button toggle for mist on/off
   - Serial output with status information
 
-- [`Blink.ino`](example-code/WithLibrary/Blink/Blink.ino)  
+- [`Blink.ino`](legacy/v1-4/example-code/WithLibrary/Blink/Blink.ino)  
   A blink-style sketch that turns the mist maker on and off at a fixed 2-second interval.
 
   Features:
@@ -127,7 +141,7 @@ This repository includes example sketches using the MistMaker library.
 
 > 💡 **Note:** You don't need the library to run the code below.
 
-* [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
+* [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](legacy/v1-4/example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
 
 The example sketch provides:
 * 108.7kHz PWM output for the mist maker
@@ -145,13 +159,13 @@ Please make sure to use distilled or clean tap water in the reservoir, fully cle
 ## Files & Downloads
 
 * KiCad Files:
-  * [MistMakerV1-4.kicad_sch](hardware/MistMakerV1-4.kicad_sch)
-  * [MistMakerV1-4.kicad_pcb](hardware/MistMakerV1-4.kicad_pcb)
+  * [MistMakerV1-4.kicad_sch](legacy/v1-4/hardware/MistMakerV1-4.kicad_sch)
+  * [MistMakerV1-4.kicad_pcb](legacy/v1-4/hardware/MistMakerV1-4.kicad_pcb)
 * PDF Exports:
-  * [Schematic (PDF)](hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
-  * [PCB Layout (PDF)](hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
-* [Bill of Materials (CSV)](hardware/bom.csv)
-* [Enclosure Models and PCB Footprint](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/EnclosureDesignMaterials)
+  * [Schematic (PDF)](legacy/v1-4/hardware/2025-05-13_MistMaker_V1-4_SCH.pdf)
+  * [PCB Layout (PDF)](legacy/v1-4/hardware/2025-05-13_MistMaker_V1-4_BRD.pdf)
+* [Bill of Materials (CSV)](legacy/v1-4/hardware/bom.csv)
+* [Enclosure Models and PCB Footprint](legacy/v1-4/EnclosureDesignMaterials/)
 
 ## References
 
