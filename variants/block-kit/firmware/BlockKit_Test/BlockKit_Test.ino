@@ -159,13 +159,16 @@ static void enterTransitionFromRunning() {
 // 0, auto-enter IDLE_LEDS_ON. This is the auto-promotion that produces the
 // dim-down → breath-restore cinematic.
 // ----------------------------------------------------------------------
-template<typename T>
-static inline void smoothToward(T& current, T target, T step) {
+// Specialized helper (no template) because the Arduino IDE's auto-prototype
+// generator inserts a forward declaration BEFORE the `template` keyword and
+// breaks the build (arduino-cli compiles either form fine, IDE does not).
+// Both call sites are uint16_t so specializing costs nothing.
+static inline void smoothToward16(uint16_t& current, uint16_t target, uint16_t step) {
   if (current < target) {
-    const T room = target - current;
+    const uint16_t room = target - current;
     current += (room < step) ? room : step;
   } else if (current > target) {
-    const T room = current - target;
+    const uint16_t room = current - target;
     current -= (room < step) ? room : step;
   }
 }
@@ -179,11 +182,11 @@ static void smoothLevel() {
   const uint16_t baseStep = (g_baseLevel16 < g_baseLevelTarget16)
       ? g_baseStep16
       : LEVEL_BASE_STEP_DN_16;
-  smoothToward<uint16_t>(g_baseLevel16, g_baseLevelTarget16, baseStep);
+  smoothToward16(g_baseLevel16, g_baseLevelTarget16, baseStep);
 
   // Wave activation: fixed 3 s ramp rate for the dock/undock crossfade.
-  smoothToward<uint16_t>(g_waveActivation16, g_waveActivationTarget16,
-                         LEVEL_WAVE_ACT_STEP_16);
+  smoothToward16(g_waveActivation16, g_waveActivationTarget16,
+                 LEVEL_WAVE_ACT_STEP_16);
 
   // Auto-promotion: end of the removal cinematic.
   if (g_state == AppState::TRANSITION_FROM_RUNNING && g_baseLevel16 == 0) {
