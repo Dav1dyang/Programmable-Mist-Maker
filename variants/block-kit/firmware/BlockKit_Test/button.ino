@@ -12,7 +12,13 @@ static bool     g_longActive      = false;
 static uint32_t g_btnLastTickMs      = 0;
 
 void buttonInit() {
-  pinMode(PIN_BUTTON, INPUT);  // 10k pull-down is on the PCB
+  // PCB has an external 10 k pull-down on D6. Enabling INPUT_PULLDOWN in
+  // addition gives belt-and-braces protection: if the external pull-down has
+  // a cold solder joint or the pin floats during early boot, the internal
+  // ~45 k pull-down still keeps the input LOW until the button is pressed.
+  // The two pull-downs in parallel still register a clean HIGH on press
+  // (button pulls D6 to 3V3 through the switch, easily overcoming both).
+  pinMode(PIN_BUTTON, INPUT_PULLDOWN);
 }
 
 ButtonEvent buttonPoll() {

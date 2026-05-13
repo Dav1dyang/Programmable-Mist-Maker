@@ -27,9 +27,10 @@ void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
 float currentMeanMa(); float currentVarMa2();
 
 // ---- App-level state ----
-static AppState g_state    = AppState::IDLE;
-static int8_t   g_dimDir   = -1;     // -1 = next long-press ramps dimmer, +1 = brighter
-static uint32_t g_lastDimMs = 0;
+static AppState g_state          = AppState::IDLE;
+static int8_t   g_dimDir         = -1;   // -1 = next long-press ramps dimmer, +1 = brighter
+static uint32_t g_lastDimMs      = 0;
+static uint32_t g_lastStatPrintMs = 0;
 
 static void enterIdle();
 static void enterRunning();
@@ -236,19 +237,42 @@ void setup() {
   Serial.println();
   Serial.println("[APP] Block Kit V0.1 bring-up (Phase A)");
 
+  // Print the resolved GPIO numbers for the input pins so the user can sanity-check
+  // pin map vs schematic from the serial log alone.
+  Serial.print("[APP] PIN_REED=D10 (GPIO ");   Serial.print(PIN_REED);   Serial.print(") ");
+  Serial.print("PIN_BUTTON=D6 (GPIO ");        Serial.print(PIN_BUTTON); Serial.println(")");
+
   Wire.begin();
 
+  // Bring up output / peripheral subsystems first.
   mistInit();
   statusLedInit();
-  containerInit();
-  buttonInit();
   currentSenseInit();
   ledInit();
+
+  // Inputs LAST so nothing else can disturb their pinMode after we set it.
+  containerInit();
+  buttonInit();
 
   // Boot in IDLE; if a container is already docked, the loop's first poll
   // will edge-trigger Inserted and bring us into RUNNING after the dwell.
   enterIdle();
   printHelp();
+}
+
+// Once a second, print a human-readable status line covering every subsystem.
+// Separate from [PLOT] (which is Serial-Plotter-friendly CSV) so it doesn't
+// disrupt graphing while still giving a quick text snapshot for bring-up.
+static void statTick() {
+  const uint32_t now = millis();
+  if (now - g_lastStatPrintMs < 1000) return;
+  g_lastStatPrintMs = now;
+  Serial.print("[STAT] reed_raw=");    Serial.print(containerRawPresent() ? 1 : 0);
+  Serial.print(" reed_deb=");          Serial.print(containerIsPresent() ? 1 : 0);
+  Serial.print(" btn_raw=");           Serial.print(digitalRead(PIN_BUTTON));
+  Serial.print(" state=");             Serial.print(g_state == AppState::RUNNING ? "RUN" : "IDLE");
+  Serial.print(" mist=");              Serial.print(mistIsRunning() ? 1 : 0);
+  Serial.print(" mean_mA=");           Serial.println(currentMeanMa(), 1);
 }
 
 void loop() {
@@ -261,4 +285,5 @@ void loop() {
   onButtonEvent(buttonPoll());
 
   currentSenseLogPlot(uint8_t(g_state));
+  statTick();
 }
