@@ -15,7 +15,7 @@ static const uint8_t BREATH_LUT[16] = {
 };
 
 static bool     g_breathOn   = false;
-static uint32_t g_lastTickMs = 0;
+static uint32_t g_statusLastTickMs = 0;
 
 void statusLedInit() {
   ledcAttach(PIN_STATUS_LED, STATUS_LED_FREQ_HZ, STATUS_LED_RES);
@@ -33,8 +33,8 @@ void statusLedSet(bool breathing) {
 void statusLedTick() {
   if (!g_breathOn) return;
   const uint32_t now = millis();
-  if (now - g_lastTickMs < 30) return;  // ~33 fps is plenty for a slow breath
-  g_lastTickMs = now;
+  if (now - g_statusLastTickMs < 30) return;  // ~33 fps is plenty for a slow breath
+  g_statusLastTickMs = now;
 
   const uint8_t idx = uint8_t(((now * 16u) / STATUS_LED_BREATH_PERIOD_MS) & 0x0F);
   // Scale 0..247 to 0..STATUS_LED_BREATH_MAX.

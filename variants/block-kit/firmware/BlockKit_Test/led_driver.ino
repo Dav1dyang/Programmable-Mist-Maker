@@ -20,7 +20,7 @@ static bool     g_animEnabled    = true;
 static uint8_t  g_overall        = LED_DEFAULT_OVERALL;
 static uint8_t  g_contrast       = LED_DEFAULT_CONTRAST;
 static uint16_t g_periodMs       = LED_DEFAULT_PERIOD_MS;
-static uint32_t g_lastTickMs     = 0;
+static uint32_t g_ledLastTickMs     = 0;
 
 // Compute per-LED brightness for the current millis() and write the frame.
 static void renderFrame() {
@@ -61,8 +61,8 @@ void ledInit() {
 void ledTick() {
   if (!g_ledReady) return;
   const uint32_t now = millis();
-  if (now - g_lastTickMs < LED_TICK_MS) return;
-  g_lastTickMs = now;
+  if (now - g_ledLastTickMs < LED_TICK_MS) return;
+  g_ledLastTickMs = now;
   renderFrame();
 }
 

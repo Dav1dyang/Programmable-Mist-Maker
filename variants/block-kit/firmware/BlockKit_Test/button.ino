@@ -9,7 +9,7 @@ static bool     g_debounced       = false;  // committed debounced state
 static uint32_t g_lastChangeMs    = 0;
 static uint32_t g_pressStartMs    = 0;
 static bool     g_longActive      = false;
-static uint32_t g_lastTickMs      = 0;
+static uint32_t g_btnLastTickMs      = 0;
 
 void buttonInit() {
   pinMode(PIN_BUTTON, INPUT);  // 10k pull-down is on the PCB
@@ -32,11 +32,11 @@ ButtonEvent buttonPoll() {
     if (g_debounced) {
       if (!g_longActive && (now - g_pressStartMs >= BUTTON_LONGPRESS_MS)) {
         g_longActive = true;
-        g_lastTickMs = now;
+        g_btnLastTickMs = now;
         return ButtonEvent::LongPressStart;
       }
-      if (g_longActive && (now - g_lastTickMs >= BUTTON_LONGTICK_MS)) {
-        g_lastTickMs = now;
+      if (g_longActive && (now - g_btnLastTickMs >= BUTTON_LONGTICK_MS)) {
+        g_btnLastTickMs = now;
         return ButtonEvent::LongPressTick;
       }
     }
