@@ -4,6 +4,26 @@
 #pragma once
 #include <Arduino.h>
 
+// ---------- Board portability shim ----------
+// The Block Kit V0.1 PCB physically only mates with a XIAO socket, but we keep
+// the sketch buildable on other ESP32 dev boards (e.g. Adafruit QT Py ESP32-S3)
+// so cross-compilation / porting work doesn't require gutting the pin map.
+// If the board variant doesn't define the XIAO-style `Dx` labels, fall back to
+// safe per-board GPIO numbers. These fallbacks are NOT the real Block Kit
+// pinout — they only ensure `pinMode`/`digitalRead`/`ledcAttach` calls resolve.
+#if !defined(D0)
+  // QT Py ESP32-S3 has TX=5, RX=16, SDA=7, SCL=6, A0=18, A1=17, A2=9, A3=8.
+  // We pick GPIOs that don't conflict with the I2C bus the IS31FL3731 needs.
+  #define D0  5    // TX  — mist PWM
+  #define D1  16   // RX  — reed
+  #define D2  18   // A0  — INA180 ADC
+  #define D3  8    // A3  — boost EN
+  #define D4  SDA  // board default SDA
+  #define D5  SCL  // board default SCL
+  #define D6  9    // A2  — button
+  #define D7  17   // A1  — status LED
+#endif
+
 // ---------- GPIO assignments (XIAO ESP32-C6, Block Kit V0.1 schematic) ----------
 constexpr uint8_t PIN_MIST_PWM     = D0;  // 108.7 kHz PWM to MOSFET gate driver
 constexpr uint8_t PIN_REED         = D1;  // Reed switch, INPUT_PULLUP, LOW = container present
