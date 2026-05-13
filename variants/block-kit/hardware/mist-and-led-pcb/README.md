@@ -25,4 +25,4 @@ The firmware lights them through David's [`Adafruit_IS31FL3731` fork](https://gi
 
 ## V0.1 reed-switch rework
 
-See [`../README.md`](../README.md) for the blue-wire instructions that route the reed switch to D1 instead of the SW+/SW− series circuit.
+See [`../README.md`](../README.md) for the blue-wire instructions that route the reed switch to D10 instead of the SW+/SW− series circuit.

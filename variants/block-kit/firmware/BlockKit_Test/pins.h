@@ -15,22 +15,25 @@
   // QT Py ESP32-S3 has TX=5, RX=16, SDA=7, SCL=6, A0=18, A1=17, A2=9, A3=8.
   // We pick GPIOs that don't conflict with the I2C bus the IS31FL3731 needs.
   #define D0  5    // TX  — mist PWM
-  #define D1  16   // RX  — reed
+  #define D1  16   // RX  — (unused on Block Kit firmware)
   #define D2  18   // A0  — INA180 ADC
   #define D3  8    // A3  — boost EN
   #define D4  SDA  // board default SDA
   #define D5  SCL  // board default SCL
   #define D6  9    // A2  — button
   #define D7  17   // A1  — status LED
+  #define D8  35   // MOSI — spare
+  #define D9  37   // MISO — spare
+  #define D10 36   // SCK  — reed
 #endif
 
 // ---------- GPIO assignments (XIAO ESP32-C6, Block Kit V0.1 schematic) ----------
-constexpr uint8_t PIN_MIST_PWM     = D0;  // 108.7 kHz PWM to MOSFET gate driver
-constexpr uint8_t PIN_REED         = D1;  // Reed switch, INPUT_PULLUP, LOW = container present
-constexpr uint8_t PIN_CURRENT_ADC  = D2;  // INA180A3 output via 1k+1uF filter
-constexpr uint8_t PIN_BOOST_EN     = D3;  // TPS61023 enable (HIGH = 5V rail on); also lights red LED2
-constexpr uint8_t PIN_BUTTON       = D6;  // Active-HIGH momentary, 10k pull-down on PCB
-constexpr uint8_t PIN_STATUS_LED   = D7;  // White LED, breathing in idle
+constexpr uint8_t PIN_MIST_PWM     = D0;   // 108.7 kHz PWM to MOSFET gate driver
+constexpr uint8_t PIN_REED         = D10;  // Reed switch, INPUT_PULLUP, LOW = container present
+constexpr uint8_t PIN_CURRENT_ADC  = D2;   // INA180A3 output via 1k+1uF filter
+constexpr uint8_t PIN_BOOST_EN     = D3;   // TPS61023 enable (HIGH = 5V rail on); also lights red LED2
+constexpr uint8_t PIN_BUTTON       = D6;   // Active-HIGH momentary, 10k pull-down on PCB
+constexpr uint8_t PIN_STATUS_LED   = D7;   // White LED, breathing in idle
 
 // ---------- Mist PWM ----------
 constexpr uint32_t MIST_FREQ_HZ    = 108700;  // ceramic disc resonance
@@ -56,7 +59,7 @@ constexpr uint16_t BUTTON_DEBOUNCE_MS    = 50;
 constexpr uint16_t BUTTON_LONGPRESS_MS   = 500;
 constexpr uint16_t BUTTON_LONGTICK_MS    = 13;      // ~80 steps/sec while held
 
-// ---------- Reed switch (D1) timing ----------
+// ---------- Reed switch (D10) timing ----------
 constexpr uint16_t REED_INSERT_DWELL_MS  = 500;     // require stable LOW for 500 ms before auto-start
 constexpr uint16_t REED_REMOVE_DWELL_MS  = 100;     // faster removal so shut-off isn't sluggish
 

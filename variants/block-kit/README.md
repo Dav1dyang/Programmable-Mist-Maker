@@ -22,7 +22,7 @@ A 3-PCB build of the Programmable Mist Maker designed around a modular "drop-in 
 ## Bring-up sequence
 
 1. Assemble the three PCBs and verify the inter-board harness (see [`hardware/README.md`](hardware/README.md)).
-2. Apply the V0.1 reed-to-D1 blue-wire rework.
+2. Apply the V0.1 reed-to-D10 blue-wire rework.
 3. Flash `firmware/BlockKit_Test/BlockKit_Test.ino` — see [`firmware/BlockKit_Test/README.md`](firmware/BlockKit_Test/README.md) for full install steps.
 4. Walk the bring-up checklist in the firmware README.
 5. With scope mode (`s`) on, gather a Serial Plotter trace of `mean_mA, var_mA2` for: full water, low water, dry disc, no disc. These traces drive the Phase B water-level classifier.

@@ -12,7 +12,7 @@ Phase A intentionally has **no water-level classifier**. The two states are `IDL
 - Reed switch + magnet on the container module
 - USB-C cable for power and serial
 
-V0.1 needs the **reed-to-D1 blue-wire rework** described in `../../hardware/README.md`. Without it, the reed switch will not work.
+V0.1 needs the **reed-to-D10 blue-wire rework** described in `../../hardware/README.md`. Without it, the reed switch will not work.
 
 ## Install
 

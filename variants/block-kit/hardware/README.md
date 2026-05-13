@@ -17,21 +17,22 @@ The Driver PCB exposes two socket headers, `J7` and `J8`, that mate with the Mis
 |---|---|---|---|
 | `+3V3` / `GND` / `+5V5` | Driver PCB | Mist & LED PCB | Power for IS31FL3731 (3V3) and piezo MOSFET drive (5V5) |
 | `D0_MIST_PWM_5V5` | Driver PCB | Piezo (J1 on Mist & LED) | JP01 closed by default |
-| `D1_REED` | Driver PCB | Reed switch SW1 | **V0.1 rework required:** blue-wire reed pads to a D1 breakout (see below) |
+| `D10_REED` | Driver PCB | Reed switch SW1 | **V0.1 rework required:** blue-wire reed pads to a D10 breakout (see below) |
 | `D2_C6` | INA180A3 (Driver) | n/a | Local on Driver PCB |
 | `D3_LED` | Driver PCB | TPS61023 EN + LED2 (red) | Indicator LED lights when boost is enabled |
 | `D4_SDA` / `D5_SCL` | Driver PCB | IS31FL3731 + Qwiic J6 | Shared I2C bus |
 | `D6_BUTTON` | Driver PCB | Button PCB via SW+/SW− → J2 | Active-HIGH, 10 kΩ pull-down on Driver PCB |
 | `D7_LED` | Driver PCB | LED3 (white) | Local on Driver PCB |
 
-## V0.1 rework — reed switch on D1
+## V0.1 rework — reed switch on D10
 
-The original V0.1 schematic routes the reed switch through `J2` into the button series circuit. The firmware needs the reed and button on **separate** GPIOs. For V0.1 boards:
+The original V0.1 schematic routes the reed switch through `J2` into the button series circuit. The firmware needs the reed and button on **separate** GPIOs. D10 is a free pin on the XIAO ESP32-C6 (GPIO 18), physically opposite the mist-PWM pin (D0) on the XIAO footprint, so it stays well away from any PWM crosstalk. For V0.1 boards:
 
 1. Cut the trace from the reed switch to `SW+`/`SW−`.
-2. Blue-wire one reed pad to a `D1` breakout (via J7/J8 socket or the Driver PCB's D1 test point).
+2. Blue-wire one reed pad to a `D10` breakout (via J7/J8 socket or the Driver PCB's D10 test point).
 3. Leave the other reed pad on GND.
-4. Confirm jumper `JP02` is **open** so D1 is not driving PWM.
+
+D1 is left at its schematic role (alt-PWM via JP02) and JP02 should remain open as documented.
 
 Document the actual rework with a photo in the next commit.
 

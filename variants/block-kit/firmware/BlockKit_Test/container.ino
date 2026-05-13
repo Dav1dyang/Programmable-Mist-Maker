@@ -1,4 +1,4 @@
-// Reed switch on D1 with asymmetric debounce.
+// Reed switch on D10 with asymmetric debounce.
 // Insert (LOW edge) is gated by REED_INSERT_DWELL_MS to avoid mist rapid-cycling
 // when the user is sliding the container or cleaning. Removal (HIGH edge) is
 // faster so shut-off isn't sluggish.
