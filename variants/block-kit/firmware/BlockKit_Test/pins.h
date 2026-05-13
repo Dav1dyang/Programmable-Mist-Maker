@@ -114,7 +114,15 @@ constexpr uint16_t LED_TICK_MS           = 20;      // 50 fps render — smooth 
 //
 // Period is long (5.5 s) so the breath reads as slow ambient calm, not a
 // status blink.
-constexpr uint8_t  LED_BREATH_PEAK       = 38;      // ~15% post-gamma — dramatic dim peak
+//
+// Why 80 and not lower: the IS31FL3731 is 8-bit PWM and our 2.2 gamma LUT
+// maps raw 0..38 onto PWM values 0 and 1 only — so the sweep at the old
+// peak (38) was effectively "off → 1 PWM → off", which the eye reads as
+// blink rather than breathe. Raw peak 80 maps to PWM 10, and the LUT
+// transitions through 11 distinct PWM levels (0..10) over the sweep —
+// enough for a smooth perceptual gradient. PWM 10/255 ≈ 4 %, still firmly
+// in dim-ambient territory.
+constexpr uint8_t  LED_BREATH_PEAK       = 80;      // raw peak; ≈ PWM 10/255 = 4% post-gamma
 constexpr uint16_t LED_BREATH_PERIOD_MS  = 5500;    // slow inhale → exhale → dwell at dark
 
 // ---- WAVE (docked) — "soft broad swell, all LEDs always lit" ---------------

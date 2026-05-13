@@ -110,9 +110,10 @@ g_currentLevel (0..255)   ← smoothed actual; ramps toward target +2 / 10 ms
 mist duty   = (g_currentLevel × MIST_DUTY_MAX) / 255    // 127 = 50 %
 LED bright  = led_driver(g_currentLevel, g_ledMode)
               where led_driver:
-                BREATH:  exp(sin) curve LUT, capped to LED_BREATH_PEAK (≈15 %)
-                         so idle stays dim regardless of baseLevel; all 14
-                         LEDs share brightness; baseLevel scales the whole.
+                BREATH:  exp(sin) curve LUT, capped to LED_BREATH_PEAK (raw
+                         80 → PWM 10/255 ≈ 4 %) so idle stays dim regardless
+                         of baseLevel; all 14 LEDs share brightness;
+                         baseLevel scales the whole.
                 WAVE:    every LED at WAVE_BASE_LEVEL, plus gaussian swell
                          (σ=4 LEDs, 64-entry LUT, linear-interp) traveling
                          bottom→top over WAVE_PERIOD_MS. baseLevel scales
@@ -179,7 +180,7 @@ Log line prefixes: `[APP]`, `[MIST]`, `[LED]`, `[REED]`, `[BTN]`, `[CUR]`, `[STA
 | `LEVEL_SMOOTH_TICK_MS` / `STEP_UP` / `STEP_DN` | 10 / 2 / 3 | ~1.3 s fade-in, ~0.85 s fade-out — tiny steps so the slide reads as continuous |
 | `LEVEL_SMOOTH_STEP_UP_FAST` | 4 | ~0.64 s breath restore after removal — keeps the cinematic brisk |
 | `LEVEL_OFF_THRESHOLD` | 8 | Snap-to-off cutoff during dim ramp |
-| `LED_BREATH_PEAK` | 38 | ~15 % post-gamma — *very dim*, dramatic peak (idle) |
+| `LED_BREATH_PEAK` | 80 | raw cap on breath sweep → PWM 10/255 ≈ 4 % post-gamma. Picked so the sweep covers ~10 distinct PWM levels (smooth gradient) instead of the 1 level peak=38 gave (blink-like). |
 | `LED_BREATH_PERIOD_MS` | 5500 | One slow inhale → exhale → black-dwell |
 | `WAVE_BASE_LEVEL` | 92 | Always-on baseline every LED holds (docked) |
 | `WAVE_SWELL_PEAK` | 163 | base + peak = 255 at swell crest |
