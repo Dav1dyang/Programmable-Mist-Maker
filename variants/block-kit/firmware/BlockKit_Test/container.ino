@@ -11,12 +11,15 @@ static uint32_t g_edgeStartMs       = 0;
 
 void containerInit() {
   pinMode(PIN_REED, INPUT_PULLUP);
-  // Settle the raw read once so the first poll doesn't spuriously edge.
-  g_lastRawPresent = (digitalRead(PIN_REED) == LOW);
-  g_containerPresent = g_lastRawPresent;
-  g_edgeStartMs = millis();
-  Serial.print("[REED] init present=");
-  Serial.println(g_containerPresent ? "1" : "0");
+  // Always seed the committed state as "absent" so a container that's already
+  // docked at boot is treated as a freshly arriving edge — the 500 ms insert
+  // dwell still applies, which is the right safety behavior since we don't
+  // know how long the magnet has been there.
+  g_lastRawPresent   = (digitalRead(PIN_REED) == LOW);
+  g_containerPresent = false;
+  g_edgeStartMs      = millis();
+  Serial.print("[REED] init raw_present=");
+  Serial.println(g_lastRawPresent ? "1" : "0");
 }
 
 // Returns the debounced "is a container docked?" state. Cheap; call freely.

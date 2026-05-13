@@ -50,7 +50,10 @@ void ledInit() {
   // fork is expected to expose Matrix B addressing through `drawPixel(x,y,…)`
   // when the Matrix B mode is selected — if his fork's API differs, the
   // selection call goes here at bring-up.
-  g_is31.clear();
+  // Zero only the 14 populated positions; stock IS31 driver has no clear().
+  for (uint8_t i = 0; i < LED_COUNT; ++i) {
+    g_is31.drawPixel(LED_POSITIONS[i][0], LED_POSITIONS[i][1], 0);
+  }
   Serial.println("[LED] init ok");
 }
 

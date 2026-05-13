@@ -74,18 +74,29 @@ static void printHelp() {
   Serial.println(F("  s             - toggle current-sense scope mode"));
 }
 
-static long parseTail(const String& cmd) {
-  if (cmd.length() < 2) return -1;
-  return cmd.substring(1).toInt();
+// Parse the numeric tail after the command letter (e.g. "b80" -> 80). Returns
+// -1 if no digits follow. We accept only non-negative integers because every
+// command in this firmware has a non-negative range.
+static long parseTail(const char* cmd, uint8_t len) {
+  if (len < 2) return -1;
+  long v = 0;
+  for (uint8_t i = 1; i < len; ++i) {
+    const char d = cmd[i];
+    if (d < '0' || d > '9') return -1;
+    v = v * 10 + (d - '0');
+  }
+  return v;
 }
 
-static void handleCommand(String cmd) {
-  cmd.trim();
-  if (cmd.length() == 0) return;
-  if (cmd == "help") { printHelp(); return; }
+static void handleCommand(const char* cmd, uint8_t len) {
+  if (len == 0) return;
+  if (len == 4 && cmd[0] == 'h' && cmd[1] == 'e' && cmd[2] == 'l' && cmd[3] == 'p') {
+    printHelp();
+    return;
+  }
 
-  // single-char + numeric tail
-  const char c = cmd.charAt(0);
+  // Single-char + optional numeric tail.
+  const char c = cmd[0];
   switch (c) {
     case '1':
       if (containerIsPresent()) enterRunning();
@@ -98,26 +109,26 @@ static void handleCommand(String cmd) {
       else Serial.println("[CMD] container not present");
       return;
     case 'a': {
-      const long v = parseTail(cmd);
+      const long v = parseTail(cmd, len);
       if (v == 0)      { ledSetAnimationEnabled(false); Serial.println("[LED] anim off"); }
       else if (v == 1) { ledSetAnimationEnabled(true);  Serial.println("[LED] anim on");  }
       else Serial.println("[CMD] use a0 or a1");
       return;
     }
     case 'b': {
-      const long v = parseTail(cmd);
+      const long v = parseTail(cmd, len);
       if (v >= 0 && v <= 255) { ledSetOverall(uint8_t(v)); Serial.print("[LED] overall="); Serial.println(v); }
       else Serial.println("[CMD] b: 0..255");
       return;
     }
     case 'c': {
-      const long v = parseTail(cmd);
+      const long v = parseTail(cmd, len);
       if (v >= 0 && v <= 64) { ledSetContrast(uint8_t(v)); Serial.print("[LED] contrast="); Serial.println(v); }
       else Serial.println("[CMD] c: 0..64");
       return;
     }
     case 'p': {
-      const long v = parseTail(cmd);
+      const long v = parseTail(cmd, len);
       if (v >= 1000 && v <= 20000) { ledSetPeriodMs(uint16_t(v)); Serial.print("[LED] period_ms="); Serial.println(v); }
       else Serial.println("[CMD] p: 1000..20000");
       return;
@@ -127,19 +138,25 @@ static void handleCommand(String cmd) {
     case 's': currentSenseToggleScope(); return;
     default:
       Serial.print("[CMD] unknown: ");
-      Serial.println(cmd);
+      Serial.write(cmd, len);
+      Serial.println();
   }
 }
 
 static void pollSerial() {
-  static String buf;
+  // Fixed-size accumulator — plan rule: no String, no dynamic allocation.
+  static char     buf[33];   // 32 chars + 1 NUL guard
+  static uint8_t  bufLen = 0;
   while (Serial.available()) {
     const char c = char(Serial.read());
     if (c == '\n' || c == '\r') {
-      if (buf.length()) handleCommand(buf);
-      buf = "";
-    } else if (buf.length() < 32) {
-      buf += c;
+      if (bufLen > 0) {
+        buf[bufLen] = '\0';
+        handleCommand(buf, bufLen);
+      }
+      bufLen = 0;
+    } else if (bufLen < 32 && c != ' ' && c != '\t') {
+      buf[bufLen++] = c;
     }
   }
 }
