@@ -41,34 +41,52 @@ Mist drive: 108.7 kHz / 0–50 % PWM into a piezo disc. Container has a magnet t
 ## State Machine
 
 ```
-   ┌──────────────────┐  short-press   ┌────────────────────┐
-   │ IDLE_LEDS_OFF    │ ─────────────► │ IDLE_LEDS_ON       │
-   │ ring dark        │                │ ring breathing     │
-   │ mist off, D7 dim │ ◄───────────── │ mist off, D7 dim   │
-   └──────┬───────────┘                └────────┬───────────┘
-          │                                     │
-     container in                          container in
-          ▼                                     ▼
-                  ┌──────────────────────┐
-                  │       RUNNING         │
-                  │  mist PWM @ level    │
-                  │  ring breathing      │
-                  │  D7 off              │
-                  └──────┬───────────────┘
-                         │ short-press OR container out
-                         ▼
-                  → IDLE_LEDS_OFF
+                     ┌─────────────────────┐
+                     │ IDLE_LEDS_ON (boot) │
+                     │ strip = BREATH      │
+                     │ uniform soft pulse  │
+                     └────┬────────────────┘
+                          │ short-press ▲ / ▼ short-press
+                     ┌────▼────────────────┐
+                     │ IDLE_LEDS_OFF       │
+                     │ strip dark          │
+                     └─────────────────────┘
+
+  IDLE_LEDS_ON / IDLE_LEDS_OFF
+        │ container docked (500 ms dwell)
+        ▼
+  ┌─────────────────────────────────────────┐
+  │ RUNNING                                 │
+  │   1) strip = BREATH while fading up     │
+  │   2) at peak, strip = SWIRL (rising ↑)  │
+  │   mist on, D7 off                       │
+  └─────┬───────────────────────────────────┘
+        │ container removed
+        ▼
+  ┌─────────────────────────────────────────┐
+  │ TRANSITION_FROM_RUNNING                 │
+  │   mist hard-stopped                     │
+  │   swirl decelerates & dims (~640 ms)    │
+  │   auto-enters IDLE_LEDS_ON →            │
+  │   fast breath fade-up (~425 ms)         │
+  └─────┬───────────────────────────────────┘
+        │ smoother reaches 0
+        ▼
+       IDLE_LEDS_ON  (cinematic total ≈ 1 s)
 ```
+
+Short-press from any active state → `IDLE_LEDS_OFF` (mute, skips cinematic).
+Re-docking during `TRANSITION_FROM_RUNNING` cleanly re-enters `RUNNING`.
 
 | From → To | Trigger | Effect |
 |---|---|---|
-| any IDLE → RUNNING | reed Inserted (500 ms dwell) | mist + ring fade up ~850 ms |
-| any IDLE → RUNNING | button short-press *and* container docked | same |
-| RUNNING → IDLE_LEDS_OFF | reed Removed (100 ms dwell) | **mist hard-stop**; ring fades down |
-| RUNNING → IDLE_LEDS_OFF | button short-press | same |
-| IDLE_LEDS_OFF ↔ IDLE_LEDS_ON | button short-press (no container) | ring fades in/out |
-| RUNNING / IDLE_LEDS_ON | button long-press | ramps `g_userLevel`; mist + ring follow live |
-| any | level dims past 8 | snap to `IDLE_LEDS_OFF`, reset `userLevel = LEVEL_DEFAULT`, flip ramp direction |
+| IDLE → RUNNING | reed Inserted (500 ms dwell) **or** button short-press + container docked | mist on, strip fades up in BREATH, **then** flips to SWIRL at peak |
+| RUNNING → TRANSITION_FROM_RUNNING | reed Removed (100 ms dwell) | **mist hard-stop**; swirl decelerates + dims over ~640 ms |
+| TRANSITION_FROM_RUNNING → IDLE_LEDS_ON | smoother lands on 0 | mode→BREATH, fast fade-up to `g_userLevel` (~425 ms) |
+| RUNNING / TRANSITION → IDLE_LEDS_OFF | button short-press | snap to mute (skips cinematic) |
+| IDLE_LEDS_OFF ↔ IDLE_LEDS_ON | button short-press (no container) | breath fades in/out |
+| RUNNING / IDLE_LEDS_ON | button long-press | ramps `g_userLevel`; brightness scales live (chase speed stays constant in RUNNING) |
+| any | level dims past `LEVEL_OFF_THRESHOLD` (8) | snap to `IDLE_LEDS_OFF`, reset `userLevel = LEVEL_DEFAULT`, flip ramp direction |
 
 ## Level Model (the trick)
 
@@ -76,29 +94,40 @@ One scalar drives both mist and LEDs so they always move together.
 
 ```
 g_userLevel    (0..255)   ← user's intent; long-press ramps this
-g_targetLevel  (0..255)   ← state-driven goal (0 in IDLE_LEDS_OFF, g_userLevel otherwise)
-g_currentLevel (0..255)   ← smoothed actual; ramps toward target ~3 units / 10 ms
-                            (≈ 850 ms 0→255, "luxurious")
+g_targetLevel  (0..255)   ← state-driven goal (0 in IDLE_LEDS_OFF /
+                            TRANSITION_FROM_RUNNING, g_userLevel otherwise)
+g_currentLevel (0..255)   ← smoothed actual; ramps toward target ~3 / 10 ms
+                            (≈ 850 ms 0→255, "luxurious"). Post-removal
+                            breath restore uses STEP_UP_FAST (~425 ms) so
+                            the full cinematic lands ≈ 1 s.
 
 mist duty   = (g_currentLevel × MIST_DUTY_MAX) / 255    // 127 = 50 %
-LED bright  = g_currentLevel + breathSin(t) × depth     // ±~6 % modulation
+LED bright  = led_driver(g_currentLevel, g_ledMode)
+              where:
+                BREATH:  uniform + sineLUT(t) × depth × baseLevel/255
+                SWIRL:   per-LED 0..255 from distance behind rising head,
+                         × baseLevel/255, gamma-corrected. Phase advance
+                         scales with baseLevel iff ledSetSwirlFading(true)
+                         (set during TRANSITION_FROM_RUNNING).
 ```
 
-Two pieces sit outside the smoother:
+Pieces sitting outside the smoother:
 - **Reed lift** → `mistHardStop()` cuts boost rail + PWM immediately and sets an inhibit flag so the still-fading `g_currentLevel` can't re-engage the boost. `enterRunning()` clears the inhibit.
 - **D7** is driven once per loop from `containerIsPresent()` — independent of `state` and `level`.
+- **`g_pendingSwirl`** — when `enterRunning()` fires, the strip starts in BREATH and the smoother flips it to SWIRL on landing at target. Makes "brighten up, *then* swirl" sequential.
 
 ## User Interactions
 
 | User does | Result |
 |---|---|
-| Dock container (magnet to reed) | ~500 ms safety dwell → mist + ring fade up ~850 ms |
-| Lift container | Mist cuts instantly; ring fades down ~640 ms |
-| Tap button (no container) | LED ring toggles on/off (ambient mode) |
-| Tap button (container docked, mist running) | Mist + ring fade out |
-| Tap button (container docked, mist off) | Mist + ring fade in |
-| Hold button (RUNNING or ambient) | Ramp mist + brightness up or down (direction alternates per hold) |
-| Hold button past low threshold | Auto-snap to OFF, user level resets to default |
+| Power on | Boots to `IDLE_LEDS_ON` — strip starts a soft uniform breath at full user level |
+| Dock container | ~500 ms reed dwell → mist on; strip fades up in BREATH, **then** flips to SWIRL (rising chase) at peak |
+| Lift container | Mist hard-stops instantly. Swirl decelerates + dims ~640 ms, then auto-restores the BREATH at user level over ~425 ms (cinematic total ≈ 1 s) |
+| Tap button (no container) | Toggles BREATH on / off |
+| Tap button (any active state) | Snaps to `IDLE_LEDS_OFF` (skips the removal cinematic if mid-transition) |
+| Tap button when muted, container docked | Resumes RUNNING (fade-up → swirl) |
+| Hold button (RUNNING or IDLE_LEDS_ON) | Ramps `g_userLevel` — brightness scales live. Swirl rotation speed stays constant in RUNNING (dim is brightness-only). Direction alternates on release |
+| Hold button past `LEVEL_OFF_THRESHOLD` (8) | Auto-snap to `IDLE_LEDS_OFF`, user level resets to default so the next wake comes back at full |
 
 ## Files
 
@@ -107,7 +136,7 @@ Two pieces sit outside the smoother:
 | `BlockKit_Test.ino` | state machine, smoother, serial parser, glue |
 | `pins.h` | pin defs, tunables, enums — single source of truth |
 | `mist.ino` | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
-| `led_driver.ino` | `ledRender(baseLevel)` — uniform breath, sine LUT + linear interp + gamma |
+| `led_driver.ino` | `ledRender(baseLevel)` — dispatches BREATH (sine LUT + linear interp) or SWIRL (Q8 phase + per-LED chase), gamma + per-LED I2C write cache |
 | `status_led.ino` | D7 dim-on / off |
 | `container.ino` | reed debounce, edge events |
 | `button.ino` | debounce, short/long-press events |
@@ -141,9 +170,12 @@ Log line prefixes: `[APP]`, `[MIST]`, `[LED]`, `[REED]`, `[BTN]`, `[CUR]`, `[STA
 | `MIST_DUTY_MAX` | 127 | 50 % of 8-bit PWM = full mist |
 | `LEVEL_DEFAULT` | 255 | First-boot mist + brightness |
 | `LEVEL_SMOOTH_TICK_MS` / `STEP_UP` / `STEP_DN` | 10 / 3 / 4 | ~850 ms fade-in, ~640 ms fade-out |
+| `LEVEL_SMOOTH_STEP_UP_FAST` | 6 | ~425 ms breath restore after removal — keeps the cinematic ≈ 1 s |
 | `LEVEL_OFF_THRESHOLD` | 8 | Snap-to-off cutoff during dim ramp |
 | `LED_BREATH_DEPTH` | 16 | ±~6 % modulation — subtle |
 | `LED_BREATH_PERIOD_MS` | 4000 | One inhale/exhale |
+| `SWIRL_PERIOD_MS` | 1500 | Head traverses 14 LEDs bottom→top |
+| `SWIRL_TAIL_LEDS` | 6 | Fading tail length behind the head |
 | `LED_TICK_MS` | 20 | 50 fps render |
 | `REED_INSERT_DWELL_MS` / `REMOVE_DWELL_MS` | 500 / 100 | Asymmetric: slow on, fast off |
 | `BUTTON_LONGPRESS_MS` / `LONGTICK_MS` | 500 / 13 | ~77 steps/sec while held |

@@ -87,28 +87,42 @@ constexpr uint16_t BUTTON_LONGTICK_MS   = 13;       // ~80 steps/sec while held
 constexpr uint16_t REED_INSERT_DWELL_MS = 500;      // require stable LOW for 500 ms before auto-start
 constexpr uint16_t REED_REMOVE_DWELL_MS = 100;      // faster removal so shut-off isn't sluggish
 
-// ---------- IS31FL3731 LED ring ----------
+// ---------- IS31FL3731 LED strip (14 LEDs, vertical) ----------
 //
-// 14 populated LEDs on Matrix B (CB1/CB2). We address them directly via
-// setLEDPWM(lednum, pwm, 0) — drawPixel goes to Matrix A which isn't populated.
+// 14 populated LEDs on Matrix B (CB1/CB2), arranged as a vertical strip
+// (top → bottom). LED 1 (top) corresponds to index 0; LED 14 (bottom) to
+// index 13. We address each LED directly via setLEDPWM(lednum, pwm, 0) —
+// drawPixel(x,y,…) goes to Matrix A which isn't populated.
 //
 // LED numbering reference (IS31FL3731 datasheet Rev F, Table 7):
-//   CB1.C1-9..C1-16  -> lednum 8..15  (LEDs 1..8, top)
-//   CB2.C2-9..C2-14  -> lednum 24..29 (LEDs 9..14, bottom)
+//   CB1.C1-9..C1-16  -> lednum 8..15  (LEDs 1..8, top half)
+//   CB2.C2-9..C2-14  -> lednum 24..29 (LEDs 9..14, bottom half)
 constexpr uint8_t  LED_COUNT             = 14;
 constexpr uint8_t  LED_IS31_ADDR         = 0x74;
 constexpr uint8_t  LED_IS31_FRAME        = 0;       // begin() activates frame 0
 constexpr uint16_t LED_TICK_MS           = 20;      // 50 fps render — smooth motion
 
-// Uniform breathing — all 14 LEDs same brightness, modulated around the
-// current base level via a 64-entry sine LUT with linear interpolation between
-// entries (so the curve is continuous to the eye, not stair-stepped).
-// Depth is the half-amplitude of the modulation; the user asked for subtle.
+// Uniform breathing (LedMode::BREATH) — all 14 LEDs share brightness modulated
+// around the current base level via a 64-entry sine LUT with linear inter-
+// polation between entries (so the curve is continuous to the eye, not stair-
+// stepped). Used while idle (no container) and during ramp-up before swirl
+// kicks in. Depth is the half-amplitude; user asked for subtle high dim.
 constexpr uint8_t  LED_BREATH_DEPTH      = 16;      // 16/255 ≈ ±6% on each side
 constexpr uint16_t LED_BREATH_PERIOD_MS  = 4000;    // one inhale/exhale cycle
 
+// Vertical chase (LedMode::SWIRL) — used while a container is docked and the
+// ring is at full brightness. A bright "head" rises continuously from bottom
+// (index 13) toward top (index 0), with a SWIRL_TAIL_LEDS-long fading tail
+// trailing behind it. Wraps seamlessly: as one head leaves the top, the
+// trailing tail re-emerges from the bottom on the next cycle.
+//
+// In TRANSITION_FROM_RUNNING (container just removed), the swirl decelerates
+// proportionally to the current level so motion slows as it dims, producing
+// a soft "wind down" feel.
+constexpr uint16_t SWIRL_PERIOD_MS       = 1500;    // one head traverses 14 LEDs
+constexpr uint8_t  SWIRL_TAIL_LEDS       = 6;       // fading tail length, in LED units
+
 // 14 LED numbers on Matrix B, ordered top (index 0) to bottom (index 13).
-// With uniform breathing the order only matters for ledWalk() verification.
 constexpr uint8_t LED_MAP[LED_COUNT] = {
    8,  9, 10, 11, 12, 13, 14, 15,   // CB1 row: top, LEDs 1..8
   24, 25, 26, 27, 28, 29,           // CB2 row: LEDs 9..14 (bottom)
@@ -124,6 +138,9 @@ constexpr uint8_t LED_MAP[LED_COUNT] = {
 constexpr uint16_t LEVEL_SMOOTH_TICK_MS  = 10;      // smoother tick
 constexpr uint8_t  LEVEL_SMOOTH_STEP_UP  = 3;       // ~850 ms 0→255 (luxurious)
 constexpr uint8_t  LEVEL_SMOOTH_STEP_DN  = 4;       // slightly faster fade-out
+// Fast step-up used ONLY for the post-removal breath restore so the entire
+// container-lift cinematic (swirl-fade ~640 ms + breath restore) lands near 1 s.
+constexpr uint8_t  LEVEL_SMOOTH_STEP_UP_FAST = 6;   // ~425 ms 0→255
 
 // Default level on first boot — bold first impression (full mist).
 constexpr uint8_t  LEVEL_DEFAULT         = 255;
@@ -138,30 +155,45 @@ constexpr uint32_t PLOT_PRINT_HZ        = 20;       // [PLOT] CSV rate when scop
 
 // ---------- Top-level state machine ----------
 //
-//   ┌───────────────────┐   short-press   ┌───────────────────┐
-//   │  IDLE_LEDS_OFF    │ ──────────────► │  IDLE_LEDS_ON     │
-//   │  no container     │ ◄────────────── │  no container     │
-//   │  target = 0       │   short-press   │  target = user    │
-//   │  D7 dim, ring off │                 │  D7 dim, ring on  │
-//   └─────────┬─────────┘                 └─────────┬─────────┘
-//             │                                     │
-//        container ↓                            container ↓
-//             │                                     │
-//             ▼                                     ▼
-//                  ┌──────────────────────────┐
-//                  │       RUNNING            │
-//                  │  container docked        │
-//                  │  mist PWM @ scaled level │
-//                  │  target = user           │
-//                  │  D7 off, ring breathing  │
-//                  └──────────┬───────────────┘
-//                             │ short-press OR container removed
-//                             ▼
-//                       IDLE_LEDS_OFF
+//   Boot lands in IDLE_LEDS_ON (soft breath waiting). Short-press toggles to
+//   IDLE_LEDS_OFF and back. Container docking always wins: any state +
+//   container → RUNNING. Container removal in RUNNING goes through a brief
+//   TRANSITION_FROM_RUNNING (swirl-fade + breath restore) before landing
+//   back in IDLE_LEDS_ON, giving a cinematic ~1 s wind-down.
+//
+//   ┌─────────────────┐   short-press   ┌─────────────────────────────┐
+//   │ IDLE_LEDS_OFF   │ ──────────────► │ IDLE_LEDS_ON  (default boot) │
+//   │ ring dark, D7 ▒│ ◄────────────── │ ring breath ✻, D7 ▒          │
+//   └────────┬────────┘   short-press   └─────────────┬───────────────┘
+//            │                                        │
+//       container ↓                              container ↓
+//            ▼                                        ▼
+//                ┌────────────────────────────────────────────┐
+//                │  RUNNING                                   │
+//                │  fade up (breath) ➜ swirl at max          │
+//                │  mist on, D7 off, ring chase ↑             │
+//                └─────────────────┬──────────────────────────┘
+//                                  │ container removed
+//                                  ▼
+//                ┌────────────────────────────────────────────┐
+//                │  TRANSITION_FROM_RUNNING                   │
+//                │  mist hard-stopped, swirl decelerates &   │
+//                │  dims to 0, then auto-enters IDLE_LEDS_ON  │
+//                │  with a fast breath fade-up                │
+//                └────────────────────────────────────────────┘
+//   Short-press from RUNNING / TRANSITION → IDLE_LEDS_OFF (skips cinematic).
 enum class AppState : uint8_t {
   IDLE_LEDS_OFF,
   IDLE_LEDS_ON,
   RUNNING,
+  TRANSITION_FROM_RUNNING,
+};
+
+// LED render mode — owned by the state machine, consumed by led_driver.ino.
+// State transitions call ledSetMode(); led_driver dispatches per-tick.
+enum class LedMode : uint8_t {
+  BREATH,   // uniform sine-modulated breath, all 14 LEDs same brightness
+  SWIRL,    // rising-chase head + fading tail, bottom→top
 };
 
 // ---------- Event enums (declared here so every .ino can use them as args) ----------

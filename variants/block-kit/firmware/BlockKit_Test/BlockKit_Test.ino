@@ -1,26 +1,38 @@
 // Block Kit V0.1 — bring-up firmware (Phase A).
 //
 // Phase A scope: mist control + reed switch (magnetic-on UX) + button override
-// + uniform LED breathing + D7 dim indicator + scope-mode current logging. The
-// water-level classifier (Phase B) is intentionally NOT in this build.
+// + dual-mode LED effects (breath / vertical chase) + D7 dim indicator +
+// scope-mode current logging. The water-level classifier (Phase B) is
+// intentionally NOT in this build.
 //
-// State machine — three top-level states, all centralized here:
+// State machine — four states, all centralized here:
 //
-//   IDLE_LEDS_OFF  — no container docked, LED ring dark, D7 dim "waiting"
-//   IDLE_LEDS_ON   — no container docked, LED ring breathing at user level
-//                    (ambient/showcase mode toggled by button short-press)
-//   RUNNING        — container docked, mist active, LED ring breathing,
-//                    D7 off (ring takes over)
+//   IDLE_LEDS_OFF           — muted: LEDs dark. Reached only via short-press.
+//   IDLE_LEDS_ON            — DEFAULT idle: container undocked, LED strip
+//                             doing a soft uniform breath at user level.
+//                             Boot lands here.
+//   RUNNING                 — container docked, mist active. LED strip fades
+//                             up in BREATH mode, then switches to SWIRL
+//                             (rising vertical chase) at peak brightness.
+//   TRANSITION_FROM_RUNNING — container just lifted: mist hard-stopped,
+//                             swirl decelerates + dims to 0, then auto-enters
+//                             IDLE_LEDS_ON with a fast breath fade-up. The
+//                             full cinematic is ~1 s. Re-docking during the
+//                             transition cleanly re-enters RUNNING.
 //
-// One `g_userLevel` variable (0..255) drives both mist PWM duty and LED ring
-// brightness. Mist duty = (level * MIST_DUTY_MAX) / 255 so level=255 means
-// 50% duty (full mist). `g_targetLevel` is what each state wants the level to
-// be; the `smoothLevel()` step ramps `g_currentLevel` toward target over time
-// so every state transition fades luxuriously instead of snapping.
+// One `g_userLevel` variable (0..255) drives both mist PWM duty and LED
+// brightness scale. Mist duty = (level * MIST_DUTY_MAX) / 255 so level=255
+// means 50% duty (full mist). `g_targetLevel` is what each state wants the
+// level to be; `smoothLevel()` ramps `g_currentLevel` toward target so every
+// transition fades luxuriously instead of snapping.
 //
 // Container lift is a SAFETY event: mist hard-stops the moment the reed
-// opens (mistHardStop), while the LED ring continues fading smoothly via the
-// smoother. Everything else uses the smooth path.
+// opens (mistHardStop), while the LED smoother continues the visual fade.
+// Everything else uses the smooth path.
+//
+// The LED ring is a 14-LED vertical strip (top=LED 1, bottom=LED 14). All
+// strip animation logic lives in led_driver.ino; this file just flips the
+// mode via ledSetMode() at the right state transitions.
 
 #include <Wire.h>
 #include "pins.h"
@@ -34,6 +46,7 @@ void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledRender(uint8_t); void ledAllOff(); void ledWalk();
 void ledSetBreathEnabled(bool); void ledSetBreathPeriodMs(uint16_t);
 void ledSetBreathDepth(uint8_t);
+void ledSetMode(LedMode); void ledSetSwirlFading(bool);
 void statusLedInit(); void statusLedSet(bool);
 void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
@@ -41,7 +54,7 @@ void currentSenseTogglePlotMute();
 float currentMeanMa(); float currentVarMa2();
 
 // ---- App-level state ----
-static AppState g_state           = AppState::IDLE_LEDS_OFF;
+static AppState g_state           = AppState::IDLE_LEDS_ON;  // boot default = soft breath
 static uint8_t  g_userLevel       = LEVEL_DEFAULT;   // user's set level (long-press adjusts)
 static uint8_t  g_targetLevel     = 0;               // state-driven target for the smoother
 static uint8_t  g_currentLevel    = 0;               // smoothed actual level applied to mist+LEDs
@@ -49,35 +62,64 @@ static int8_t   g_dimDir          = -1;              // -1 = next long-press dim
 static uint32_t g_lastSmoothMs    = 0;
 static uint32_t g_lastRampMs      = 0;
 static uint32_t g_lastStatMs      = 0;
+// Pending swirl-engage flag: when entering RUNNING we hold the LED in BREATH
+// mode and let the smoother fade up to target. Once it lands, the smoother
+// flips to SWIRL — that's how "smoothly brighten up to max, AND THEN start
+// swirling" reads as sequential rather than simultaneous.
+static bool     g_pendingSwirl    = false;
+// One-shot flag: use the fast STEP_UP for the next 0→target ramp. Set when
+// entering IDLE_LEDS_ON from TRANSITION_FROM_RUNNING so the breath restore is
+// snappy (~425 ms) instead of luxurious (~850 ms). Cleared automatically when
+// the smoother reaches target.
+static bool     g_fastFadeUp      = false;
 
 static void enterIdleLedsOff();
 static void enterIdleLedsOn();
 static void enterRunning();
+static void enterTransitionFromRunning();
 
 // ----------------------------------------------------------------------
 // State transitions
 // Idempotent — calling enterX() when already in state X is a no-op so spam
 // from serial commands or repeated reed edges doesn't churn log lines.
-// Leaving RUNNING locks the mist (mistEnable(false)) so the LED smoother's
-// non-zero level can't sneak the boost rail back on; entering RUNNING
-// unlocks it. D7 is driven by the main loop from containerIsPresent(),
-// NOT from state, so the indicator follows the magnet not the mist.
+// Leaving any state where mist may be active (RUNNING / TRANSITION_FROM_
+// RUNNING) locks the mist (mistEnable(false)) so the LED smoother's non-
+// zero level can't sneak the boost rail back on; entering RUNNING unlocks
+// it. D7 is driven by the main loop from containerIsPresent(), NOT from
+// state, so the indicator follows the magnet not the mist.
 // ----------------------------------------------------------------------
+static bool mistMayBeActive(AppState s) {
+  return s == AppState::RUNNING || s == AppState::TRANSITION_FROM_RUNNING;
+}
+
 static void enterIdleLedsOff() {
   if (g_state == AppState::IDLE_LEDS_OFF) return;
-  const bool leavingRunning = (g_state == AppState::RUNNING);
+  const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE_LEDS_OFF;
   g_targetLevel = 0;
-  if (leavingRunning) mistEnable(false);   // hard-stop + inhibit
+  g_pendingSwirl = false;
+  g_fastFadeUp = false;
+  ledSetMode(LedMode::BREATH);             // strip dark via baseLevel=0; mode irrelevant
+  ledSetSwirlFading(false);
+  if (leavingMist) mistEnable(false);      // hard-stop + inhibit
   Serial.println("[APP] -> IDLE_LEDS_OFF");
 }
 
 static void enterIdleLedsOn() {
+  // Special wiring: when called from TRANSITION_FROM_RUNNING, the breath
+  // restore should be faster than the normal luxurious 850 ms fade — capture
+  // that BEFORE the idempotency check so the flag flips even if we somehow
+  // call it twice in the same frame.
+  const bool fromTransition = (g_state == AppState::TRANSITION_FROM_RUNNING);
   if (g_state == AppState::IDLE_LEDS_ON) return;
-  const bool leavingRunning = (g_state == AppState::RUNNING);
+  const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE_LEDS_ON;
   g_targetLevel = g_userLevel;
-  if (leavingRunning) mistEnable(false);
+  g_pendingSwirl = false;
+  g_fastFadeUp = fromTransition;
+  ledSetMode(LedMode::BREATH);
+  ledSetSwirlFading(false);
+  if (leavingMist) mistEnable(false);
   Serial.println("[APP] -> IDLE_LEDS_ON");
 }
 
@@ -85,25 +127,67 @@ static void enterRunning() {
   if (g_state == AppState::RUNNING) return;
   g_state = AppState::RUNNING;
   g_targetLevel = g_userLevel;
+  // Stay in BREATH while we fade up — the smoother flips us to SWIRL once
+  // g_currentLevel reaches g_targetLevel. This makes "brighten up to max
+  // AND THEN start swirling" sequential rather than simultaneous.
+  ledSetMode(LedMode::BREATH);
+  ledSetSwirlFading(false);
+  g_pendingSwirl = true;
+  g_fastFadeUp = false;
   mistEnable(true);                        // re-arm the mist path
   Serial.println("[APP] -> RUNNING");
 }
 
+static void enterTransitionFromRunning() {
+  if (g_state == AppState::TRANSITION_FROM_RUNNING) return;
+  g_state = AppState::TRANSITION_FROM_RUNNING;
+  g_targetLevel = 0;
+  // Mode stays whatever it was (SWIRL if we hit peak, BREATH if removal
+  // happened mid-ramp). Swirl decelerates with baseLevel during the fade.
+  ledSetSwirlFading(true);
+  g_pendingSwirl = false;
+  g_fastFadeUp = false;
+  mistEnable(false);                       // hard-stop + inhibit
+  Serial.println("[APP] -> TRANSITION_FROM_RUNNING");
+}
+
 // ----------------------------------------------------------------------
 // Level smoother — runs every LEVEL_SMOOTH_TICK_MS, advances g_currentLevel
-// toward g_targetLevel. Tuned for ~800 ms 0→255 ramp (luxurious feel).
-// Down-step is slightly larger than up-step so fade-outs don't drag.
+// toward g_targetLevel. Tuned for ~850 ms 0→255 ramp normally; ~425 ms when
+// g_fastFadeUp is set (one-shot, used to make the post-removal breath
+// restore feel snappy).
+//
+// Two state-machine side effects fire here, both when the smoother lands
+// on target:
+//   * If state == RUNNING and g_pendingSwirl, flip LED mode to SWIRL. This
+//     is what makes "fade up, THEN start swirling" sequential.
+//   * If state == TRANSITION_FROM_RUNNING and target == 0, the swirl-fade
+//     just finished; auto-enter IDLE_LEDS_ON so the breath fades back in.
 // ----------------------------------------------------------------------
 static void smoothLevel() {
   const uint32_t now = millis();
   if (now - g_lastSmoothMs < LEVEL_SMOOTH_TICK_MS) return;
   g_lastSmoothMs = now;
+
   if (g_currentLevel < g_targetLevel) {
+    const uint8_t step = g_fastFadeUp ? LEVEL_SMOOTH_STEP_UP_FAST : LEVEL_SMOOTH_STEP_UP;
     const uint8_t room = g_targetLevel - g_currentLevel;
-    g_currentLevel += (room < LEVEL_SMOOTH_STEP_UP) ? room : LEVEL_SMOOTH_STEP_UP;
+    g_currentLevel += (room < step) ? room : step;
   } else if (g_currentLevel > g_targetLevel) {
     const uint8_t room = g_currentLevel - g_targetLevel;
     g_currentLevel -= (room < LEVEL_SMOOTH_STEP_DN) ? room : LEVEL_SMOOTH_STEP_DN;
+  }
+
+  if (g_currentLevel != g_targetLevel) return;
+
+  // Landed on target. Resolve any pending state-machine side effects.
+  g_fastFadeUp = false;
+  if (g_state == AppState::RUNNING && g_pendingSwirl) {
+    ledSetMode(LedMode::SWIRL);
+    g_pendingSwirl = false;
+    Serial.println("[APP] swirl engaged");
+  } else if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
+    enterIdleLedsOn();                     // fast breath fade-up
   }
 }
 
@@ -182,25 +266,33 @@ static void handleCommand(const char* cmd, uint8_t len) {
       return;
     case '0': enterIdleLedsOff(); return;
     case 't':
-      if (g_state == AppState::RUNNING) enterIdleLedsOff();
-      else if (containerIsPresent()) enterRunning();
-      else Serial.println("[CMD] container not present");
+      // Mirror the short-press button: mute if active, wake if muted. From a
+      // muted state, dock state decides whether we wake into RUNNING or just
+      // the ambient breath.
+      if (g_state == AppState::IDLE_LEDS_OFF) {
+        if (containerIsPresent()) enterRunning();
+        else                      enterIdleLedsOn();
+      } else {
+        enterIdleLedsOff();
+      }
       return;
     case 'v': {
       const long v = parseTail(cmd, len);
       if (v < 0 || v > 255) { Serial.println("[CMD] v: 0..255"); return; }
       g_userLevel = uint8_t(v);
-      if (g_state != AppState::IDLE_LEDS_OFF) {
-        // Active state — apply immediately, smoother takes us there.
+      // Apply live ONLY in the steady-state active states. IDLE_LEDS_OFF is
+      // muted; TRANSITION_FROM_RUNNING is fading to 0 and overriding target
+      // would interrupt the cinematic.
+      const bool applyNow =
+          g_state == AppState::RUNNING || g_state == AppState::IDLE_LEDS_ON;
+      if (applyNow) {
         g_targetLevel = g_userLevel;
         Serial.print("[APP] user level=");
         Serial.println(v);
       } else {
-        // Device is idle; store the level for next wake so a `v200` followed
-        // by a short-press or container dock starts at the new level.
         Serial.print("[APP] user level=");
         Serial.print(v);
-        Serial.println(" (stored; device idle, applies on next wake)");
+        Serial.println(" (stored; applies on next wake)");
       }
       return;
     }
@@ -264,25 +356,30 @@ static void pollSerial() {
 // ----------------------------------------------------------------------
 static void onContainerEvent(ContainerEvent ev) {
   if (ev == ContainerEvent::Inserted) {
+    // Docking always wins — from any state, including TRANSITION_FROM_RUNNING
+    // mid-fade. enterRunning() is idempotent if we're already RUNNING.
     enterRunning();
   } else if (ev == ContainerEvent::Removed) {
-    enterIdleLedsOff();
+    // Only RUNNING triggers the cinematic. From IDLE states, removal is a
+    // no-op (container wasn't there in the model). From TRANSITION_FROM_
+    // RUNNING, we're already on our way out — let the smoother finish.
+    if (g_state == AppState::RUNNING) {
+      enterTransitionFromRunning();
+    }
   }
 }
 
 static void onButtonEvent(ButtonEvent ev) {
   switch (ev) {
     case ButtonEvent::ShortPress:
-      if (g_state == AppState::RUNNING) {
-        // Container is docked but user wants the mist off — go to IDLE_LEDS_OFF.
-        enterIdleLedsOff();
-      } else if (containerIsPresent()) {
-        // Docked but currently IDLE → start mist.
-        enterRunning();
+      // Short-press is "mute toggle / wake from mute". It cuts straight to
+      // IDLE_LEDS_OFF from any active state — including TRANSITION_FROM_
+      // RUNNING (the user explicitly asked to skip the cinematic).
+      if (g_state == AppState::IDLE_LEDS_OFF) {
+        if (containerIsPresent()) enterRunning();
+        else                      enterIdleLedsOn();
       } else {
-        // No container — toggle ambient LED breathing.
-        if (g_state == AppState::IDLE_LEDS_ON) enterIdleLedsOff();
-        else                                   enterIdleLedsOn();
+        enterIdleLedsOff();
       }
       return;
     case ButtonEvent::LongPressStart:
@@ -311,9 +408,10 @@ static void onButtonEvent(ButtonEvent ev) {
 // ----------------------------------------------------------------------
 static const char* stateName(AppState s) {
   switch (s) {
-    case AppState::IDLE_LEDS_OFF: return "IDLE_OFF";
-    case AppState::IDLE_LEDS_ON:  return "IDLE_ON";
-    case AppState::RUNNING:       return "RUNNING";
+    case AppState::IDLE_LEDS_OFF:           return "IDLE_OFF";
+    case AppState::IDLE_LEDS_ON:            return "IDLE_ON";
+    case AppState::RUNNING:                 return "RUNNING";
+    case AppState::TRANSITION_FROM_RUNNING: return "XFADE_OUT";
   }
   return "?";
 }
@@ -360,13 +458,17 @@ void setup() {
   containerInit();
   buttonInit();
 
-  // Boot in IDLE_LEDS_OFF. If a container is already docked at power-on the
-  // first poll will edge-trigger Inserted after the 500 ms safety dwell.
-  // enterIdleLedsOff is idempotent and returns silently here (the static
-  // initializer already set state); print the initial state explicitly so
-  // the serial log isn't ambiguous about what state we boot into.
-  enterIdleLedsOff();
-  Serial.println("[APP] state=IDLE_LEDS_OFF (boot)");
+  // Boot lands in IDLE_LEDS_ON (default soft breath). If a container is
+  // already docked at power-on, the first containerPoll() will edge-trigger
+  // Inserted after the 500 ms safety dwell and we'll head into RUNNING.
+  //
+  // The static initializer above already sets g_state = IDLE_LEDS_ON so the
+  // idempotent enterIdleLedsOn() is a no-op; we set target + LED mode here
+  // explicitly so neither depends on the leaf modules' init order, and we
+  // print the resolved state to make the boot log unambiguous.
+  g_targetLevel = g_userLevel;
+  ledSetMode(LedMode::BREATH);
+  Serial.println("[APP] state=IDLE_LEDS_ON (boot)");
   printHelp();
 }
 
