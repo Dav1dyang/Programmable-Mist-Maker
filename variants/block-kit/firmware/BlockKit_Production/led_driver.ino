@@ -89,7 +89,7 @@ static bool      g_lastPwmInit       = false;
 
 // Interpolated lookup into BREATH_LUT. Returns 0..255. Linear interpolation
 // between entries removes stair-step on the slow 5.5 s breath period.
-static inline uint8_t breathQ(uint32_t phaseQ8) {
+static inline uint8_t breathValue(uint32_t phaseQ8) {
   const uint8_t idx  = uint8_t((phaseQ8 >> 8) & LUT_MASK);
   const uint8_t next = uint8_t((idx + 1)      & LUT_MASK);
   const uint8_t frac = uint8_t(phaseQ8 & 0xFFu);
@@ -100,7 +100,7 @@ static inline uint8_t breathQ(uint32_t phaseQ8) {
 
 // Gaussian lookup. dist_q8 is unsigned Q8 LED-units. The LUT covers 0..4σ
 // in LUT_SIZE entries. See GAUSS_LUT_SHIFT comment for the index derivation.
-static inline uint8_t gaussQ(uint16_t dist_q8) {
+static inline uint8_t gaussValue(uint16_t dist_q8) {
   static_assert(WAVE_SIGMA_LEDS_Q8 == 4 * 256,
                 "GAUSS_LUT step assumes σ = 4 LEDs (1024 Q8); retune GAUSS_LUT_SHIFT");
   uint16_t idx = dist_q8 >> GAUSS_LUT_SHIFT;
@@ -165,7 +165,7 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
   const uint16_t period = cfg.ledBreathPeriodMs ? cfg.ledBreathPeriodMs : 1;
   const uint32_t t       = uint32_t(now) % period;
   const uint32_t phaseQ8 = (t * LUT_SIZE * 256u) / period;
-  const uint8_t  curve   = breathQ(phaseQ8);  // 0..255 — full-range LUT
+  const uint8_t  curve   = breathValue(phaseQ8);  // 0..255 — full-range LUT
   // Map the 0..255 curve onto [ledBreathLow .. ledBreathPeak]. The peak
   // keeps idle dim regardless of baseLevel; the low value floors the
   // exhale (default 0 = full black on exhale, original behavior).
@@ -189,25 +189,24 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 // swell and the mist modulation are guaranteed phase-locked off the same
 // `now` — the mist you feel is literally the wave you see.
 static inline int32_t waveCenterYQ8(uint32_t now) {
-  const int32_t span_q8 = int32_t(LED_COUNT) * 256
+  const int32_t spanQ8 = int32_t(LED_COUNT) * 256
                         + int32_t(WAVE_TRAVEL_PAD_Q8) * 2;
   const uint16_t period = cfg.wavePeriodMs ? cfg.wavePeriodMs : 1;
   const uint32_t t = uint32_t(now) % period;
   return int32_t(LED_COUNT) * 256 + int32_t(WAVE_TRAVEL_PAD_Q8)
-       - int32_t((uint64_t(span_q8) * t) / period);
+       - int32_t((uint64_t(spanQ8) * t) / period);
 }
 
 static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
-  const int32_t y_q8 = waveCenterYQ8(now);
+  const int32_t waveCenterQ8 = waveCenterYQ8(now);
   for (uint8_t i = 0; i < LED_COUNT; ++i) {
-    const int32_t led_q8 = int32_t(i) * 256;
-    int32_t       d_q8   = led_q8 - y_q8;
-    if (d_q8 < 0) d_q8 = -d_q8;
-    const uint8_t g      = (d_q8 > 0xFFFF) ? 0 : gaussQ(uint16_t(d_q8));
-    // base + (peak * gauss / 255), clamped just in case constants overflow
-    // the 8-bit sum after retuning.
+    const int32_t ledPosQ8 = int32_t(i) * 256;
+    int32_t       distQ8   = ledPosQ8 - waveCenterQ8;
+    if (distQ8 < 0) distQ8 = -distQ8;
+    const uint8_t gauss    = (distQ8 > 0xFFFF) ? 0 : gaussValue(uint16_t(distQ8));
+    // base + (peak * gauss / 255), clamped in case retuning overflows the sum.
     uint16_t v = uint16_t(cfg.waveBaseLevel)
-               + ((uint16_t(cfg.waveSwellPeak) * uint16_t(g)) >> 8);
+               + ((uint16_t(cfg.waveSwellPeak) * uint16_t(gauss)) >> 8);
     if (v > 255) v = 255;
     out[i] = uint8_t(v);
   }
@@ -226,12 +225,12 @@ static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 // back down with the wave as it exits off-screen above. That timing is
 // the whole point of evaluating here instead of at index 0.
 uint8_t waveIntensityAtPiezo(uint32_t now) {
-  const int32_t y_q8     = waveCenterYQ8(now);
-  const int32_t piezo_q8 = -int32_t(MIST_PIEZO_OFFSET_LEDS_Q8);  // above i=0
-  int32_t       d_q8     = piezo_q8 - y_q8;
-  if (d_q8 < 0) d_q8 = -d_q8;
-  if (d_q8 > 0xFFFF) return 0;
-  return gaussQ(uint16_t(d_q8));
+  const int32_t waveCenterQ8 = waveCenterYQ8(now);
+  const int32_t piezoPosQ8   = -int32_t(MIST_PIEZO_OFFSET_LEDS_Q8);  // above i=0
+  int32_t       distQ8       = piezoPosQ8 - waveCenterQ8;
+  if (distQ8 < 0) distQ8 = -distQ8;
+  if (distQ8 > 0xFFFF) return 0;
+  return gaussValue(uint16_t(distQ8));
 }
 
 static inline void renderRaw(LedMode m, uint32_t now, uint8_t out[LED_COUNT]) {
