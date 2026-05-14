@@ -14,6 +14,17 @@ static constexpr const char* KEY_BLOB = "cfg_v1";
 static constexpr const char* KEY_HOST     = "host";
 static constexpr const char* KEY_ADMIN_PW = "admin_pw";
 static constexpr const char* KEY_OTA_PW   = "ota_pw";
+// Current-sense fields — separate keys so they survive any future CfgBlob
+// version bump (same pattern as the secrets above).
+static constexpr const char* KEY_SNS_PD   = "snsPd";    // probe duty
+static constexpr const char* KEY_SNS_DP   = "snsDp";    // disc-present threshold (mA × 10)
+static constexpr const char* KEY_SNS_WPD  = "snsWpd";   // water probe duty
+static constexpr const char* KEY_SNS_WL   = "snsWl";    // water low threshold (mA × 10)
+static constexpr const char* KEY_SNS_DD   = "snsDd";    // disc-disconnect-mid-run threshold (mA × 10)
+static constexpr const char* KEY_SNS_WH   = "snsWh";    // water hysteresis (mA × 10)
+static constexpr const char* KEY_SNS_WCI  = "snsWci";   // water check interval (s)
+static constexpr const char* KEY_SNS_WS   = "snsWs";    // water shutdown timeout (s)
+static constexpr const char* KEY_SNS_UAR  = "snsUar";   // useAsReed bool
 
 Config cfg;
 
@@ -72,6 +83,15 @@ void configResetDefaults() {
   cfg.reedInsertDwellMs       = CFG_DEFAULT_REED_INSERT_DWELL_MS;
   cfg.reedRemoveDwellMs       = CFG_DEFAULT_REED_REMOVE_DWELL_MS;
   cfg.statusLedDimDuty        = CFG_DEFAULT_STATUS_LED_DIM_DUTY;
+  cfg.senseProbeDuty             = CFG_DEFAULT_SENSE_PROBE_DUTY;
+  cfg.senseDiscPresentMa10x      = CFG_DEFAULT_SENSE_DISC_PRESENT_MA10X;
+  cfg.senseWaterProbeDuty        = CFG_DEFAULT_SENSE_WATER_PROBE_DUTY;
+  cfg.senseWaterLowMa10x         = CFG_DEFAULT_SENSE_WATER_LOW_MA10X;
+  cfg.senseDiscDisconnMidMa10x   = CFG_DEFAULT_SENSE_DISC_DISCONN_MID_MA10X;
+  cfg.senseWaterHystMa10x        = CFG_DEFAULT_SENSE_WATER_HYST_MA10X;
+  cfg.senseWaterCheckIntervalS   = CFG_DEFAULT_SENSE_WATER_CHECK_INTERVAL_S;
+  cfg.senseWaterShutdownS        = CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S;
+  cfg.senseUseAsReed             = CFG_DEFAULT_SENSE_USE_AS_REED;
   // Identity + secrets default to empty — first-boot setup populates them.
   strncpy(cfg.hostname, "mistmaker", CFG_HOSTNAME_MAX);
   cfg.hostname[CFG_HOSTNAME_MAX] = '\0';
@@ -185,6 +205,19 @@ void configInit() {
   strncpy(cfg.otaPassword,        ota.c_str(),   CFG_OTA_PWD_MAX);
   cfg.otaPassword[CFG_OTA_PWD_MAX] = '\0';
 
+  // 3. Current-sense classifier fields. Each key defaults to the firmware
+  // default if absent, so an upgrade from a pre-classifier device picks up
+  // sensible values without an explicit migration step.
+  cfg.senseProbeDuty           = p.getUChar (KEY_SNS_PD,  CFG_DEFAULT_SENSE_PROBE_DUTY);
+  cfg.senseDiscPresentMa10x    = p.getUShort(KEY_SNS_DP,  CFG_DEFAULT_SENSE_DISC_PRESENT_MA10X);
+  cfg.senseWaterProbeDuty      = p.getUChar (KEY_SNS_WPD, CFG_DEFAULT_SENSE_WATER_PROBE_DUTY);
+  cfg.senseWaterLowMa10x       = p.getUShort(KEY_SNS_WL,  CFG_DEFAULT_SENSE_WATER_LOW_MA10X);
+  cfg.senseDiscDisconnMidMa10x = p.getUShort(KEY_SNS_DD,  CFG_DEFAULT_SENSE_DISC_DISCONN_MID_MA10X);
+  cfg.senseWaterHystMa10x      = p.getUChar (KEY_SNS_WH,  CFG_DEFAULT_SENSE_WATER_HYST_MA10X);
+  cfg.senseWaterCheckIntervalS = p.getUShort(KEY_SNS_WCI, CFG_DEFAULT_SENSE_WATER_CHECK_INTERVAL_S);
+  cfg.senseWaterShutdownS      = p.getUShort(KEY_SNS_WS,  CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S);
+  cfg.senseUseAsReed           = p.getBool  (KEY_SNS_UAR, CFG_DEFAULT_SENSE_USE_AS_REED);
+
   p.end();
 }
 
@@ -197,6 +230,17 @@ bool configSave() {
   CfgBlob blob;
   packBlob(blob);
   const size_t put = p.putBytes(KEY_BLOB, &blob, sizeof(blob));
+  // Sense fields live in their own NVS keys (outside the blob) so they
+  // survive any future CfgBlob version bump. Persist them alongside.
+  p.putUChar (KEY_SNS_PD,  cfg.senseProbeDuty);
+  p.putUShort(KEY_SNS_DP,  cfg.senseDiscPresentMa10x);
+  p.putUChar (KEY_SNS_WPD, cfg.senseWaterProbeDuty);
+  p.putUShort(KEY_SNS_WL,  cfg.senseWaterLowMa10x);
+  p.putUShort(KEY_SNS_DD,  cfg.senseDiscDisconnMidMa10x);
+  p.putUChar (KEY_SNS_WH,  cfg.senseWaterHystMa10x);
+  p.putUShort(KEY_SNS_WCI, cfg.senseWaterCheckIntervalS);
+  p.putUShort(KEY_SNS_WS,  cfg.senseWaterShutdownS);
+  p.putBool  (KEY_SNS_UAR, cfg.senseUseAsReed);
   p.end();
   if (put != sizeof(blob)) {
     Serial.printf("[CFG] save failed: wrote %u / %u bytes\n",
@@ -302,6 +346,16 @@ bool configSetField(const char* name, long value) {
   SET_U16(reedRemoveDwellMs,     "reedRemoveDwellMs",   0, 5000);
   // Status LED
   SET_U8 (statusLedDimDuty,      "statusLedDimDuty",    0, 255);
+  // Current-sense classifier — thresholds are mA × 10, so 110.0 mA = 1100.
+  SET_U8 (senseProbeDuty,            "senseProbeDuty",            0, 60);   // probe must stay below mist-effective level
+  SET_U16(senseDiscPresentMa10x,     "senseDiscPresentMa10x",     0, 5000);
+  SET_U8 (senseWaterProbeDuty,       "senseWaterProbeDuty",       0, 170);  // honor hardware safety cap
+  SET_U16(senseWaterLowMa10x,        "senseWaterLowMa10x",        0, 5000);
+  SET_U16(senseDiscDisconnMidMa10x,  "senseDiscDisconnMidMa10x",  0, 5000);
+  SET_U8 (senseWaterHystMa10x,       "senseWaterHystMa10x",       0, 250);
+  SET_U16(senseWaterCheckIntervalS,  "senseWaterCheckIntervalS",  10, 3600);
+  SET_U16(senseWaterShutdownS,       "senseWaterShutdownS",       30, 7200);
+  SET_U8 (senseUseAsReed,            "senseUseAsReed",            0, 1);
   return false;  // unknown name
 }
 
@@ -348,6 +402,15 @@ size_t configToJson(char* out, size_t cap) {
   APPEND("\"reedInsertDwellMs\":%u,",    cfg.reedInsertDwellMs);
   APPEND("\"reedRemoveDwellMs\":%u,",    cfg.reedRemoveDwellMs);
   APPEND("\"statusLedDimDuty\":%u,",     cfg.statusLedDimDuty);
+  APPEND("\"senseProbeDuty\":%u,",           cfg.senseProbeDuty);
+  APPEND("\"senseDiscPresentMa10x\":%u,",    cfg.senseDiscPresentMa10x);
+  APPEND("\"senseWaterProbeDuty\":%u,",      cfg.senseWaterProbeDuty);
+  APPEND("\"senseWaterLowMa10x\":%u,",       cfg.senseWaterLowMa10x);
+  APPEND("\"senseDiscDisconnMidMa10x\":%u,", cfg.senseDiscDisconnMidMa10x);
+  APPEND("\"senseWaterHystMa10x\":%u,",      cfg.senseWaterHystMa10x);
+  APPEND("\"senseWaterCheckIntervalS\":%u,", cfg.senseWaterCheckIntervalS);
+  APPEND("\"senseWaterShutdownS\":%u,",      cfg.senseWaterShutdownS);
+  APPEND("\"senseUseAsReed\":%u,",           cfg.senseUseAsReed ? 1 : 0);
   APPEND("\"hostname\":\"%s\"",          cfg.hostname);
   APPEND("}");
   return n;

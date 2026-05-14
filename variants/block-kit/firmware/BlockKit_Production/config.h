@@ -52,6 +52,17 @@ struct Config {
   // --- Status LED (D7) ---
   uint8_t  statusLedDimDuty;
 
+  // --- Current-sense classifier (separate NVS keys; safe forward-compat) ---
+  uint8_t  senseProbeDuty;                  // PWM for disc-presence probe
+  uint16_t senseDiscPresentMa10x;           // threshold (mA × 10) above = disc present at probeDuty
+  uint8_t  senseWaterProbeDuty;             // PWM for water-level probe
+  uint16_t senseWaterLowMa10x;              // threshold below = low water at waterProbeDuty
+  uint16_t senseDiscDisconnMidMa10x;        // threshold below = disc snapped off mid-run
+  uint8_t  senseWaterHystMa10x;             // hysteresis added to senseWaterLowMa10x for recovery
+  uint16_t senseWaterCheckIntervalS;        // seconds between periodic water probes
+  uint16_t senseWaterShutdownS;             // seconds of low water before WATER_DEPLETED hard-stop
+  bool     senseUseAsReed;                  // future flag: bypass reed switch entirely (TBD)
+
   // --- Identity + secrets (separate NVS keys; NEVER returned by /api/config) ---
   char     hostname[CFG_HOSTNAME_MAX + 1];           // mDNS + ArduinoOTA hostname
   char     adminPasswordHash[CFG_SHA256_HEX_LEN + 1]; // sha256 hex of admin pwd
