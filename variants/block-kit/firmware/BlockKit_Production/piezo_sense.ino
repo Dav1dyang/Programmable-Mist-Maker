@@ -30,6 +30,8 @@ static uint32_t   g_waterLowSinceMs  = 0;   // 0 = not in countdown
 // Forward decls of mist-driver primitives we need.
 extern void mistEnable(bool);
 extern bool mistIsInhibited();
+extern void mistBoostOnForProbe();
+extern void mistBoostOffForProbe();
 
 // Public API ---------------------------------------------------------------
 
@@ -159,4 +161,56 @@ float piezoCalibrateWaterBaseline() {
                 ma, cfg.senseWaterProbeDuty, ma * 0.85f);
   // Caller decides whether to apply via /api/config POST.
   return ma;
+}
+
+// Auto-probe for disc presence in IDLE — used only when cfg.senseUseAsReed=true
+// (i.e. the user has chosen current-sense as the dock detector instead of the
+// reed switch). Rate-limited internally to one probe per senseAutoProbeIntervalS.
+//
+// Returns true when a fresh disc is detected and the caller should enterRunning().
+// On true return, the boost rail is LEFT ENGAGED so the main loop's smoother
+// can take over without a re-settle gap.
+//
+// Post-fault handling: if the module is in WATER_DEPLETED or DISC_DISCONNECTED,
+// a probe that comes back below the disc-present threshold is interpreted as
+// the user lifting the dispenser (clearing the fault). The next probe with a
+// disc present will then re-enter RUNNING normally.
+bool piezoAutoProbeForDisc() {
+  static uint32_t lastTickMs = 0;
+  const uint32_t now = millis();
+  if (now - lastTickMs < uint32_t(cfg.senseAutoProbeIntervalS) * 1000u) return false;
+  lastTickMs = now;
+
+  const bool inFault = (g_piezoState == PiezoState::WATER_DEPLETED ||
+                        g_piezoState == PiezoState::DISC_DISCONNECTED);
+
+  mistBoostOnForProbe();
+  const float ma = probeAtDuty(cfg.senseProbeDuty, 100, 50);
+  const float thresh = float(cfg.senseDiscPresentMa10x) / 10.0f;
+  const bool present = (ma >= thresh);
+  g_lastProbeMa = ma;
+
+  Serial.printf("[SENSE] auto-probe: %.1f mA (threshold %.1f, fault=%d, present=%d)\n",
+                ma, thresh, int(inFault), int(present));
+
+  if (inFault) {
+    // Stay in fault until user lifts (probe sees no disc). Then reset so a
+    // future re-dock with fresh water can resume normally.
+    if (!present) {
+      Serial.println("[SENSE] post-fault lift detected — ready for redock");
+      piezoResetForNewDock();
+    }
+    mistBoostOffForProbe();
+    return false;
+  }
+
+  if (present) {
+    g_piezoState = PiezoState::WATER_OK;   // optimistic until first water probe
+    // Boost stays ON — caller's enterRunning() + smoother will drive duty
+    // up from PWM=10 to the operating point without a rail gap.
+    return true;
+  }
+  g_piezoState = PiezoState::DISC_MISSING;
+  mistBoostOffForProbe();
+  return false;
 }
