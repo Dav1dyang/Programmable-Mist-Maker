@@ -3,6 +3,7 @@
 // The main loop owns dim-direction; this file just reports.
 
 #include "pins.h"
+#include "config.h"
 
 static bool     g_lastRaw         = false;  // last raw read
 static bool     g_debounced       = false;  // committed debounced state
@@ -32,16 +33,16 @@ ButtonEvent buttonPoll() {
   }
 
   // Debounce gate.
-  if (now - g_lastChangeMs < BUTTON_DEBOUNCE_MS) return ButtonEvent::None;
+  if (now - g_lastChangeMs < cfg.buttonDebounceMs) return ButtonEvent::None;
   if (raw == g_debounced) {
     // Still pressed — emit long-press start once the threshold passes, then ticks.
     if (g_debounced) {
-      if (!g_longActive && (now - g_pressStartMs >= BUTTON_LONGPRESS_MS)) {
+      if (!g_longActive && (now - g_pressStartMs >= cfg.buttonLongPressMs)) {
         g_longActive = true;
         g_btnLastTickMs = now;
         return ButtonEvent::LongPressStart;
       }
-      if (g_longActive && (now - g_btnLastTickMs >= BUTTON_LONGTICK_MS)) {
+      if (g_longActive && (now - g_btnLastTickMs >= cfg.buttonLongTickMs)) {
         g_btnLastTickMs = now;
         return ButtonEvent::LongPressTick;
       }

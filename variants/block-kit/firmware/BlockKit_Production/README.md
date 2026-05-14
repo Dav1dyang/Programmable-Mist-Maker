@@ -1,12 +1,26 @@
-# BlockKit_Test — Phase A bring-up firmware
+# BlockKit_Production — Block Kit V0.1 daily-use firmware
 
-Block Kit V0.1 firmware that exercises every subsystem (mist PWM, reed switch, button, IS31FL3731 LED ring, D7 indicator LED) **plus** a "scope mode" that streams the INA180 current data so the water-detection algorithm can be designed from real bench data later (Phase B).
+Production firmware for the Block Kit. Combines the full Phase A UX
+(mist PWM, reed switch, button override with hide/show, dual-mode LED
+ring with mist-synced wave drive, INA180 current sense + scope mode)
+with **WiFi onboarding** (WiFiManager captive portal), **OTA via the
+Arduino IDE** (ArduinoOTA / network port), and a **single-page web
+UI** for live status, runtime config of every tunable, and debug
+commands.
+
+For raw bench-level per-feature verification (no animations, no state
+machine, no WiFi) flash the sibling sketch at
+[`../BlockKit_BringUp/`](../BlockKit_BringUp/) instead. Use BringUp
+when something on the hardware feels off; use this folder for daily
+use.
 
 Phase A intentionally has **no water-level classifier**. The reed switch is the primary on-gesture (magnetic-on); the button short-press hides the LED strip without touching the mist; long-press ramps the level. One unified `g_userLevel` variable drives both mist PWM duty and LED ring brightness so they move together; while `RUNNING`, the mist drive is additionally modulated by the wave swell at the piezo position so the mist visibly pulses with the LED animation.
 
 ## States
 
-Three container-driven states, all transitions handled in `BlockKit_Test.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is in tiny per-tick steps (+2 / 10 ms ≈ 1.3 s 0→255), so every brightness change reads as a continuous slide. The LED driver runs an automatic 1.1 s **crossfade** whenever the mode swaps between BREATH and WAVE — there is never a snap.
+Three container-driven states, all transitions handled in `BlockKit_Production.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is in tiny per-tick steps (+2 / 10 ms ≈ 1.3 s 0→255), so every brightness change reads as a continuous slide. The LED driver runs an automatic 1.1 s **crossfade** whenever the mode swaps between BREATH and WAVE — there is never a snap.
+
+When the container is removed (RUNNING → TRANSITION_FROM_RUNNING → IDLE), the level fades smoothly to 0 with the wave still rendering (so the dim reads as continuous), then on entering IDLE the breath swells back in over ~1.3 s using the *slow* smoother step — no quick flash; the strip just eases back into the deep-dim idle.
 
 LED visibility is **orthogonal** to state: a separate boolean (`g_ledsHidden`, toggled by the short-press button) hides or shows the strip with its own ~640 ms fade. Mist is unaffected by this flag — short-pressing only mutes the visuals; it never stops the diffuser.
 
@@ -73,8 +87,45 @@ V0.1 needs the **reed-to-D10 blue-wire rework** described in `../../hardware/REA
    ```
 
    Adafruit_BusIO and Adafruit_GFX (its transitive dependencies) install fine from Library Manager.
-3. Open `BlockKit_Test.ino`. Select board **XIAO_ESP32C6**, USB CDC On Boot **Enabled**.
-4. **Verify** to compile, then **Upload**.
+3. Install the **WiFiManager** library (by tzapu) via Arduino IDE → Sketch → Include Library → Manage Libraries → search "WiFiManager tzapu".
+4. Open `BlockKit_Production.ino`. Select board **XIAO_ESP32C6**, USB CDC On Boot **Enabled**.
+5. **Verify** to compile, then **Upload**.
+
+## WiFi setup, OTA, and the web UI
+
+On first boot the device has no saved credentials. It spins up a WPA2
+AP named `BlockKit-Setup-XXXX` (password `blockkit-setup`). Join it
+from a phone or laptop — your OS should auto-launch the captive
+portal; otherwise visit `http://192.168.4.1/`. Pick your home WiFi,
+enter the WiFi password, **and set an admin password** (used for
+config writes + OTA). Save. The device reboots and joins your home
+WiFi.
+
+Once online, browse to **`http://blockkit.local/`** (or the IP shown
+on the Serial banner). The web UI has four tabs:
+
+- **Status** — live cards (state, mist, current mA, uptime) updating
+  every 250 ms via Server-Sent Events; raw button/reed + sparkline.
+  Open to anyone on the LAN.
+- **Config** — sliders/inputs for every tunable in `config.h` (LED
+  timing + brightness peak/low, mist max/low, wave-sync trough,
+  button/reed timings, smoother steps, …). Save prompts for the
+  admin password and persists to NVS.
+- **Debug** — raw IO live, plus buttons for LED walk, hide/show
+  LEDs, scope toggle, reboot, forget WiFi. Commands require the
+  admin password.
+- **About** — device info (mDNS hostname, IP, MAC, RSSI), firmware
+  version + build date, OTA hint.
+
+**OTA via Arduino IDE:** once the device is on the same WiFi as your
+laptop, it shows up under Arduino IDE → Tools → Port → `blockkit at
+<ip> (esp32)`. Pick it, hit Upload, enter the admin password when
+prompted. The firmware hard-stops the mist (boost rail LOW, MOSFET
+gate pulled down) before flash erase begins — no surprise misting
+mid-upload.
+
+To re-enter setup (e.g. moving the device to a new WiFi), click
+**Forget WiFi** in the Debug tab.
 
 ## Serial console (115200 baud)
 
@@ -127,7 +178,13 @@ The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(ledn
 
 | File | Purpose |
 |---|---|
-| `BlockKit_Test.ino` | `setup()`, `loop()`, 3-state machine, level smoother, serial parser |
+| `BlockKit_Production.ino` | `setup()`, `loop()`, 3-state machine, level smoother, serial parser, web/OTA hook-up |
+| `config.h` / `config.ino` | Runtime config struct + NVS load/save + SHA-256 password hashing |
+| `wifi_setup.ino` | WiFiManager captive portal + STA reconnect watcher |
+| `ota.ino` | ArduinoOTA bring-up with mist-safety `onStart` hook |
+| `web_server.ino` | Synchronous WebServer + SSE stream + JSON API |
+| `web_ui.h` | PROGMEM single-page HTML/CSS/JS app |
+| `log_buffer.ino` | RAM ring buffer mirror of Serial for the Debug tab |
 | `pins.h` | Pin numbers, tunables, enums — single source of truth |
 | `mist.ino` | `mistApply(level)` / `mistHardStop()` — boost gating + PWM scaling |
 | `container.ino` | Reed switch debounce + insert/remove edges |

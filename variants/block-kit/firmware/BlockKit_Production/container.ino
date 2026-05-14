@@ -1,9 +1,10 @@
 // Reed switch on D10 with asymmetric debounce.
-// Insert (LOW edge) is gated by REED_INSERT_DWELL_MS to avoid mist rapid-cycling
+// Insert (LOW edge) is gated by cfg.reedInsertDwellMs to avoid mist rapid-cycling
 // when the user is sliding the container or cleaning. Removal (HIGH edge) is
 // faster so shut-off isn't sluggish.
 
 #include "pins.h"
+#include "config.h"
 
 static bool     g_containerPresent  = false;
 static bool     g_lastRawPresent    = false;
@@ -51,7 +52,7 @@ ContainerEvent containerPoll() {
   if (raw == g_containerPresent) return ContainerEvent::None;
 
   // Stable but different from committed -> check dwell.
-  const uint16_t dwell = raw ? REED_INSERT_DWELL_MS : REED_REMOVE_DWELL_MS;
+  const uint16_t dwell = raw ? cfg.reedInsertDwellMs : cfg.reedRemoveDwellMs;
   if (now - g_edgeStartMs < dwell) return ContainerEvent::None;
 
   g_containerPresent = raw;

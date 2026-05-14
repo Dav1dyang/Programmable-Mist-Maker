@@ -4,7 +4,7 @@
 // `g_currentLevel`. Level 0 means fully off; the function handles boost-rail
 // gating automatically:
 //   - level > 0 and boost OFF -> turn boost ON, settle 500 µs, then PWM
-//   - level > 0 -> update PWM duty proportionally (level 255 = MIST_DUTY_MAX)
+//   - level > 0 -> update PWM duty proportionally (level 255 = cfg.mistDutyMax)
 //   - level == 0 and boost ON -> PWM 0, force D0 LOW, drop boost
 // On a real "container lifted" event the main loop calls mistHardStop() which
 // immediately cuts PWM and the boost rail regardless of smoother state — the
@@ -12,6 +12,7 @@
 // opens (safety: no surprise misting after the bottle is gone).
 
 #include "pins.h"
+#include "config.h"
 
 static bool g_mistBoostOn   = false;
 // Set by mistHardStop(), cleared by mistEnable(true). While set, mistApply()
@@ -30,8 +31,12 @@ void mistInit() {
 }
 
 static inline uint8_t levelToDuty(uint8_t level) {
-  // Map 0..255 user level to 0..MIST_DUTY_MAX (50% of 8-bit PWM).
-  return uint8_t((uint16_t(level) * MIST_DUTY_MAX) / 255u);
+  // Map 0..255 user level to cfg.mistDutyMin..cfg.mistDutyMax. The "min"
+  // is the floor while level>0 — set to 0 in cfg to restore the original
+  // pure-linear scaling. Without it, very low user levels mapped to a
+  // PWM duty below the piezo's effective threshold.
+  const uint16_t scaled = (uint16_t(level) * cfg.mistDutyMax) / 255u;
+  return uint8_t(scaled < cfg.mistDutyMin ? cfg.mistDutyMin : scaled);
 }
 
 // Update mist output based on the current smoothed level. Called once per

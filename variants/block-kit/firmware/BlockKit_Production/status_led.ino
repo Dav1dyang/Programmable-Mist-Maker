@@ -5,6 +5,7 @@
 // attention). No breathing, no fade — a single LED doesn't need ceremony.
 
 #include "pins.h"
+#include "config.h"
 
 void statusLedInit() {
   ledcAttach(PIN_STATUS_LED, STATUS_LED_FREQ_HZ, STATUS_LED_RES);
@@ -12,5 +13,5 @@ void statusLedInit() {
 }
 
 void statusLedSet(bool dimOn) {
-  ledcWrite(PIN_STATUS_LED, dimOn ? STATUS_LED_DIM_DUTY : 0);
+  ledcWrite(PIN_STATUS_LED, dimOn ? cfg.statusLedDimDuty : 0);
 }

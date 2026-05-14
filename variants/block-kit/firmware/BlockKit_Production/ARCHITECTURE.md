@@ -1,4 +1,4 @@
-# Block Kit V0.1 — Phase A Firmware at a Glance
+# Block Kit V0.1 — Production Firmware at a Glance
 
 One-page technical overview. For install + bring-up steps see [`README.md`](README.md).
 
@@ -213,3 +213,74 @@ Log line prefixes: `[APP]`, `[MIST]`, `[LED]`, `[REED]`, `[BTN]`, `[CUR]`, `[STA
 - NVS persistence of `g_userLevel`. Reset every boot.
 - Battery monitoring. Requires V0.2 hardware (VBAT divider).
 - Watchdog (`esp_task_wdt`). Deferred so debugger pauses don't reset.
+
+## WiFi onboarding + OTA + Web config (production firmware additions)
+
+Three new modules sit on top of the existing UX state machine. All ride
+on libraries bundled with arduino-esp32 v3.x — the only external
+install is **WiFiManager** (tzapu).
+
+### `config.ino` — runtime config
+Every UX tunable that used to be `constexpr` in `pins.h` is now a field
+on a `Config cfg` struct backed by NVS (`Preferences`, namespace
+`blockkit`, key `cfg_v1`). `pins.h` keeps each value as a
+`CFG_DEFAULT_*` constant — those seed `cfg` at boot if NVS is empty or
+a `CONFIG_VERSION` mismatch is detected. Secrets (admin password
+SHA-256 hash, OTA password, hostname) are stored as separate NVS keys
+so a config schema bump doesn't drop the user's password.
+
+### `wifi_setup.ino` — WiFiManager captive portal
+`autoConnect("BlockKit-Setup-XXXX", "blockkit-setup")` either joins
+saved STA credentials or spins up a WPA2 AP + captive portal. A
+custom parameter prompts for the admin password during first-boot
+setup; it's hashed and stored. mDNS is announced as `<hostname>.local`
+(default `blockkit`).
+
+### `ota.ino` — ArduinoOTA
+`onStart` calls `mistHardStop()` + drives D3 (boost EN) LOW + blanks
+the LED ring *before* flash erase begins, so an aborted upload leaves
+the MOSFET gate in a known-LOW state. Password is the admin password.
+
+### `web_server.ino` + `web_ui.h` — single-page web UI
+Synchronous `WebServer.h` on port 80; one PROGMEM HTML/CSS/JS blob
+(~12 KB) served at `/`. Routes:
+
+| Verb + path            | Auth      | Returns                          |
+|------------------------|-----------|----------------------------------|
+| `GET /`                | none      | INDEX_HTML                       |
+| `GET /api/status`      | none      | live status JSON                 |
+| `GET /api/config`      | none      | `cfg` snapshot (no secrets)      |
+| `POST /api/config`     | admin pwd | apply + save one field           |
+| `GET /api/info`        | none      | device info (mac/ip/ver/heap)    |
+| `GET /api/log`         | none      | last N log lines (plain text)    |
+| `GET /api/events`      | none      | SSE stream, status every 250 ms  |
+| `POST /api/cmd/walk`   | admin pwd | run ledWalk on next loop         |
+| `POST /api/cmd/leds`   | admin pwd | toggle hide/show LEDs            |
+| `POST /api/cmd/scope`  | admin pwd | toggle scope mode                |
+| `POST /api/cmd/reboot` | admin pwd | restart after 250 ms             |
+| `POST /api/cmd/forget` | admin pwd | wipe WiFi + reboot into portal   |
+| `POST /api/cmd/password` | admin pwd | change admin/OTA password      |
+
+Auth: HTTP Basic against SHA-256 of the submitted password. Reads are
+open; writes + commands require the password. The web UI caches the
+password in `sessionStorage` per browser session.
+
+### `log_buffer.ino` — RAM ring of Serial output
+`logPrintln` / `logPrintf` mirror to both Serial and a 100-line ring
+buffer; `/api/log` returns the buffer as plain text. The pre-existing
+high-volume `[PLOT]` stream stays on Serial only.
+
+### Main loop order
+`otaHandle()` + `webHandle()` + `wifiTick()` run at the *top* of every
+loop so an over-the-air recovery push lands even if a downstream
+subsystem (LED driver, smoother) misbehaves.
+
+## Transition cinematic (post-PR-#6 polish)
+
+`enterIdle()` no longer sets `g_fastFadeUp = true` when called from
+TRANSITION_FROM_RUNNING. The breath restore uses the slow smoother
+step (~1.3 s 0→255) instead of the original brisk (~640 ms) restore.
+Combined with the 1.1 s WAVE→BREATH crossfade, the post-removal
+sequence reads as a gentle dim-down and a soft breath swell instead
+of the previous quick flash that occurred when the breath's exp(sin)
+phase landed near its inhale peak as baseLevel ramped up fast.
