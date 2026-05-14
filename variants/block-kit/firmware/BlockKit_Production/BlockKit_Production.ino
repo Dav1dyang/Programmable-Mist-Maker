@@ -50,19 +50,17 @@ void      appToggleLedsHidden();
 void      appKickLedWalk();
 
 // ---- App-level state ----
-static AppState g_state           = AppState::IDLE;  // boot default = soft breath
-static uint8_t  g_userLevel       = CFG_DEFAULT_LEVEL_DEFAULT;   // user's set level (long-press adjusts); overwritten in setup() once cfg is loaded
-static uint8_t  g_targetLevel     = 0;               // state-driven target for the smoother
-static uint8_t  g_currentLevel    = 0;               // smoothed actual level applied to mist+LEDs
-static int8_t   g_levelAdjustDir          = -1;              // -1 = next long-press dims, +1 = brightens
-static uint32_t g_lastSmoothMs    = 0;
-static uint32_t g_lastRampMs      = 0;
-static uint32_t g_lastStatPrintMs      = 0;
-// One-shot flag: use the fast STEP_UP for the next 0→target ramp. Set when
-// entering IDLE from TRANSITION_FROM_RUNNING so the breath restore
-// after a container lift feels brisk (~640 ms) rather than luxurious (~1.3 s).
-// Cleared automatically once the smoother reaches target.
-static bool     g_fastLevelUp      = false;
+static AppState g_state             = AppState::IDLE;  // boot default = soft breath
+static uint8_t  g_userLevel         = CFG_DEFAULT_LEVEL_DEFAULT;  // overwritten from cfg in setup()
+static uint8_t  g_targetLevel       = 0;    // state-driven target for the smoother
+static uint8_t  g_currentLevel      = 0;    // smoothed level applied to mist+LEDs
+static int8_t   g_levelAdjustDir    = -1;   // -1 = next long-press dims, +1 = brightens
+static uint32_t g_lastSmoothMs      = 0;
+static uint32_t g_lastRampMs        = 0;
+static uint32_t g_lastStatPrintMs   = 0;
+// One-shot: pick the fast step for the next upward ramp (post-lift restore).
+// Cleared once the smoother reaches target.
+static bool     g_fastLevelUp       = false;
 
 // LED visibility — orthogonal to AppState. Short-press toggles g_ledsHidden;
 // a separate smoother fades g_ledScale 0↔255 over ~640 ms, multiplying the
