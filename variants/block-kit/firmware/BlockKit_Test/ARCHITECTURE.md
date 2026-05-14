@@ -66,7 +66,7 @@ Mist drive: 108.7 kHz / 0–50 % PWM into a piezo disc. Container has a magnet t
                  │   mist hard-stopped                         │
                  │   wave still rendering, dims to 0 (~0.85 s) │
                  │   auto-enters IDLE →                        │
-                 │   WAVE→BREATH crossfade (1.1 s) +           │
+                 │   WAVE→BREATH mode SNAP (strip is dark) +   │
                  │   fast level restore (~0.64 s)              │
                  └─────┬───────────────────────────────────────┘
                        │ smoother reaches 0
@@ -88,7 +88,7 @@ handles any mode swap mid-fade — no special case needed).
 |---|---|---|
 | IDLE → RUNNING | reed Inserted (500 ms dwell) | mist on (wave-modulated), mode = WAVE → 1.1 s BREATH→WAVE crossfade in pre-gamma space |
 | RUNNING → TRANSITION_FROM_RUNNING | reed Removed (100 ms dwell) | **mist hard-stop**; mode stays WAVE, baseLevel ramps 255→0 (~0.85 s) — wave dims naturally |
-| TRANSITION_FROM_RUNNING → IDLE | smoother lands on 0 | mode→BREATH (kicks off WAVE→BREATH crossfade), fast fade-up to `g_userLevel` (~0.64 s) |
+| TRANSITION_FROM_RUNNING → IDLE | smoother lands on 0 | mode→BREATH via `ledSetModeSnap` (no crossfade — strip is dark, so the snap is invisible). Fast fade-up to `g_userLevel` (~0.64 s) |
 | TRANSITION_FROM_RUNNING → RUNNING | reed re-Inserted mid-fade | crossfade engine handles WAVE→WAVE no-op; mist re-armed |
 | any state | button short-press | toggles `g_ledsHidden` (LED render fades to/from 0; mist + state untouched) |
 | IDLE / RUNNING | button long-press | ramps `g_userLevel`; mist + LED brightness scale live (wave traverse rate stays constant) |
@@ -149,7 +149,7 @@ Pieces sitting outside the smoother:
 |---|---|
 | Power on | Boots to `IDLE` with LEDs visible — strip starts a deep-dim exp(sin) breath; the exhale dwells at full black for a beat each cycle |
 | Dock container | ~500 ms reed dwell → mist on (wave-modulated at the piezo); mode flips to WAVE, the dim breath dissolves into the slow gaussian swell over 1.1 s (single continuous crossfade). Mist visibly pulses in sync with the LED swell. |
-| Lift container | Mist hard-stops instantly. Wave dims to black over ~0.85 s (mode stays WAVE so it reads as continuous), then the dim breath crossfades back in over 1.1 s |
+| Lift container | Mist hard-stops instantly. Wave dims to black over ~0.85 s (mode stays WAVE so it reads as continuous). At black, mode SNAPS to BREATH (invisible since strip is dark — avoids a crossfade flash where WAVE's higher raw output would briefly dominate as baseLevel rose), then the dim breath fades in cleanly (~0.64 s) |
 | Tap button (any state) | Toggles `g_ledsHidden` — LED strip fades to dark (or back in) over ~640 ms. **Mist is not affected** — if a container is docked, the diffuser keeps running at the user-set level even while the strip is hidden |
 | Hold button (IDLE or RUNNING) | Ramps `g_userLevel` — brightness scales live and mist drive scales with it (still wave-modulated in RUNNING). Wave traverse rate stays constant. Direction alternates on release. The ramp clamps at 0 / 255 — there is no auto-snap-to-off; long-pressing to 0 just leaves the device at level 0 (mist off, LEDs dark), and the next long-press in the opposite direction brings it back. |
 

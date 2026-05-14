@@ -188,6 +188,21 @@ void ledSetMode(LedMode m) {
   g_crossfadeStartMs = millis(); // start the blend window
 }
 
+// Snap to a new mode WITHOUT starting a crossfade. Only call when you know
+// the strip is currently invisible (baseLevel = 0) — otherwise the swap
+// will be jarring. The motivating case is the docked→idle restore: when
+// the smoother lands at baseLevel=0 we want to swap WAVE→BREATH then fade
+// up the breath. A normal crossfade here causes a visible flash because
+// the engine keeps rendering WAVE (raw 92..255) blended with BREATH (raw
+// 0..130) while baseLevel rises — the higher-raw WAVE briefly dominates
+// the blend and produces a transient brightness peak above the idle
+// steady-state. Snap makes the swap invisible (since baseLevel=0 maps
+// any raw to 0 after gamma) and lets the breath fade in cleanly.
+void ledSetModeSnap(LedMode m) {
+  g_ledMode  = m;
+  g_prevMode = m;                // prev == current → ledRender skips blend
+}
+
 // ---- Render helpers ------------------------------------------------------
 //
 // Both renderers produce per-LED raw 0..255 brightness in *pre-gamma, pre-
