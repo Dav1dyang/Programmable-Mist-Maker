@@ -1,8 +1,4 @@
-// D7 white LED — simple "waiting" indicator.
-//
-// On when no container is docked (dim, ~10 % brightness). Off the moment the
-// container is dropped onto the dock (the 14-LED ring takes over the user's
-// attention). No breathing, no fade — a single LED doesn't need ceremony.
+// D7 white LED — "waiting" indicator. Dim when no container; off when docked.
 
 #include "pins.h"
 #include "config.h"

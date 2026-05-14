@@ -34,8 +34,7 @@ static inline uint8_t levelToDuty(uint8_t level) {
   return uint8_t(scaled < cfg.mistDutyMin ? cfg.mistDutyMin : scaled);
 }
 
-// Update mist output based on the current smoothed level. Called once per
-// main-loop iteration. No-op while inhibited (post hard-stop until re-enabled).
+// No-op while inhibited (post hard-stop until mistEnable(true)).
 void mistApply(uint8_t level) {
   if (g_mistInhibited) return;
 
@@ -59,11 +58,7 @@ void mistApply(uint8_t level) {
   ledcWrite(PIN_MIST_PWM, levelToDuty(level));
 }
 
-// Immediately stop mist regardless of the smoother — used on container lift
-// for safety. Also locks mistApply() as a no-op until mistEnable(true) is
-// called, so the LED ring's gradual fade-down doesn't re-engage the boost.
-// Idempotent: if mist was already off we just (re)assert the inhibit flag
-// without churning the pins.
+// Cut PWM + boost rail and lock mistApply() until mistEnable(true). Idempotent.
 void mistHardStop() {
   if (g_mistBoostOn) {
     ledcWrite(PIN_MIST_PWM, 0);
@@ -75,8 +70,6 @@ void mistHardStop() {
   g_mistInhibited = true;
 }
 
-// Re-arm the mist path so the next mistApply(level>0) can engage the boost.
-// Called by the main loop when entering RUNNING.
 void mistEnable(bool enabled) {
   if (enabled) g_mistInhibited = false;
   else         mistHardStop();

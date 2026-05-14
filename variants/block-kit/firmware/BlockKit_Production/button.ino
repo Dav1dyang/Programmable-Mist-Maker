@@ -32,10 +32,10 @@ ButtonEvent buttonPoll() {
     return ButtonEvent::None;
   }
 
-  // Debounce gate.
   if (now - g_lastChangeMs < cfg.buttonDebounceMs) return ButtonEvent::None;
+
   if (raw == g_debounced) {
-    // Still pressed — emit long-press start once the threshold passes, then ticks.
+    // Still pressed — emit long-press start once threshold passes, then ticks.
     if (g_debounced) {
       if (!g_longActive && (now - g_pressStartMs >= cfg.buttonLongPressMs)) {
         g_longActive = true;
@@ -50,16 +50,12 @@ ButtonEvent buttonPoll() {
     return ButtonEvent::None;
   }
 
-  // Committed state changes here.
   g_debounced = raw;
   if (raw) {
-    // Press down.
     g_pressStartMs = now;
     g_longActive = false;
     return ButtonEvent::None;
   }
-
-  // Release.
   if (g_longActive) {
     g_longActive = false;
     return ButtonEvent::LongPressEnd;
