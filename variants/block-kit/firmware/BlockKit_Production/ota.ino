@@ -1,5 +1,5 @@
 // ArduinoOTA wiring. Once STA is up the Arduino IDE auto-discovers the
-// device as a network port (`Tools → Port → blockkit at 192.168.x.x (esp32)`)
+// device as a network port (`Tools → Port → mistmaker at 192.168.x.x (esp32)`)
 // — pick it, hit Upload, the IDE prompts for the password set in the WiFi
 // captive portal. Password mismatch silently rejects, just like Arduino OTA
 // always does.

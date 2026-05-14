@@ -429,6 +429,29 @@ bool     appLedsHidden()      { return g_ledsHidden; }
 static bool g_kickLedWalk = false;
 void appKickLedWalk()         { g_kickLedWalk = true; }
 
+// Status-LED override (-1 = auto, 0 = force off, 1 = force on). Used by the
+// web UI manual override; auto restores the "reflect container presence" rule.
+static int8_t g_statusLedOverride = -1;
+void    appSetStatusLedOverride(int8_t v) { g_statusLedOverride = v; }
+int8_t  appStatusLedOverride()            { return g_statusLedOverride; }
+
+// Live user-level setter — mirrors the serial 'v' command. Skips applying
+// during TRANSITION_FROM_RUNNING so the fade-out cinematic isn't interrupted.
+void appSetLevel(uint8_t level) {
+  g_userLevel = level;
+  if (g_state != AppState::TRANSITION_FROM_RUNNING) {
+    g_targetLevel = g_userLevel;
+  }
+}
+
+// Manual state override for testing without a magnet. Reuses the same
+// entry transitions the reed event handler does. A subsequent real reed
+// edge will resync to physical truth.
+void appForceState(AppState s) {
+  if (s == AppState::RUNNING)      enterRunning();
+  else if (s == AppState::IDLE)    enterIdle();
+}
+
 // ----------------------------------------------------------------------
 // Arduino entry points
 // ----------------------------------------------------------------------
@@ -518,11 +541,11 @@ void loop() {
   onContainerEvent(containerPoll());
   onButtonEvent(buttonPoll());
 
-  // D7 reflects container presence directly — dim when waiting for a dock,
-  // off when something is docked. Independent of mist on/off and LED ring
-  // state so the indicator stays a stable "is the device looking for input?"
-  // signal.
-  statusLedSet(!containerIsPresent());
+  // D7 reflects container presence directly (dim when waiting for a dock,
+  // off when docked) unless a web-UI override forces a specific state.
+  if (g_statusLedOverride == 0)      statusLedSet(false);
+  else if (g_statusLedOverride == 1) statusLedSet(true);
+  else                               statusLedSet(!containerIsPresent());
 
   currentSenseLogPlot(uint8_t(g_state));
   statusTick();

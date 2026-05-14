@@ -1,6 +1,6 @@
 // WiFi onboarding via tzapu's WiFiManager.
 // On boot: autoConnect() joins saved STA; on first boot or gone-AP it spins
-// up "BlockKit-Setup-XXXX" (WPA2, pwd `blockkit-setup`) as a captive portal.
+// up "MistMaker-Setup-XXXX" (WPA2, pwd `mistmaker-setup`) as a captive portal.
 // WiFiManager handles iOS/Android/Windows captive-portal probes for us.
 
 #include <WiFi.h>
@@ -28,7 +28,7 @@ static const char* apSsid() {
   if (ssid[0]) return ssid;
   uint8_t mac[6];
   WiFi.macAddress(mac);
-  snprintf(ssid, sizeof(ssid), "BlockKit-Setup-%02X%02X", mac[4], mac[5]);
+  snprintf(ssid, sizeof(ssid), "MistMaker-Setup-%02X%02X", mac[4], mac[5]);
   return ssid;
 }
 
@@ -40,7 +40,7 @@ static void onConfigPortalStart(WiFiManager* /*wm*/) {
   g_setupMode = true;
   Serial.println("[WIFI] captive portal up");
   Serial.print  ("[WIFI] SSID: ");      Serial.println(apSsid());
-  Serial.println("[WIFI] password: blockkit-setup");
+  Serial.println("[WIFI] password: mistmaker-setup");
   Serial.println("[WIFI] join the AP then browse to 192.168.4.1 or any URL");
 }
 
@@ -85,11 +85,11 @@ void wifiInit() {
   g_wm.setShowInfoUpdate(false);
   g_wm.setAPCallback(onConfigPortalStart);
   g_wm.setSaveConfigCallback(onCredentialsSaved);
-  g_wm.setTitle("Block Kit Setup");
+  g_wm.setTitle("Mist Maker Setup");
   g_wm.setDarkMode(true);
 
   Serial.println("[WIFI] autoConnect...");
-  const bool ok = g_wm.autoConnect(apSsid(), "blockkit-setup");
+  const bool ok = g_wm.autoConnect(apSsid(), "mistmaker-setup");
   if (!ok) {
     Serial.println("[WIFI] autoConnect timeout — rebooting");
     delay(500);

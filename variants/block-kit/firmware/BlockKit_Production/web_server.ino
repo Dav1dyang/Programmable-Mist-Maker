@@ -6,7 +6,12 @@
 //   GET  /api/config        cfg snapshot (NEVER includes secrets)
 //   POST /api/config        apply + save fields; body = {"field":"name","value":N}
 //   POST /api/cmd/walk      run ledWalk on next loop
+//   POST /api/cmd/leds      toggle hide/show LED ring (mist unaffected)
 //   POST /api/cmd/scope     toggle scope mode
+//   POST /api/cmd/plotmute  toggle [PLOT] CSV stream mute
+//   POST /api/cmd/level     set runtime userLevel; body = {"value":0..255}
+//   POST /api/cmd/state     force state idle/running; body = {"state":"..."}
+//   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
 //   POST /api/cmd/reboot    ESP.restart() after 250 ms
 //   POST /api/cmd/forget    wipe WiFi creds + reboot into captive portal
 //   POST /api/cmd/password  set new admin password; body = {"new":"..."}
@@ -28,12 +33,17 @@ extern uint8_t  appCurrentLevel();
 extern void     appKickLedWalk();
 extern bool     appLedsHidden();
 extern void     appToggleLedsHidden();
+extern void     appSetLevel(uint8_t);
+extern void     appForceState(AppState);
+extern void     appSetStatusLedOverride(int8_t);
+extern int8_t   appStatusLedOverride();
 extern bool     containerIsPresent();
 extern bool     containerRawPresent();
 extern bool     mistIsRunning();
 extern float    currentMeanMa();
 extern float    currentVarMa2();
 extern void     currentSenseToggleScope();
+extern void     currentSenseTogglePlotMute();
 extern void     wifiForgetAndReboot();
 extern bool     wifiIsSetupMode();
 extern size_t   logSnapshot(char*, size_t);
@@ -127,7 +137,8 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"varMa2\":%.1f,"
     "\"uptimeMs\":%lu,"
     "\"freeHeap\":%u,"
-    "\"rssi\":%d}",
+    "\"rssi\":%d,"
+    "\"statLedOverride\":%d}",
     webStateName(appCurrentState()),
     unsigned(appCurrentState()),
     digitalRead(PIN_BUTTON),
@@ -142,7 +153,8 @@ static size_t buildStatusJson(char* out, size_t cap) {
     currentVarMa2(),
     (unsigned long)millis(),
     unsigned(ESP.getFreeHeap()),
-    (int)WiFi.RSSI());
+    (int)WiFi.RSSI(),
+    int(appStatusLedOverride()));
 }
 
 // --------------------------------------------------------------------------
@@ -284,6 +296,63 @@ static void handleCmdScope() {
   g_http.send(200, "application/json", "{\"ok\":true}");
 }
 
+static void handleCmdPlotMute() {
+  if (!requireAuth()) return;
+  currentSenseTogglePlotMute();
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// Live level set — mirrors serial 'vN'. Body: {"value": 0..255}.
+static void handleCmdLevel() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  long v = 0;
+  if (!jsonGetLong(body, "value", v) || v < 0 || v > 255) {
+    g_http.send(400, "application/json", "{\"error\":\"value must be 0..255\"}");
+    return;
+  }
+  appSetLevel(uint8_t(v));
+  Serial.printf("[WEB] level=%ld\n", v);
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// Manual reed-state override. Body: {"state":"idle"|"running"}.
+static void handleCmdState() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  char state[16];
+  if (!jsonGetString(body, "state", state, sizeof(state))) {
+    g_http.send(400, "application/json", "{\"error\":\"missing 'state'\"}");
+    return;
+  }
+  if (strcmp(state, "idle") == 0)         appForceState(AppState::IDLE);
+  else if (strcmp(state, "running") == 0) appForceState(AppState::RUNNING);
+  else {
+    g_http.send(400, "application/json", "{\"error\":\"state must be 'idle' or 'running'\"}");
+    return;
+  }
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// Indicator-LED override. Body: {"mode":"auto"|"on"|"off"}.
+static void handleCmdStatLed() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  char mode[8];
+  if (!jsonGetString(body, "mode", mode, sizeof(mode))) {
+    g_http.send(400, "application/json", "{\"error\":\"missing 'mode'\"}");
+    return;
+  }
+  if      (strcmp(mode, "auto") == 0) appSetStatusLedOverride(-1);
+  else if (strcmp(mode, "on")   == 0) appSetStatusLedOverride(1);
+  else if (strcmp(mode, "off")  == 0) appSetStatusLedOverride(0);
+  else {
+    g_http.send(400, "application/json", "{\"error\":\"mode must be auto|on|off\"}");
+    return;
+  }
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
 static void handleCmdReboot() {
   if (!requireAuth()) return;
   g_http.send(200, "application/json", "{\"ok\":true,\"rebooting\":250}");
@@ -381,6 +450,10 @@ void webInit() {
   g_http.on("/api/cmd/walk",        HTTP_POST, handleCmdWalk);
   g_http.on("/api/cmd/leds",        HTTP_POST, handleCmdLeds);
   g_http.on("/api/cmd/scope",       HTTP_POST, handleCmdScope);
+  g_http.on("/api/cmd/plotmute",    HTTP_POST, handleCmdPlotMute);
+  g_http.on("/api/cmd/level",       HTTP_POST, handleCmdLevel);
+  g_http.on("/api/cmd/state",       HTTP_POST, handleCmdState);
+  g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
   g_http.on("/api/cmd/reboot",      HTTP_POST, handleCmdReboot);
   g_http.on("/api/cmd/forget",      HTTP_POST, handleCmdForget);
   g_http.on("/api/cmd/password",    HTTP_POST, handleCmdPassword);
