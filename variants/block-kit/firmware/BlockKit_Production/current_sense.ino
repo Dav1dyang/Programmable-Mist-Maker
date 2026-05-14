@@ -37,7 +37,8 @@ void currentSenseInit() {
 }
 
 // Convert a raw ADC count (0..4095, 0..3.3 V) to milliamps via INA180A3.
-static inline float adcToMa(uint16_t raw) {
+// Non-static so piezo_sense.ino can call it for its probe primitive.
+float adcToMa(uint16_t raw) {
   const float volts = (float(raw) * 3.3f) / 4095.0f;
   return (volts * 1000.0f) / CURRENT_SENSE_FACTOR;
 }

@@ -194,3 +194,15 @@ enum class ButtonEvent : uint8_t {
   LongPressTick,
   LongPressEnd,
 };
+
+// Piezo health states from the current-sense classifier (orthogonal to AppState).
+// Set by piezo_sense.ino, surfaced in /api/status and the web UI status pill.
+enum class PiezoState : uint8_t {
+  UNKNOWN,           // before first probe (boot, idle pre-dock)
+  DISC_MISSING,      // probe on dock returned current below disc-present threshold
+  DISC_DRY,          // disc present at PWM=10 but water-level probe says dry (rare)
+  WATER_OK,          // last water probe was above threshold — normal operation
+  WATER_LOW,         // last water probe below threshold — countdown active
+  WATER_DEPLETED,    // countdown expired — mist hard-stopped, awaiting container lift
+  DISC_DISCONNECTED, // disc snapped off mid-run — hard-stopped immediately
+};
