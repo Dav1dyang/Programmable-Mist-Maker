@@ -232,61 +232,49 @@ static void setLedsHidden(bool hidden) {
 void appToggleLedsHidden() { setLedsHidden(!g_ledsHidden); }
 
 // ----------------------------------------------------------------------
-// Level smoother — runs every cfg.levelSmoothTickMs, advances g_currentLevel
-// toward g_targetLevel. Tuned for ~1.3 s 0→255 ramp normally (step 2 per
-// 10 ms — tiny enough that the eye reads it as a continuous slide, not a
-// staircase); ~0.85 s 255→0; ~0.64 s when g_fastFadeUp is set (one-shot,
-// used to make the post-removal breath restore feel brisk).
-//
-// One state-machine side effect fires here: when the smoother lands on 0
-// while in TRANSITION_FROM_RUNNING, auto-enter IDLE to kick off the
-// WAVE→BREATH crossfade as the breath fades back in. The RUNNING-side
-// "fade up then engage swirl" two-step from the prior design is gone —
-// led_driver crossfades BREATH↔WAVE directly the moment ledSetMode is
-// called, so the smoother no longer drives mode changes.
+// Generic asymmetric ramp — pure, no globals. One step up, a different step
+// down (use the same value for symmetric easing). Clamps at target so we
+// never overshoot.
 // ----------------------------------------------------------------------
+static uint8_t rampToward(uint8_t current, uint8_t target, uint8_t stepUp, uint8_t stepDown) {
+  if (current < target) {
+    const uint8_t room = target - current;
+    return current + ((room < stepUp) ? room : stepUp);
+  }
+  if (current > target) {
+    const uint8_t room = current - target;
+    return current - ((room < stepDown) ? room : stepDown);
+  }
+  return current;
+}
+
+// Level smoother — runs every cfg.levelSmoothTickMs. Asymmetric: a one-shot
+// fast lane (g_fastFadeUp) lets the post-lift breath restore feel brisk.
+// State-machine side effect: when the smoother lands on 0 in
+// TRANSITION_FROM_RUNNING, auto-enter IDLE to start the WAVE→BREATH crossfade.
 static void smoothLevel() {
   const uint32_t now = millis();
   if (now - g_lastSmoothMs < cfg.levelSmoothTickMs) return;
   g_lastSmoothMs = now;
 
-  if (g_currentLevel < g_targetLevel) {
-    const uint8_t step = g_fastFadeUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
-    const uint8_t room = g_targetLevel - g_currentLevel;
-    g_currentLevel += (room < step) ? room : step;
-  } else if (g_currentLevel > g_targetLevel) {
-    const uint8_t room = g_currentLevel - g_targetLevel;
-    g_currentLevel -= (room < cfg.levelSmoothStepDn) ? room : cfg.levelSmoothStepDn;
-  }
+  const uint8_t stepUp = g_fastFadeUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
+  g_currentLevel = rampToward(g_currentLevel, g_targetLevel, stepUp, cfg.levelSmoothStepDn);
 
   if (g_currentLevel != g_targetLevel) return;
-
-  // Landed on target.
   g_fastFadeUp = false;
   if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
-    enterIdle();                           // kicks off WAVE→BREATH crossfade
+    enterIdle();
   }
 }
 
-// ----------------------------------------------------------------------
-// LED visibility scaler smoother — independent of the level smoother. Eases
-// g_ledScale toward g_ledScaleTarget (0 or 255) over ~640 ms so the strip
-// fades cleanly when the short-press toggles g_ledsHidden. Mist is NOT
-// gated by this scaler.
-// ----------------------------------------------------------------------
+// LED visibility smoother — symmetric fade for the short-press hide/show
+// toggle. Mist is intentionally NOT gated by this scaler.
 static void smoothLedScale() {
   const uint32_t now = millis();
   if (now - g_lastLedScaleMs < cfg.levelSmoothTickMs) return;
   g_lastLedScaleMs = now;
-
-  const uint8_t step = cfg.ledScaleStepPerTick;
-  if (g_ledScale < g_ledScaleTarget) {
-    const uint8_t room = g_ledScaleTarget - g_ledScale;
-    g_ledScale += (room < step) ? room : step;
-  } else if (g_ledScale > g_ledScaleTarget) {
-    const uint8_t room = g_ledScale - g_ledScaleTarget;
-    g_ledScale -= (room < step) ? room : step;
-  }
+  g_ledScale = rampToward(g_ledScale, g_ledScaleTarget,
+                          cfg.ledScaleStepPerTick, cfg.ledScaleStepPerTick);
 }
 
 // ----------------------------------------------------------------------
