@@ -42,63 +42,64 @@ Mist drive: 108.7 kHz / 0–50 % PWM into a piezo disc. Container has a magnet t
 
 ```
                      ┌────────────────────────────┐
-                     │ IDLE_LEDS_ON (boot)        │
+                     │ IDLE (boot, LEDs visible)  │
                      │ strip = BREATH             │
                      │ deep-dim exp(sin) pulse;   │
                      │ exhale lingers at black    │
+                     │ mist off                   │
                      └────┬───────────────────────┘
-                          │ short-press ▲ / ▼ short-press
-                     ┌────▼────────────────┐
-                     │ IDLE_LEDS_OFF       │
-                     │ strip dark          │
-                     └─────────────────────┘
+                          │ container docked (500 ms dwell)
+                          ▼ (BREATH→WAVE crossfade, 1.1 s)
+                 ┌─────────────────────────────────────────────┐
+                 │ RUNNING                                     │
+                 │   strip = WAVE: every LED always lit,       │
+                 │   single broad gaussian swell traveling     │
+                 │   bottom→top over 7.5 s (slow, meditative). │
+                 │   mist on, modulated by the swell at the    │
+                 │   piezo position (1 LED above index 0)      │
+                 │   D7 off                                    │
+                 └─────┬───────────────────────────────────────┘
+                       │ container removed
+                       ▼
+                 ┌─────────────────────────────────────────────┐
+                 │ TRANSITION_FROM_RUNNING                     │
+                 │   mist hard-stopped                         │
+                 │   wave still rendering, dims to 0 (~0.85 s) │
+                 │   auto-enters IDLE →                        │
+                 │   WAVE→BREATH crossfade (1.1 s) +           │
+                 │   fast level restore (~0.64 s)              │
+                 └─────┬───────────────────────────────────────┘
+                       │ smoother reaches 0
+                       ▼
+                      IDLE
 
-  IDLE_LEDS_ON / IDLE_LEDS_OFF
-        │ container docked (500 ms dwell)
-        ▼ (BREATH→WAVE crossfade, 1.1 s)
-  ┌─────────────────────────────────────────────┐
-  │ RUNNING                                     │
-  │   strip = WAVE: every LED always lit,       │
-  │   single broad gaussian swell traveling     │
-  │   bottom→top over 7.5 s (slow, meditative). │
-  │   mist on, D7 off                           │
-  └─────┬───────────────────────────────────────┘
-        │ container removed
-        ▼
-  ┌─────────────────────────────────────────────┐
-  │ TRANSITION_FROM_RUNNING                     │
-  │   mist hard-stopped                         │
-  │   wave still rendering, dims to 0 (~0.85 s) │
-  │   auto-enters IDLE_LEDS_ON →                │
-  │   WAVE→BREATH crossfade (1.1 s) +           │
-  │   fast level restore (~0.64 s)              │
-  └─────┬───────────────────────────────────────┘
-        │ smoother reaches 0
-        ▼
-       IDLE_LEDS_ON
+  Orthogonal short-press LED hide flag (any state):
+     g_ledsHidden=false  ─── short-press ──►  g_ledsHidden=true
+     LEDs visible (~640 ms fade)              LEDs dark, mist untouched
 ```
 
-Short-press from any active state → `IDLE_LEDS_OFF` (mute, skips cinematic).
-Re-docking during `TRANSITION_FROM_RUNNING` cleanly re-enters `RUNNING` (the
-crossfade engine handles any mode swap mid-fade — no special case needed).
+Short-press toggles `g_ledsHidden` in any state — the LED render fades to/from 0
+over ~640 ms, but mist behavior is unaffected (so the diffuser keeps running at
+the user-set level even while the visuals are blanked). Re-docking during
+`TRANSITION_FROM_RUNNING` cleanly re-enters `RUNNING` (the crossfade engine
+handles any mode swap mid-fade — no special case needed).
 
 | From → To | Trigger | Effect |
 |---|---|---|
-| IDLE → RUNNING | reed Inserted (500 ms dwell) **or** button short-press + container docked | mist on, mode = WAVE → 1.1 s BREATH→WAVE crossfade in pre-gamma space |
+| IDLE → RUNNING | reed Inserted (500 ms dwell) | mist on (wave-modulated), mode = WAVE → 1.1 s BREATH→WAVE crossfade in pre-gamma space |
 | RUNNING → TRANSITION_FROM_RUNNING | reed Removed (100 ms dwell) | **mist hard-stop**; mode stays WAVE, baseLevel ramps 255→0 (~0.85 s) — wave dims naturally |
-| TRANSITION_FROM_RUNNING → IDLE_LEDS_ON | smoother lands on 0 | mode→BREATH (kicks off WAVE→BREATH crossfade), fast fade-up to `g_userLevel` (~0.64 s) |
-| RUNNING / TRANSITION → IDLE_LEDS_OFF | button short-press | snap to mute (skips cinematic) |
-| IDLE_LEDS_OFF ↔ IDLE_LEDS_ON | button short-press (no container) | dim breath fades in/out (mode stays BREATH; no crossfade) |
-| RUNNING / IDLE_LEDS_ON | button long-press | ramps `g_userLevel`; brightness scales live (wave traverse rate stays constant) |
-| any | level dims past `LEVEL_OFF_THRESHOLD` (8) | snap to `IDLE_LEDS_OFF`, reset `userLevel = LEVEL_DEFAULT`, flip ramp direction |
+| TRANSITION_FROM_RUNNING → IDLE | smoother lands on 0 | mode→BREATH (kicks off WAVE→BREATH crossfade), fast fade-up to `g_userLevel` (~0.64 s) |
+| TRANSITION_FROM_RUNNING → RUNNING | reed re-Inserted mid-fade | crossfade engine handles WAVE→WAVE no-op; mist re-armed |
+| any state | button short-press | toggles `g_ledsHidden` (LED render fades to/from 0; mist + state untouched) |
+| IDLE / RUNNING | button long-press | ramps `g_userLevel`; mist + LED brightness scale live (wave traverse rate stays constant) |
 
 ## Level Model (the trick)
 
-One scalar drives both mist and LEDs so they always move together.
+One scalar drives both mist and LEDs so they always move together. A separate, orthogonal scaler hides the LED strip without touching the mist.
 
 ```
 g_userLevel    (0..255)   ← user's intent; long-press ramps this
-g_targetLevel  (0..255)   ← state-driven goal (0 in IDLE_LEDS_OFF /
+g_targetLevel  (0..255)   ← state-driven goal (0 in
                             TRANSITION_FROM_RUNNING, g_userLevel otherwise)
 g_currentLevel (0..255)   ← smoothed actual; ramps toward target +2 / 10 ms
                             (≈ 1.3 s 0→255). Step size is intentionally tiny
@@ -107,8 +108,21 @@ g_currentLevel (0..255)   ← smoothed actual; ramps toward target +2 / 10 ms
                             Post-removal breath restore uses STEP_UP_FAST
                             (~0.64 s) so the cinematic stays brisk.
 
-mist duty   = (g_currentLevel × MIST_DUTY_MAX) / 255    // 127 = 50 %
-LED bright  = led_driver(g_currentLevel, g_ledMode)
+g_ledsHidden   (bool)     ← short-press toggle; orthogonal to state
+g_ledScale     (0..255)   ← smoothed visibility scaler; eases toward
+                            g_ledScaleTarget = (g_ledsHidden ? 0 : 255)
+                            over ~640 ms (step 4 / 10 ms). Multiplies the
+                            baseLevel handed to ledRender; mist ignores it.
+
+mist duty   = (computeMistOutLevel(g_currentLevel, now) × MIST_DUTY_MAX) / 255
+              where computeMistOutLevel(level, now) applies the wave-sync
+              factor:
+                factor (Q8) = MIST_WAVE_TROUGH_Q8
+                            + ((256 - MIST_WAVE_TROUGH_Q8) × gauss_at_piezo) >> 8
+                gauss_at_piezo = waveIntensityAtPiezo(now)  // 0..255
+              In any state other than RUNNING, mist is inhibited (boost
+              rail down) so the value is don't-care.
+LED bright  = led_driver((g_currentLevel × g_ledScale) >> 8, g_ledMode)
               where led_driver:
                 BREATH:  exp(sin) curve LUT, capped to LED_BREATH_PEAK (raw
                          80 → PWM 10/255 ≈ 4 %) so idle stays dim regardless
@@ -124,30 +138,29 @@ LED bright  = led_driver(g_currentLevel, g_ledMode)
 
 Pieces sitting outside the smoother:
 - **Reed lift** → `mistHardStop()` cuts boost rail + PWM immediately and sets an inhibit flag so the still-fading `g_currentLevel` can't re-engage the boost. `enterRunning()` clears the inhibit.
-- **D7** is driven once per loop from `containerIsPresent()` — independent of `state` and `level`.
+- **Wave-mist sync** → in `RUNNING`, mist drive is *additionally* modulated by `waveIntensityAtPiezo(now)`, which samples the wave's gaussian 1 LED above the top of the strip (where the piezo sits). Same `now` is fed to the visible WAVE renderer, so the mist crest you feel is the wave crest you see, delayed only by the geometry of the piezo sitting above the top LED.
+- **Short-press LED hide** → toggles `g_ledsHidden`. `g_ledScale` smooths in/out over ~640 ms and multiplies the baseLevel handed to `ledRender`. Mist drive does not pass through this scaler, so blanking the visuals never stops the diffuser.
+- **D7** is driven once per loop from `containerIsPresent()` — independent of `state`, `level`, and `g_ledsHidden`.
 - **led_driver crossfade engine** — `ledSetMode()` captures the prior mode and starts a `LED_CROSSFADE_MS` timer. While elapsed < timer, both modes render every frame and outputs are linearly blended per LED in pre-gamma space. Replaces the prior `g_pendingSwirl` state-machine flag — the BREATH↔WAVE swap is now a single continuous dissolve, not "fade up then snap".
 
 ## User Interactions
 
 | User does | Result |
 |---|---|
-| Power on | Boots to `IDLE_LEDS_ON` — strip starts a deep-dim exp(sin) breath; the exhale dwells at full black for a beat each cycle |
-| Dock container | ~500 ms reed dwell → mist on; mode flips to WAVE, the dim breath dissolves into the slow gaussian swell over 1.1 s (single continuous crossfade) |
+| Power on | Boots to `IDLE` with LEDs visible — strip starts a deep-dim exp(sin) breath; the exhale dwells at full black for a beat each cycle |
+| Dock container | ~500 ms reed dwell → mist on (wave-modulated at the piezo); mode flips to WAVE, the dim breath dissolves into the slow gaussian swell over 1.1 s (single continuous crossfade). Mist visibly pulses in sync with the LED swell. |
 | Lift container | Mist hard-stops instantly. Wave dims to black over ~0.85 s (mode stays WAVE so it reads as continuous), then the dim breath crossfades back in over 1.1 s |
-| Tap button (no container) | Toggles deep-dim BREATH on / off |
-| Tap button (any active state) | Snaps to `IDLE_LEDS_OFF` (skips the removal cinematic if mid-transition) |
-| Tap button when muted, container docked | Resumes RUNNING (BREATH→WAVE crossfade from black) |
-| Hold button (RUNNING or IDLE_LEDS_ON) | Ramps `g_userLevel` — brightness scales live. Wave traverse rate stays constant in RUNNING (dim is brightness-only). Direction alternates on release |
-| Hold button past `LEVEL_OFF_THRESHOLD` (8) | Auto-snap to `IDLE_LEDS_OFF`, user level resets to default so the next wake comes back at full |
+| Tap button (any state) | Toggles `g_ledsHidden` — LED strip fades to dark (or back in) over ~640 ms. **Mist is not affected** — if a container is docked, the diffuser keeps running at the user-set level even while the strip is hidden |
+| Hold button (IDLE or RUNNING) | Ramps `g_userLevel` — brightness scales live and mist drive scales with it (still wave-modulated in RUNNING). Wave traverse rate stays constant. Direction alternates on release. The ramp clamps at 0 / 255 — there is no auto-snap-to-off; long-pressing to 0 just leaves the device at level 0 (mist off, LEDs dark), and the next long-press in the opposite direction brings it back. |
 
 ## Files
 
 | File | Role |
 |---|---|
-| `BlockKit_Test.ino` | state machine, smoother, serial parser, glue |
+| `BlockKit_Test.ino` | state machine, smoother, LED-visibility smoother, wave-mist sync (`computeMistOutLevel`), serial parser, glue |
 | `pins.h` | pin defs, tunables, enums — single source of truth |
 | `mist.ino` | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
-| `led_driver.ino` | `ledRender(baseLevel)` — renders BREATH (exp(sin) LUT, linear-interp, capped to LED_BREATH_PEAK) or WAVE (gaussian-LUT swell traveling bottom→top), 1.1 s pre-gamma crossfade between modes, gamma + per-LED I2C write cache |
+| `led_driver.ino` | `ledRender(baseLevel)` — renders BREATH (exp(sin) LUT, linear-interp, capped to LED_BREATH_PEAK) or WAVE (gaussian-LUT swell traveling bottom→top), 1.1 s pre-gamma crossfade between modes, gamma + per-LED I2C write cache. Also exposes `waveIntensityAtPiezo(now)` so the main loop can phase-lock mist drive to the wave swell. |
 | `status_led.ino` | D7 dim-on / off |
 | `container.ino` | reed debounce, edge events |
 | `button.ino` | debounce, short/long-press events |
@@ -160,7 +173,7 @@ Arduino concatenates all `.ino` files into one translation unit, so file-scope `
 | Cmd | Effect |
 |---|---|
 | `help` | print list |
-| `1` / `0` / `t` | mist on / off / toggle |
+| `l` / `L` / `t` | hide LEDs / show LEDs / toggle visibility (mist untouched) |
 | `vN` | set `g_userLevel` 0..255 |
 | `w` | LED walk (sequence 14 LEDs, ~14 s, blocks) |
 | `r` | dump reed state (raw + debounced) |
@@ -176,10 +189,12 @@ Log line prefixes: `[APP]`, `[MIST]`, `[LED]`, `[REED]`, `[BTN]`, `[CUR]`, `[STA
 |---|---|---|
 | `MIST_FREQ_HZ` | 108 700 | Piezo disc resonance |
 | `MIST_DUTY_MAX` | 127 | 50 % of 8-bit PWM = full mist |
+| `MIST_PIEZO_OFFSET_LEDS_Q8` | 256 | Piezo position above index 0 (1 LED) for the wave-mist sync gauss sample |
+| `MIST_WAVE_TROUGH_Q8` | 92 | Mist trough factor (92/256 ≈ 36 %) — matches `WAVE_BASE_LEVEL` / 255 so the mist's swing mirrors the LED's |
 | `LEVEL_DEFAULT` | 255 | First-boot mist + brightness |
 | `LEVEL_SMOOTH_TICK_MS` / `STEP_UP` / `STEP_DN` | 10 / 2 / 3 | ~1.3 s fade-in, ~0.85 s fade-out — tiny steps so the slide reads as continuous |
 | `LEVEL_SMOOTH_STEP_UP_FAST` | 4 | ~0.64 s breath restore after removal — keeps the cinematic brisk |
-| `LEVEL_OFF_THRESHOLD` | 8 | Snap-to-off cutoff during dim ramp |
+| `LED_SCALE_STEP_PER_TICK` | 4 | ~0.64 s short-press LED hide/show fade |
 | `LED_BREATH_PEAK` | 80 | raw cap on breath sweep → PWM 10/255 ≈ 4 % post-gamma. Picked so the sweep covers ~10 distinct PWM levels (smooth gradient) instead of the 1 level peak=38 gave (blink-like). |
 | `LED_BREATH_PERIOD_MS` | 5500 | One slow inhale → exhale → black-dwell |
 | `WAVE_BASE_LEVEL` | 92 | Always-on baseline every LED holds (docked) |

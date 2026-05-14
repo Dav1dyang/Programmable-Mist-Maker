@@ -205,22 +205,28 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
   for (uint8_t i = 0; i < LED_COUNT; ++i) out[i] = pwm;
 }
 
-static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
-  // The swell center travels from y = LED_COUNT + 3σ (off-screen below) to
-  // y = -3σ (off-screen above) over WAVE_PERIOD_MS, then jumps back instantly.
-  // The jump is invisible: at ±3σ from any LED the gaussian is < 1% of peak,
-  // so visually the strip just sits at WAVE_BASE_LEVEL for a tick during the
-  // wrap, then a new swell emerges smoothly from below.
-  //
-  // The strip is indexed top→bottom (i=0 top, i=13 bottom), and the user
-  // asked for the swell to rise from bottom to top. So as t advances, y
-  // decreases (head moves toward lower index = upward).
+// Position of the wave swell center in Q8 LED units. The strip is indexed
+// top→bottom (i=0 top, i=13 bottom), and the user asked for the swell to
+// rise from bottom to top — so y decreases as t advances (head moves
+// toward lower index = upward). The swell travels from y = LED_COUNT + 3σ
+// (off-screen below) to y = -3σ (off-screen above) over WAVE_PERIOD_MS,
+// then wraps. The jump is invisible: at ±3σ from any visible LED the
+// gaussian is < 1% peak, so the strip just sits at WAVE_BASE_LEVEL for a
+// tick during the wrap before a new swell emerges smoothly from below.
+//
+// Shared between renderWaveRaw and waveIntensityAtPiezo so the visible LED
+// swell and the mist modulation are guaranteed phase-locked off the same
+// `now` — the mist you feel is literally the wave you see.
+static inline int32_t waveCenterYQ8(uint32_t now) {
   const int32_t span_q8 = int32_t(LED_COUNT) * 256
                         + int32_t(WAVE_TRAVEL_PAD_Q8) * 2;
   const uint32_t t = uint32_t(now) % WAVE_PERIOD_MS;
-  const int32_t  y_q8 = int32_t(LED_COUNT) * 256 + int32_t(WAVE_TRAVEL_PAD_Q8)
-                      - int32_t((uint64_t(span_q8) * t) / WAVE_PERIOD_MS);
+  return int32_t(LED_COUNT) * 256 + int32_t(WAVE_TRAVEL_PAD_Q8)
+       - int32_t((uint64_t(span_q8) * t) / WAVE_PERIOD_MS);
+}
 
+static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
+  const int32_t y_q8 = waveCenterYQ8(now);
   for (uint8_t i = 0; i < LED_COUNT; ++i) {
     const int32_t led_q8 = int32_t(i) * 256;
     int32_t       d_q8   = led_q8 - y_q8;
@@ -233,6 +239,27 @@ static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
     if (v > 255) v = 255;
     out[i] = uint8_t(v);
   }
+}
+
+// Returns the wave gaussian intensity (0..255) at the piezo's position —
+// 1 LED above index 0 (configurable via MIST_PIEZO_OFFSET_LEDS_Q8). When
+// the swell is centered at the piezo, returns 255 (mist crest); when far
+// away, returns 0 (mist trough). The main loop multiplies this through
+// g_currentLevel + the MIST_WAVE_TROUGH_Q8 floor to produce the actual
+// mist drive level — see `computeMistOutLevel()` in BlockKit_Test.ino.
+//
+// Because the piezo is physically above the top LED, the gaussian peaks at
+// the piezo *after* the LED at index 0 has already peaked — so the mist
+// "continues to grow" once the wave has visibly passed the top, then dims
+// back down with the wave as it exits off-screen above. That timing is
+// the whole point of evaluating here instead of at index 0.
+uint8_t waveIntensityAtPiezo(uint32_t now) {
+  const int32_t y_q8     = waveCenterYQ8(now);
+  const int32_t piezo_q8 = -int32_t(MIST_PIEZO_OFFSET_LEDS_Q8);  // above i=0
+  int32_t       d_q8     = piezo_q8 - y_q8;
+  if (d_q8 < 0) d_q8 = -d_q8;
+  if (d_q8 > 0xFFFF) return 0;
+  return gaussQ(uint16_t(d_q8));
 }
 
 static inline void renderRaw(LedMode m, uint32_t now, uint8_t out[LED_COUNT]) {
