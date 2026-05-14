@@ -34,44 +34,40 @@
 #include "pins.h"
 #include "config.h"
 
-// ---------------------------------------------------------------------------
+// LUT size — 64-entry lookup tables (one inhale/exhale cycle for breath,
+// 0..4σ for gauss). Size is a power of 2 so we can mask instead of mod.
+constexpr uint8_t LUT_SIZE = 64;
+constexpr uint8_t LUT_MASK = LUT_SIZE - 1;   // 0x3F — index wrap for breath
+
+// Gauss LUT covers 4σ in 64 entries → each entry = σ/16 Q8 units = 64.
+// So gauss index = dist_q8 / 64 = dist_q8 >> GAUSS_LUT_SHIFT.
+constexpr uint8_t GAUSS_LUT_SHIFT = 6;       // log2(WAVE_SIGMA_LEDS_Q8 / 16)
+constexpr uint8_t GAUSS_FRAC_LSHIFT = 8 - GAUSS_LUT_SHIFT;  // 0..63 → Q8
+
 // Signed sine LUT — kept for any helper that wants a -127..+127 sine. Not
 // used by the breath or wave renderers directly (those have dedicated LUTs).
-// ---------------------------------------------------------------------------
-static const int8_t SINE_LUT[64] = {
+static const int8_t SINE_LUT[LUT_SIZE] = {
     0,  12,  24,  37,  48,  60,  71,  81,  90,  98, 106, 112, 117, 122, 125, 126,
   127, 126, 125, 122, 117, 112, 106,  98,  90,  81,  71,  60,  48,  37,  24,  12,
     0, -12, -24, -37, -48, -60, -71, -81, -90, -98,-106,-112,-117,-122,-125,-126,
  -127,-126,-125,-122,-117,-112,-106, -98, -90, -81, -71, -60, -48, -37, -24, -12,
 };
 
-// ---------------------------------------------------------------------------
-// exp(sin) BREATH curve LUT — 64 entries, one full inhale/exhale cycle.
-// Each entry = round( 255 * (exp(sin(2π·i/64)) - e⁻¹) / (e − e⁻¹) ).
-//
-// Why exp(sin) instead of plain sine: exp(sin) is asymmetric — it lingers
-// near zero on the exhale (entries ~46..50 sit at 0) and ramps fast on the
-// inhale. That asymmetry is what makes it read as "breathing" rather than
-// "pulsing", and it's also what gives the idle a *dramatic* feel — the
-// strip actually dwells at full black for a beat each cycle instead of
-// dipping and immediately rebounding. This is the same shape FastLED and
-// ThingPulse use for premium breathing-LED effects.
-// ---------------------------------------------------------------------------
-static const uint8_t BREATH_LUT[64] = {
+// exp(sin) BREATH curve LUT — one full inhale/exhale cycle.
+// entry[i] = round( 255 * (exp(sin(2π·i/LUT_SIZE)) - e⁻¹) / (e − e⁻¹) ).
+// Asymmetric: exhale lingers at 0 (entries ~46..50 hold full black), inhale
+// ramps fast. That's what makes it read as "breathing" instead of "pulsing".
+static const uint8_t BREATH_LUT[LUT_SIZE] = {
    69,  80,  92, 105, 119, 134, 149, 165, 180, 195, 209, 221, 233, 242, 249, 253,
   255, 253, 249, 242, 233, 221, 209, 195, 180, 165, 149, 134, 119, 105,  92,  80,
    69,  58,  49,  41,  34,  28,  22,  18,  14,  10,   7,   5,   3,   2,   1,   0,
     0,   0,   1,   2,   3,   5,   7,  10,  14,  18,  22,  28,  34,  41,  49,  58,
 };
 
-// ---------------------------------------------------------------------------
-// Gaussian WAVE LUT — 64 entries covering 0..4σ. Each entry = round(255 *
-// exp(-(i/16)² / 2)). Visual width: at d=1σ the swell is ~61% peak; at 2σ
-// it's ~14%; at 3σ it's ~1%. With σ=4 LEDs on a 14-LED strip, the swell
-// occupies roughly the middle ⅓ of the strip at its visible width — broad,
-// soft, no hard edges. This is the "single broad swell" shape, not a blob.
-// ---------------------------------------------------------------------------
-static const uint8_t GAUSS_LUT[64] = {
+// Gaussian WAVE LUT — covers 0..4σ. entry[i] = round(255 * exp(-(i/16)² / 2)).
+// At 1σ ≈ 61% peak, at 2σ ≈ 14%, at 3σ ≈ 1%. With σ=4 LEDs on a 14-LED strip
+// the swell occupies the middle ~⅓ — soft, broad, no hard edges.
+static const uint8_t GAUSS_LUT[LUT_SIZE] = {
   255, 255, 253, 251, 247, 243, 238, 232, 225, 218, 210, 201, 192, 183, 174, 164,
   155, 145, 135, 126, 117, 108,  99,  91,  83,  75,  68,  61,  55,  49,  44,  39,
    35,  30,  27,  23,  20,  18,  15,  13,  11,  10,   8,   7,   6,   5,   4,   3,
@@ -118,30 +114,25 @@ static uint8_t   g_lastPwm[LED_COUNT];
 static bool      g_lastPwmInit       = false;
 
 // Interpolated lookup into BREATH_LUT. Returns 0..255. Linear interpolation
-// between adjacent entries removes the visible stair-step you'd otherwise
-// get at the slow 5.5 s breath period.
+// between entries removes stair-step on the slow 5.5 s breath period.
 static inline uint8_t breathQ(uint32_t phaseQ8) {
-  const uint8_t idx  = uint8_t((phaseQ8 >> 8) & 63u);
-  const uint8_t next = uint8_t((idx + 1) & 63u);
+  const uint8_t idx  = uint8_t((phaseQ8 >> 8) & LUT_MASK);
+  const uint8_t next = uint8_t((idx + 1)      & LUT_MASK);
   const uint8_t frac = uint8_t(phaseQ8 & 0xFFu);
   const int16_t v0 = BREATH_LUT[idx];
   const int16_t v1 = BREATH_LUT[next];
-  const int16_t v  = v0 + (((v1 - v0) * int16_t(frac)) >> 8);
-  return uint8_t(v);
+  return uint8_t(v0 + (((v1 - v0) * int16_t(frac)) >> 8));
 }
 
-// Gaussian lookup. dist_q8 is unsigned Q8 LED-units. The LUT covers 0..4σ in
-// 64 entries → each entry covers σ/16 Q8 units = WAVE_SIGMA_LEDS_Q8/16 = 64,
-// so index = dist_q8 / 64 = dist_q8 >> 6. (Hard-coded for σ=4 LEDs; if you
-// change WAVE_SIGMA_LEDS_Q8, retune the >>6.)
+// Gaussian lookup. dist_q8 is unsigned Q8 LED-units. The LUT covers 0..4σ
+// in LUT_SIZE entries. See GAUSS_LUT_SHIFT comment for the index derivation.
 static inline uint8_t gaussQ(uint16_t dist_q8) {
   static_assert(WAVE_SIGMA_LEDS_Q8 == 4 * 256,
-                "GAUSS_LUT step assumes σ = 4 LEDs (1024 Q8); retune the >>6");
-  uint16_t idx = dist_q8 >> 6;
-  if (idx > 63) return 0;
-  // Linear-interp between adjacent gauss LUT entries for sub-quantum smoothness.
-  const uint8_t next = (idx >= 63) ? 63 : uint8_t(idx + 1);
-  const uint8_t frac = uint8_t(dist_q8 & 0x3F) << 2;  // 0..63 → 0..252 (Q8 frac)
+                "GAUSS_LUT step assumes σ = 4 LEDs (1024 Q8); retune GAUSS_LUT_SHIFT");
+  uint16_t idx = dist_q8 >> GAUSS_LUT_SHIFT;
+  if (idx >= LUT_SIZE) return 0;
+  const uint8_t next = (idx >= LUT_SIZE - 1) ? LUT_SIZE - 1 : uint8_t(idx + 1);
+  const uint8_t frac = uint8_t(dist_q8 & ((1u << GAUSS_LUT_SHIFT) - 1)) << GAUSS_FRAC_LSHIFT;
   const int16_t g0 = GAUSS_LUT[idx];
   const int16_t g1 = GAUSS_LUT[next];
   return uint8_t(g0 + (((g1 - g0) * int16_t(frac)) >> 8));
@@ -195,12 +186,11 @@ void ledSetMode(LedMode m) {
 // scale* space. Crossfade blending and baseLevel scaling happen in ledRender.
 
 static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
-  // Reduce now mod period BEFORE the *64*256 multiply so the intermediate
-  // result stays bounded in uint32_t (otherwise wraps every ~262 s and the
-  // curve glitches at each wrap).
+  // Reduce now mod period BEFORE the LUT_SIZE*256 multiply so the intermediate
+  // stays bounded in uint32_t (otherwise wraps ~262 s and the curve glitches).
   const uint16_t period = cfg.ledBreathPeriodMs ? cfg.ledBreathPeriodMs : 1;
   const uint32_t t       = uint32_t(now) % period;
-  const uint32_t phaseQ8 = (t * 64u * 256u) / period;
+  const uint32_t phaseQ8 = (t * LUT_SIZE * 256u) / period;
   const uint8_t  curve   = breathQ(phaseQ8);  // 0..255 — full-range LUT
   // Map the 0..255 curve onto [ledBreathLow .. ledBreathPeak]. The peak
   // keeps idle dim regardless of baseLevel; the low value floors the
