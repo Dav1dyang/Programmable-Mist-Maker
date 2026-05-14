@@ -9,6 +9,8 @@
 //   POST /api/cmd/leds      toggle hide/show LED ring (mist unaffected)
 //   POST /api/cmd/scope     toggle scope mode
 //   POST /api/cmd/plotmute  toggle [PLOT] CSV stream mute
+//   POST /api/cmd/calibrate-water  capture current at water-probe duty,
+//                                  return recorded mA + recommended low threshold
 //   POST /api/cmd/level     set runtime userLevel; body = {"value":0..255}
 //   POST /api/cmd/state     force state idle/running; body = {"state":"..."}
 //   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
@@ -123,6 +125,19 @@ static const char* webStateName(AppState s) {
   return "?";
 }
 
+static const char* piezoStateName(PiezoState s) {
+  switch (s) {
+    case PiezoState::UNKNOWN:           return "UNKNOWN";
+    case PiezoState::DISC_MISSING:      return "DISC_MISSING";
+    case PiezoState::DISC_DRY:          return "DISC_DRY";
+    case PiezoState::WATER_OK:          return "WATER_OK";
+    case PiezoState::WATER_LOW:         return "WATER_LOW";
+    case PiezoState::WATER_DEPLETED:    return "WATER_DEPLETED";
+    case PiezoState::DISC_DISCONNECTED: return "DISC_DISCONNECTED";
+  }
+  return "?";
+}
+
 static size_t buildStatusJson(char* out, size_t cap) {
   return snprintf(out, cap,
     "{\"state\":\"%s\","
@@ -137,6 +152,9 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"currentLevel\":%u,"
     "\"meanMa\":%.1f,"
     "\"varMa2\":%.1f,"
+    "\"piezoState\":\"%s\","
+    "\"piezoProbeMa\":%.1f,"
+    "\"waterCountdownS\":%lu,"
     "\"uptimeMs\":%lu,"
     "\"freeHeap\":%u,"
     "\"rssi\":%d,"
@@ -153,6 +171,9 @@ static size_t buildStatusJson(char* out, size_t cap) {
     appCurrentLevel(),
     currentMeanMa(),
     currentVarMa2(),
+    piezoStateName(piezoState()),
+    piezoLastProbeMa(),
+    (unsigned long)piezoWaterCountdownS(),
     (unsigned long)millis(),
     unsigned(ESP.getFreeHeap()),
     (int)WiFi.RSSI(),
@@ -206,7 +227,7 @@ static void handleRoot() {
 }
 
 static void handleStatus() {
-  char buf[512];
+  char buf[640];
   buildStatusJson(buf, sizeof(buf));
   g_http.sendHeader("Cache-Control", "no-store");
   g_http.send(200, "application/json", buf);
@@ -302,6 +323,21 @@ static void handleCmdPlotMute() {
   if (!requireAuth()) return;
   currentSenseTogglePlotMute();
   g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// "Calibrate now" — capture current at senseWaterProbeDuty as the water-OK
+// baseline. The user clicks this when the device is in a known-good state
+// (water present, mist running). Returns the recorded mA and a recommended
+// low-water threshold (recorded × 0.85). Caller (UI) decides whether to
+// apply via /api/config POST.
+static void handleCmdCalibrateWater() {
+  if (!requireAuth()) return;
+  const float ma = piezoCalibrateWaterBaseline();
+  char body[128];
+  snprintf(body, sizeof(body),
+           "{\"ok\":true,\"recordedMa\":%.1f,\"recommendedLowMa\":%.1f}",
+           ma, ma * 0.85f);
+  g_http.send(200, "application/json", body);
 }
 
 // Live level set — mirrors serial 'vN'. Body: {"value": 0..255}.
@@ -430,7 +466,7 @@ static void handleEvents() {
   g_sseClient.println();
   g_sseClient.flush();
   // Immediate first frame so the UI populates without waiting 250 ms.
-  char buf[512];
+  char buf[640];
   const size_t n = buildStatusJson(buf, sizeof(buf));
   g_sseClient.print("data: ");
   g_sseClient.write((const uint8_t*)buf, n);
@@ -447,7 +483,7 @@ static void sseTick() {
   const uint32_t now = millis();
   if (now - g_lastSseMs < SSE_INTERVAL_MS) return;
   g_lastSseMs = now;
-  char buf[512];
+  char buf[640];
   const size_t n = buildStatusJson(buf, sizeof(buf));
   // SSE wire format: `data: <line>\n\n`. Each loop iteration sends one frame.
   g_sseClient.print("data: ");
@@ -476,6 +512,7 @@ void webInit() {
   g_http.on("/api/cmd/leds",        HTTP_POST, handleCmdLeds);
   g_http.on("/api/cmd/scope",       HTTP_POST, handleCmdScope);
   g_http.on("/api/cmd/plotmute",    HTTP_POST, handleCmdPlotMute);
+  g_http.on("/api/cmd/calibrate-water", HTTP_POST, handleCmdCalibrateWater);
   g_http.on("/api/cmd/level",       HTTP_POST, handleCmdLevel);
   g_http.on("/api/cmd/state",       HTTP_POST, handleCmdState);
   g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
