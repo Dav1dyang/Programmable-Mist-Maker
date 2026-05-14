@@ -131,6 +131,9 @@ void ledInit() {
 
 // Push a per-LED final frame to the chip, skipping any LED whose cached value
 // already matches. Inputs are already gamma-corrected.
+// Hardware quirk: the 14 populated LEDs are on Matrix B (CB1/CB2) — must use
+// setLEDPWM(lednum, pwm, 0); drawPixel(x,y,…) writes Matrix A which is
+// unpopulated on this board and would silently no-op.
 static void writePerLed(const uint8_t pwm[LED_COUNT]) {
   if (!g_lastPwmInit) return;
   for (uint8_t i = 0; i < LED_COUNT; ++i) {
