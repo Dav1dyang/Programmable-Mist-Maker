@@ -1,10 +1,10 @@
-// Single-page web UI for the Block Kit, embedded as one PROGMEM string.
+// Single-page web UI for the Mist Maker, embedded as one PROGMEM string.
 // Vanilla HTML/CSS/JS — no external CDN, no LittleFS — so the UI loads with
 // just one HTTP roundtrip and works offline on the LAN.
 //
-// Tabs: Status (live cards + sparkline), Config (sliders for every cfg.*
-// field, save-gated by admin password), Debug (raw IO + commands), About
-// (device info + OTA hint).
+// Tabs: Status (quick-control tiles + live cards + sparkline), Config
+// (advanced sliders collapsed by default), Debug (commands + log), About
+// (device info + admin password).
 //
 // Update strategy: SSE subscription via EventSource('/api/events') drives
 // the Status + Debug tabs at 4 Hz; Config does a one-shot GET on tab show
@@ -20,7 +20,7 @@ const char INDEX_HTML[] PROGMEM = R"==(<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0c0d10">
-<title>Block Kit</title>
+<title>Mist Maker</title>
 <style>
 :root{
   --bg:#0c0d10; --fg:#e7eaee; --mut:#8a93a1; --line:#1d2128;
@@ -93,6 +93,37 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
 .kv b{color:var(--fg);font-weight:500}
 .setup-banner{background:#3a2a14;color:var(--warn);border:1px solid var(--warn);
   padding:10px 14px;border-radius:var(--r);margin-bottom:12px}
+/* Quick-control tiles (Status tab) */
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.tile h3{margin:0 0 8px;font-size:.9em;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;font-weight:500;
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tile .pct{font-size:clamp(22px,3vw,30px);font-weight:600;margin:2px 0 6px}
+.tile .sub{color:var(--mut);font-size:.85em;margin-bottom:10px}
+.tile input[type=range]{width:100%;margin:6px 0 0}
+/* Toggle switch */
+.sw{position:relative;width:42px;height:24px;background:#2a2e36;border-radius:12px;cursor:pointer;flex-shrink:0;
+  transition:background .15s;border:0;padding:0}
+.sw.on{background:var(--accent)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;
+  transition:left .15s}
+.sw.on::after{left:20px}
+/* Status pills + override row */
+.pills{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:8px 0 12px;color:var(--mut);font-size:.9em}
+.pills .grp{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:4px 10px 4px 12px}
+.pills .grp .name{font-size:.85em;text-transform:uppercase;letter-spacing:.5px}
+.pills .grp .val{color:var(--fg);font-weight:500}
+.btn.mini{padding:3px 9px;font-size:.82em;border-radius:8px}
+.btn.mini.active{background:var(--accent);color:#0c0d10;border-color:transparent}
+/* Advanced settings collapse */
+details.adv{margin:12px 0;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--card);padding:0}
+details.adv>summary{padding:12px 14px;cursor:pointer;color:var(--mut);
+  text-transform:uppercase;letter-spacing:.5px;font-size:.85em;font-weight:500;list-style:none}
+details.adv>summary::after{content:" \25be";color:var(--mut)}
+details.adv[open]>summary::after{content:" \25b4"}
+details.adv>div{padding:0 14px 14px}
 @media(max-width:560px){
   .field{grid-template-columns:1fr 1fr;}
   .field .hint{grid-column:1/-1}
@@ -101,7 +132,7 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
 </head>
 <body>
 <header>
-  <h1>Block Kit</h1>
+  <h1>Mist Maker</h1>
   <span class="meta">
     <span id="connDot" class="dot"></span>
     <span id="connTxt">connecting…</span> ·
@@ -123,14 +154,62 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
     Device is in WiFi setup mode. Join the
     <code>MistMaker-Setup-XXXX</code> AP (password <code>mistmaker-setup</code>).
   </div>
+
+  <!-- Quick-control tiles: mist + LED wave -->
+  <div class="tile-grid">
+    <div class="tile" id="tileMist">
+      <h3>Mist <button class="sw" id="swMist" aria-label="mist toggle"></button></h3>
+      <div class="pct"><span id="mistPct">-</span>%</div>
+      <div class="sub" id="mistSub">-</div>
+      <input type="range" min="0" max="100" step="1" id="mistSlider" value="0">
+    </div>
+    <div class="tile" id="tileWave">
+      <h3>LED Wave <button class="sw" id="swWave" aria-label="wave toggle"></button></h3>
+      <div class="pct"><span id="wavePct">-</span>%</div>
+      <div class="sub" id="waveSub">-</div>
+      <input type="range" min="0" max="100" step="1" id="waveSlider" value="0">
+    </div>
+  </div>
+
+  <!-- Hardware status + manual override pills -->
+  <div class="pills">
+    <div class="grp"><span class="name">Reed</span>
+      <span class="val" id="pReed">-</span>
+      <button class="btn mini ghost" id="bForceRun">Force RUNNING</button>
+      <button class="btn mini ghost" id="bForceIdle">Force IDLE</button>
+    </div>
+    <div class="grp"><span class="name">Indicator LED</span>
+      <span class="val" id="pStat">-</span>
+      <button class="btn mini ghost" id="bStLAuto">Auto</button>
+      <button class="btn mini ghost" id="bStLOn">On</button>
+      <button class="btn mini ghost" id="bStLOff">Off</button>
+    </div>
+  </div>
+
+  <!-- Mist pulse depth (friendly wrapper around cfg.mistWaveTroughQ8) -->
+  <details class="adv" id="quickPulse"><summary>Mist pulse depth (how visible is the breathing)</summary>
+    <div>
+      <p style="color:var(--mut);font-size:.9em;margin:8px 0">
+        0% = mist runs steady. 100% = mist swings full range with the LED wave.
+        Default ~64% (matches the LED wave's own visible range).
+      </p>
+      <div class="field" style="grid-template-columns:1fr 90px">
+        <input type="range" min="0" max="100" step="1" id="pulseSlider" value="64">
+        <input type="number" min="0" max="100" step="1" id="pulseNum" value="64">
+      </div>
+      <div class="actions"><button class="btn" id="bPulseSave">Save pulse depth</button></div>
+    </div>
+  </details>
+
+  <!-- Compact live row + sparkline + weather (weather hidden until configured) -->
+  <h2>Live</h2>
   <div class="cards">
     <div class="card" id="cState"><div class="lbl">State</div><div class="v" id="vState">-</div></div>
-    <div class="card" id="cMist"><div class="lbl">Mist</div><div class="v" id="vMist">-</div></div>
     <div class="card" id="cCur"><div class="lbl">Current</div><div class="v"><span id="vCurMa">-</span> mA</div></div>
     <div class="card" id="cUp"><div class="lbl">Uptime</div><div class="v" id="vUp">-</div></div>
+    <div class="card" id="cWx" hidden><div class="lbl">Outdoor</div><div class="v"><span id="vWxT">-</span>&deg;C / <span id="vWxH">-</span>%</div></div>
   </div>
-  <h2>Live</h2>
-  <div class="row">
+  <div class="row" style="margin-top:8px">
     <span>Button raw <b id="vBtn">-</b></span>
     <span>Reed raw <b id="vReed">-</b></span>
     <span>User level <b id="vUl">-</b></span>
@@ -144,14 +223,20 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
 </section>
 
 <section id="config" hidden>
-  <p style="color:var(--mut)">Move a slider or type a value, then <b>Save &amp; Apply</b>.
-  Saving prompts for the admin password (set during WiFi setup).</p>
-  <div id="cfgForm"></div>
-  <div class="actions">
-    <button class="btn" id="btnSave">Save &amp; Apply</button>
-    <button class="btn ghost" id="btnRevert">Revert</button>
-    <button class="btn ghost" id="btnDefaults">Reset to defaults</button>
-  </div>
+  <p style="color:var(--mut)">Most users will only need the Status tab. The
+  settings below are fine-tuning knobs (kept collapsed by default). Move a
+  slider, then <b>Save &amp; Apply</b>. Saving prompts for the admin password
+  set during WiFi setup.</p>
+  <details class="adv" open><summary>Advanced settings</summary>
+    <div>
+      <div id="cfgForm"></div>
+      <div class="actions">
+        <button class="btn" id="btnSave">Save &amp; Apply</button>
+        <button class="btn ghost" id="btnRevert">Revert</button>
+        <button class="btn ghost" id="btnDefaults">Reset to defaults</button>
+      </div>
+    </div>
+  </details>
 </section>
 
 <section id="debug" hidden>
@@ -165,12 +250,22 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
   </div>
   <h2>Commands</h2>
   <div class="actions">
-    <button class="btn ghost" id="btnWalk">LED walk</button>
-    <button class="btn ghost" id="btnLeds">Hide / show LEDs</button>
-    <button class="btn ghost" id="btnScope">Toggle scope</button>
+    <button class="btn ghost" id="btnWalk">LED walk (w)</button>
+    <button class="btn ghost" id="btnLeds">Hide / show LEDs (t)</button>
+    <button class="btn ghost" id="btnScope">Toggle scope plot (s)</button>
+    <button class="btn ghost" id="btnPlotMute">Mute [PLOT] stream (m)</button>
     <button class="btn ghost" id="btnRefreshLog">Refresh log</button>
     <button class="btn ghost" id="btnReboot">Reboot</button>
     <button class="btn danger" id="btnForget">Forget WiFi</button>
+  </div>
+  <h2>Serial-only commands</h2>
+  <p style="color:var(--mut);font-size:.9em">These are useful when tethered to
+  a laptop over USB — they aren't worth a button:</p>
+  <div class="kv" style="font-size:.9em">
+    <b><code>help</code></b><span>print the full command list</span>
+    <b><code>vN</code></b><span>set runtime level 0..255 (use Status tile instead from UI)</span>
+    <b><code>r</code></b><span>dump reed raw + debounced state (Status pill shows this live)</span>
+    <b><code>k</code></b><span>recalibrate baseline (Phase B placeholder)</span>
   </div>
   <h2>Recent log</h2>
   <pre class="log" id="log">(loading)</pre>
@@ -283,13 +378,15 @@ function startSse(){
     applyStatus(d);
   };
 }
+// Track if the user is actively dragging a slider so SSE doesn't fight them.
+let dragging = null;     // "mist" | "wave" | null
+let lastNonZeroLevel = 255;
+function pctFromLevel(l){ return Math.round(l*100/255); }
+function levelFromPct(p){ return Math.max(0,Math.min(255,Math.round(p*255/100))); }
+
 function applyStatus(d){
-  // Status tab cards
+  // Live row + state cards
   $("vState").textContent=d.state;
-  $("vMist").textContent = d.mist
-      ? (d.ledsHidden?"ON (LEDs hidden)":"ON")
-      : "off";
-  $("cMist").classList.toggle("green",!!d.mist);
   $("vCurMa").textContent=d.meanMa.toFixed(1);
   $("cCur").classList.toggle("green",d.meanMa>50&&d.meanMa<500);
   $("cCur").classList.toggle("err",d.meanMa>=500);
@@ -301,13 +398,45 @@ function applyStatus(d){
   $("vHeap").textContent=d.freeHeap;
   $("vRssi").textContent=d.rssi+" dBm";
   $("setupBanner").hidden=!d.setupMode;
+  if(d.outdoorTempC!=null && d.outdoorHumidity!=null){
+    $("cWx").hidden=false;
+    $("vWxT").textContent=d.outdoorTempC.toFixed(1);
+    $("vWxH").textContent=d.outdoorHumidity.toFixed(0);
+  }
+
+  // Mist tile (toggle = level>0; slider = level%)
+  const mistOn = d.userLevel>0;
+  $("swMist").classList.toggle("on",mistOn);
+  const mistPct = pctFromLevel(d.userLevel);
+  $("mistPct").textContent = mistPct;
+  if(dragging!=="mist") $("mistSlider").value = mistPct;
+  $("mistSub").textContent = d.mist ? "flowing (docked)" :
+      (d.reedPresent ? "queued — waiting on settle" : "ready (no container)");
+  if(d.userLevel>0) lastNonZeroLevel = d.userLevel;
+
+  // LED Wave tile (toggle = ledsHidden inverse; slider mirrors level)
+  $("swWave").classList.toggle("on",!d.ledsHidden);
+  $("wavePct").textContent = mistPct;
+  if(dragging!=="wave") $("waveSlider").value = mistPct;
+  $("waveSub").textContent = d.ledsHidden ? "hidden (mist continues)" :
+      (d.state==="RUNNING" ? "swelling" : "breathing");
+
+  // Reed pill + status-LED pill
+  $("pReed").textContent = d.reedPresent ? "docked" : "empty";
+  const sOv = d.statLedOverride;
+  $("pStat").textContent = sOv===1 ? "forced ON" : sOv===0 ? "forced OFF" : "auto";
+  $("bStLAuto").classList.toggle("active",sOv===-1);
+  $("bStLOn").classList.toggle("active",sOv===1);
+  $("bStLOff").classList.toggle("active",sOv===0);
+
   // Debug tab raw row
   $("dCur").textContent=d.meanMa.toFixed(1);
   $("dVar").textContent=d.varMa2.toFixed(1);
   $("dReed").textContent=d.reedRaw;
   $("dBtn").textContent=d.btnRaw;
   $("dState").textContent=d.state+" ("+d.stateInt+")";
-  // Sparkline buffer (last 120 samples ≈ 30 s @ 4 Hz)
+
+  // Sparkline (last 120 samples ~30 s @ 4 Hz)
   sparkBuf.push(d.meanMa);
   if(sparkBuf.length>120) sparkBuf.shift();
   const max=Math.max(50,...sparkBuf);
@@ -318,6 +447,75 @@ function applyStatus(d){
   }).join(" ");
   $("sparkLine").setAttribute("points",pts);
 }
+
+// --- Status tile + override wiring -----------------------------------------
+async function postJson(path, body){
+  if(!ensureAdmin()) throw new Error("no auth");
+  const r = await fetch(path,{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Basic "+adminBasic()},
+    body: body ? JSON.stringify(body) : undefined});
+  if(r.status===401){ clearAdmin(); throw new Error("auth"); }
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json().catch(()=>({}));
+}
+
+function bindLevelSlider(id, kind){
+  const el=$(id);
+  el.addEventListener("input",()=>{ dragging=kind; });
+  el.addEventListener("change",async()=>{
+    try{ await postJson("/api/cmd/level",{value:levelFromPct(+el.value)}); }
+    catch(e){ toast("Level: "+e.message,"err"); }
+    finally{ dragging=null; }
+  });
+}
+bindLevelSlider("mistSlider","mist");
+bindLevelSlider("waveSlider","wave");
+
+$("swMist").addEventListener("click",async()=>{
+  const wantOn = !$("swMist").classList.contains("on");
+  try{
+    await postJson("/api/cmd/level",{value: wantOn ? lastNonZeroLevel : 0});
+  } catch(e){ toast("Mist: "+e.message,"err"); }
+});
+$("swWave").addEventListener("click",async()=>{
+  try{ await postJson("/api/cmd/leds"); }
+  catch(e){ toast("LEDs: "+e.message,"err"); }
+});
+$("bForceRun").addEventListener("click",()=>postJson("/api/cmd/state",{state:"running"})
+  .then(()=>toast("Forced RUNNING","ok")).catch(e=>toast(e.message,"err")));
+$("bForceIdle").addEventListener("click",()=>postJson("/api/cmd/state",{state:"idle"})
+  .then(()=>toast("Forced IDLE","ok")).catch(e=>toast(e.message,"err")));
+$("bStLAuto").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"auto"}).catch(e=>toast(e.message,"err")));
+$("bStLOn").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"on"}).catch(e=>toast(e.message,"err")));
+$("bStLOff").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"off"}).catch(e=>toast(e.message,"err")));
+
+// --- Mist pulse depth (UI-friendly wrapper around cfg.mistWaveTroughQ8) ----
+// pulseDepth% 0..100 maps to troughQ8 = round((1-pulse/100)*256). 0% pulse
+// means trough=256 (constant), 100% pulse means trough=0 (full swing).
+function pulseFromTrough(troughQ8){ return Math.round(100*(256-troughQ8)/256); }
+function troughFromPulse(pct){ return Math.max(0,Math.min(256,Math.round((1-pct/100)*256))); }
+function syncPulseFromCfg(){
+  if(lastCfg && lastCfg.mistWaveTroughQ8!=null){
+    const p=pulseFromTrough(lastCfg.mistWaveTroughQ8);
+    $("pulseSlider").value=p; $("pulseNum").value=p;
+  }
+}
+$("pulseSlider").addEventListener("input",e=>{ $("pulseNum").value=e.target.value; });
+$("pulseNum").addEventListener("input",e=>{
+  let v=parseInt(e.target.value,10); if(isNaN(v)) return;
+  v=Math.max(0,Math.min(100,v));
+  $("pulseSlider").value=v;
+});
+$("bPulseSave").addEventListener("click",async()=>{
+  if(!ensureAdmin()) return;
+  const pct=parseInt($("pulseNum").value,10)||0;
+  const q8=troughFromPulse(pct);
+  try{
+    await postJson("/api/config",{field:"mistWaveTroughQ8",value:q8});
+    lastCfg.mistWaveTroughQ8=q8;
+    toast("Pulse depth saved","ok");
+  }catch(e){ toast("Save failed: "+e.message,"err"); }
+});
 
 // --- Config tab -------------------------------------------------------------
 function renderConfigForm(values){
@@ -351,6 +549,7 @@ async function loadConfig(){
     const r=await fetch("/api/config",{cache:"no-store"});
     lastCfg=await r.json();
     renderConfigForm(lastCfg);
+    syncPulseFromCfg();
   }catch(e){ toast("Failed to load config: "+e,"err"); }
 }
 async function saveOne(name,value){
@@ -413,6 +612,7 @@ async function postCmd(path,confirmMsg){
 $("btnWalk").addEventListener("click",()=>postCmd("/api/cmd/walk"));
 $("btnLeds").addEventListener("click",()=>postCmd("/api/cmd/leds"));
 $("btnScope").addEventListener("click",()=>postCmd("/api/cmd/scope"));
+$("btnPlotMute").addEventListener("click",()=>postCmd("/api/cmd/plotmute"));
 $("btnReboot").addEventListener("click",()=>postCmd("/api/cmd/reboot","Reboot the device?"));
 $("btnForget").addEventListener("click",()=>postCmd("/api/cmd/forget","Forget WiFi credentials and reboot into setup mode?"));
 
@@ -471,6 +671,11 @@ function clearAdmin(){ sessionStorage.removeItem("adminPwd"); }
 
 // --- Boot -------------------------------------------------------------------
 loadInfo();
+// Pull cfg once so the Status-tab pulse slider has a starting value, without
+// rendering the full config form (that happens lazily when Config tab opens).
+fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>{
+  lastCfg=c; syncPulseFromCfg();
+}).catch(()=>{});
 startSse();
 </script>
 </body>
