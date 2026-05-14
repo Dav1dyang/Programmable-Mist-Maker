@@ -277,6 +277,12 @@ details.adv>div{padding:0 14px 14px}
   <p>Arduino IDE → <code>Tools → Port → mistmaker at &lt;ip&gt; (esp32)</code>.
   Password is the admin password set during WiFi setup. The device hard-stops
   the mist + boost rail before flash is erased.</p>
+  <h2>Recovery</h2>
+  <p style="color:var(--mut)">If the device is unreachable on the network (bad
+  config, lost password, etc.), <b>press the physical reset button 3 times in
+  a row</b> — within ~5 seconds of each boot. The firmware wipes all NVS and
+  reboots into the captive portal so you can start fresh. Same effect as
+  clicking "Reset to defaults" in Config (which requires the admin password).</p>
   <h2>Admin password</h2>
   <p style="color:var(--mut)">Set or change the password used for config writes,
   commands, and OTA.</p>
@@ -580,16 +586,12 @@ $("btnSave").addEventListener("click",async()=>{
 });
 $("btnRevert").addEventListener("click",loadConfig);
 $("btnDefaults").addEventListener("click",async()=>{
-  if(!confirm("Reset every tunable to firmware defaults? (Saved to NVS.)")) return;
+  if(!confirm("Factory reset wipes EVERYTHING — all config, WiFi credentials, AND your admin password. The device reboots into setup mode and you'll redo the captive portal. Continue?")) return;
   if(!ensureAdmin()) return;
-  // Re-fire the SAME values as configResetDefaults yields by sending each
-  // CFG_DEFAULT_* — simpler client-side: ask server to roll back.
-  // For now: pull current defaults via a fresh GET after an empty body POST
-  // — but the API doesn't expose that. Easiest path: prompt the user to
-  // power-cycle after we forget the saved blob via /api/cmd/reboot.
-  // (Lightweight implementation: just set every visible field to its `lo`
-  // bound. Improvement tracked in TODO.)
-  alert("Defaults reset: please use Debug → Reboot, then on first boot the firmware defaults will load. (Full reset endpoint TBD.)");
+  try{
+    await postJson("/api/cmd/factory-reset");
+    toast("Factory reset triggered — device rebooting","ok");
+  }catch(e){ toast("Failed: "+e.message,"err"); }
 });
 
 // --- Debug tab --------------------------------------------------------------
