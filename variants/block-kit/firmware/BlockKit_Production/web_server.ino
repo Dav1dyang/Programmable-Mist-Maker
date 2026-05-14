@@ -373,7 +373,19 @@ static void handleCmdForget() {
 // credentials, RF cal) and reboots. The device comes back as factory-new
 // and lands in the captive portal. Equivalent to the physical triple-tap
 // reset; this is the same recovery path exposed to the web UI.
+//
+// Security note: unlike the other endpoints, we DO NOT honor the first-boot
+// open-access grace period for this one. If no admin password is set yet,
+// the only network path is rejected — recovery must happen via the physical
+// triple-tap reset (which requires hands on the device). This prevents a
+// LAN attacker from DoS-wiping a freshly-provisioned device.
 static void handleCmdFactoryReset() {
+  if (cfg.adminPasswordHash[0] == '\0') {
+    g_http.send(403, "application/json",
+                "{\"error\":\"factory-reset requires admin password (set one in About, "
+                "or use triple-tap of the physical reset button)\"}");
+    return;
+  }
   if (!requireAuth()) return;
   g_http.send(200, "application/json", "{\"ok\":true,\"factoryReset\":250}");
   delay(250);
