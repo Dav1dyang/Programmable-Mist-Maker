@@ -277,9 +277,13 @@ bool configSetField(const char* name, long value) {
   SET_U16(wavePeriodMs,          "wavePeriodMs",        500, 60000);
   SET_U16(ledCrossfadeMs,        "ledCrossfadeMs",      0, 10000);
   SET_U8 (ledScaleStepPerTick,   "ledScaleStepPerTick", 1, 255);
-  // Mist
-  SET_U8 (mistDutyMax,           "mistDutyMax",         0, 255);
-  SET_U8 (mistDutyMin,           "mistDutyMin",         0, 255);
+  // Mist. Hardware-safe cap is 200 (~78% duty). Above that the piezo's peak
+  // current at 108.7 kHz exceeds the TPS61023 boost converter's ~2 A current
+  // limit, the boost goes into hiccup mode, the battery rail develops large
+  // ripple, and WiFi browns out — the device becomes unreachable on the LAN.
+  // Bench-validated: 200 holds stable, 220+ triggers the cascade.
+  SET_U8 (mistDutyMax,           "mistDutyMax",         0, 200);
+  SET_U8 (mistDutyMin,           "mistDutyMin",         0, 200);
   SET_U8 (levelDefault,          "levelDefault",        0, 255);
   SET_U16(mistWaveTroughQ8,      "mistWaveTroughQ8",    0, 256);
   // Smoother
