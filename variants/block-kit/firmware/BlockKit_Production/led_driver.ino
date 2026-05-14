@@ -218,7 +218,7 @@ static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 // the swell is centered at the piezo, returns 255 (mist crest); when far
 // away, returns 0 (mist trough). The main loop multiplies this through
 // g_currentLevel + the cfg.mistWaveTroughQ8 floor to produce the actual
-// mist drive level — see `computeMistOutLevel()` in BlockKit_Test.ino.
+// mist drive level — see `mistOutLevel()` in BlockKit_Production.ino.
 //
 // Because the piezo is physically above the top LED, the gaussian peaks at
 // the piezo *after* the LED at index 0 has already peaked — so the mist

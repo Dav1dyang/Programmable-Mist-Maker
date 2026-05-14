@@ -10,7 +10,7 @@
 //
 // Wave-mist sync: while RUNNING, mist drive is gated by the wave's gaussian
 // sampled 1 LED above the strip (the piezo's physical position). See
-// computeMistOutLevel() here + waveIntensityAtPiezo() in led_driver.ino.
+// mistOutLevel() here + waveIntensityAtPiezo() in led_driver.ino.
 //
 // SAFETY: container lift hard-stops mist (mistEnable(false)); OTA upload
 // hard-stops mist (see ota.ino); boost rail is forced LOW first in setup().
@@ -54,15 +54,15 @@ static AppState g_state           = AppState::IDLE;  // boot default = soft brea
 static uint8_t  g_userLevel       = CFG_DEFAULT_LEVEL_DEFAULT;   // user's set level (long-press adjusts); overwritten in setup() once cfg is loaded
 static uint8_t  g_targetLevel     = 0;               // state-driven target for the smoother
 static uint8_t  g_currentLevel    = 0;               // smoothed actual level applied to mist+LEDs
-static int8_t   g_dimDir          = -1;              // -1 = next long-press dims, +1 = brightens
+static int8_t   g_levelAdjustDir          = -1;              // -1 = next long-press dims, +1 = brightens
 static uint32_t g_lastSmoothMs    = 0;
 static uint32_t g_lastRampMs      = 0;
-static uint32_t g_lastStatMs      = 0;
+static uint32_t g_lastStatPrintMs      = 0;
 // One-shot flag: use the fast STEP_UP for the next 0→target ramp. Set when
 // entering IDLE from TRANSITION_FROM_RUNNING so the breath restore
 // after a container lift feels brisk (~640 ms) rather than luxurious (~1.3 s).
 // Cleared automatically once the smoother reaches target.
-static bool     g_fastFadeUp      = false;
+static bool     g_fastLevelUp      = false;
 
 // LED visibility — orthogonal to AppState. Short-press toggles g_ledsHidden;
 // a separate smoother fades g_ledScale 0↔255 over ~640 ms, multiplying the
@@ -101,13 +101,13 @@ static void enterIdle() {
   // With the slow step (~1.3 s 0→255), the breath emerges gently and the
   // 1.1 s WAVE→BREATH crossfade has time to dissolve naturally. Net
   // experience: dim down to dark, then a soft breath swells in instead
-  // of snapping on. (The g_fastFadeUp lane is still used by other code
+  // of snapping on. (The g_fastLevelUp lane is still used by other code
   // paths if anything else needs it.)
   if (g_state == AppState::IDLE) return;
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE;
   g_targetLevel = g_userLevel;
-  g_fastFadeUp = false;            // slow restore — see comment at top of enterIdle()
+  g_fastLevelUp = false;            // slow restore — see comment at top of enterIdle()
   // BREATH triggers the WAVE→BREATH crossfade in led_driver when coming
   // from RUNNING / TRANSITION. led_driver collapses no-op mode changes
   // for us if we were already BREATH (e.g. boot).
@@ -127,7 +127,7 @@ static void enterRunning() {
   // landed at target; that produced a visible "fade up then snap to chase"
   // moment — the specific complaint we're fixing here.
   ledSetMode(LedMode::WAVE);
-  g_fastFadeUp = false;
+  g_fastLevelUp = false;
   mistEnable(true);                        // re-arm the mist path
   Serial.println("[APP] -> RUNNING");
 }
@@ -140,7 +140,7 @@ static void enterTransitionFromRunning() {
   // ramps 255→0 (it scales the whole render uniformly). When the smoother
   // lands at 0 it auto-enters IDLE which kicks off the WAVE→BREATH
   // crossfade for the restore.
-  g_fastFadeUp = false;
+  g_fastLevelUp = false;
   mistEnable(false);                       // hard-stop + inhibit
   Serial.println("[APP] -> TRANSITION_FROM_RUNNING");
 }
@@ -156,7 +156,7 @@ static void enterTransitionFromRunning() {
 // piezo position (1 LED above the top), so the mist crest follows the
 // wave crest *across the top of the strip*, not at any visible LED.
 // ----------------------------------------------------------------------
-static uint8_t computeMistOutLevel(uint32_t now) {
+static uint8_t mistOutLevel(uint32_t now) {
   if (g_currentLevel == 0) return 0;
   const uint16_t trough = cfg.mistWaveTroughQ8;
   const uint16_t gauss  = uint16_t(waveIntensityAtPiezo(now));
@@ -199,7 +199,7 @@ static uint8_t rampToward(uint8_t current, uint8_t target, uint8_t stepUp, uint8
 }
 
 // Level smoother — runs every cfg.levelSmoothTickMs. Asymmetric: a one-shot
-// fast lane (g_fastFadeUp) lets the post-lift breath restore feel brisk.
+// fast lane (g_fastLevelUp) lets the post-lift breath restore feel brisk.
 // State-machine side effect: when the smoother lands on 0 in
 // TRANSITION_FROM_RUNNING, auto-enter IDLE to start the WAVE→BREATH crossfade.
 static void smoothLevel() {
@@ -207,11 +207,11 @@ static void smoothLevel() {
   if (now - g_lastSmoothMs < cfg.levelSmoothTickMs) return;
   g_lastSmoothMs = now;
 
-  const uint8_t stepUp = g_fastFadeUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
+  const uint8_t stepUp = g_fastLevelUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
   g_currentLevel = rampToward(g_currentLevel, g_targetLevel, stepUp, cfg.levelSmoothStepDn);
 
   if (g_currentLevel != g_targetLevel) return;
-  g_fastFadeUp = false;
+  g_fastLevelUp = false;
   if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
     enterIdle();
   }
@@ -234,12 +234,12 @@ static void smoothLedScale() {
 // anymore — turning the device "off" is a separate gesture (short-press
 // hides the LEDs, lifting the container hard-stops the mist).
 // ----------------------------------------------------------------------
-static void rampUserLevel() {
+static void rampLevel() {
   const uint32_t now = millis();
   if (now - g_lastRampMs < cfg.levelRampTickMs) return;
   g_lastRampMs = now;
 
-  int16_t v = int16_t(g_userLevel) + int16_t(g_dimDir) * int16_t(cfg.levelRampStep);
+  int16_t v = int16_t(g_userLevel) + int16_t(g_levelAdjustDir) * int16_t(cfg.levelRampStep);
   if (v < 0)   v = 0;
   if (v > 255) v = 255;
   g_userLevel = uint8_t(v);
@@ -262,7 +262,7 @@ static void printHelp() {
   Serial.println(F("  m             - mute / unmute the [PLOT] stream"));
 }
 
-static long parseTail(const char* cmd, uint8_t len) {
+static long parseNumberArg(const char* cmd, uint8_t len) {
   if (len < 2) return -1;
   long v = 0;
   for (uint8_t i = 1; i < len; ++i) {
@@ -291,7 +291,7 @@ static void handleCommand(const char* cmd, uint8_t len) {
       setLedsHidden(!g_ledsHidden);
       return;
     case 'v': {
-      const long v = parseTail(cmd, len);
+      const long v = parseNumberArg(cmd, len);
       if (v < 0 || v > 255) { Serial.println("[CMD] v: 0..255"); return; }
       g_userLevel = uint8_t(v);
       // IDLE and RUNNING both follow user level live; TRANSITION_FROM_RUNNING
@@ -376,18 +376,18 @@ static void onButtonEvent(ButtonEvent ev) {
       if (g_state != AppState::TRANSITION_FROM_RUNNING) {
         g_lastRampMs = millis();
         Serial.print("[BTN] long-press start, dir=");
-        Serial.println(int(g_dimDir));
+        Serial.println(int(g_levelAdjustDir));
       }
       return;
     case ButtonEvent::LongPressTick:
       if (g_state != AppState::TRANSITION_FROM_RUNNING) {
-        rampUserLevel();
+        rampLevel();
       }
       return;
     case ButtonEvent::LongPressEnd:
-      g_dimDir = -g_dimDir;
+      g_levelAdjustDir = -g_levelAdjustDir;
       Serial.print("[BTN] long-press end, next dir=");
-      Serial.println(int(g_dimDir));
+      Serial.println(int(g_levelAdjustDir));
       return;
     default: return;
   }
@@ -405,10 +405,10 @@ static const char* stateName(AppState s) {
   return "?";
 }
 
-static void statTick() {
+static void statusTick() {
   const uint32_t now = millis();
-  if (now - g_lastStatMs < 1000) return;
-  g_lastStatMs = now;
+  if (now - g_lastStatPrintMs < 1000) return;
+  g_lastStatPrintMs = now;
   Serial.print("[STAT] state=");       Serial.print(stateName(g_state));
   Serial.print(" leds=");              Serial.print(g_ledsHidden ? "hidden" : "visible");
   Serial.print(" reed=");              Serial.print(containerRawPresent() ? 1 : 0);
@@ -511,7 +511,7 @@ void loop() {
   // mist is inhibited everywhere else, so mistApply is a no-op there).
   // LEDs: scaled by g_ledScale (the short-press hide/show fade) so the
   // strip can be blanked without touching mist.
-  mistApply(computeMistOutLevel(now));
+  mistApply(mistOutLevel(now));
   const uint8_t ledBase =
       uint8_t((uint16_t(g_currentLevel) * uint16_t(g_ledScale)) >> 8);
   ledRender(ledBase);
@@ -527,7 +527,7 @@ void loop() {
   statusLedSet(!containerIsPresent());
 
   currentSenseLogPlot(uint8_t(g_state));
-  statTick();
+  statusTick();
 
   // Web UI may request a one-shot LED chase via /api/cmd/walk.
   if (g_kickLedWalk) {
