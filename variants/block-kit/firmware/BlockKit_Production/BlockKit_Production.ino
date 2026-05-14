@@ -36,7 +36,7 @@
 // lets you keep the diffuser working while the room goes dark.
 //
 // One `g_userLevel` variable (0..255) drives both mist PWM duty and LED
-// brightness scale. Mist duty = (level * MIST_DUTY_MAX) / 255 so level=255
+// brightness scale. Mist duty = (level * cfg.mistDutyMax) / 255 so level=255
 // means 50% duty (full mist). `g_targetLevel` is what each state wants the
 // level to be; `smoothLevel()` ramps `g_currentLevel` toward target with
 // step=2 per 10 ms tick (~1.3 s 0→255) so every fade feels continuous, not
@@ -67,6 +67,7 @@
 
 #include <Wire.h>
 #include "pins.h"
+#include "config.h"
 
 // ---- Forward declarations of helpers defined in sibling .ino files ----
 void mistInit(); bool mistIsRunning(); bool mistIsInhibited();
@@ -82,10 +83,25 @@ void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
 void currentSenseTogglePlotMute();
 float currentMeanMa(); float currentVarMa2();
+// New in production firmware:
+void logInit();
+size_t logSnapshot(char*, size_t);
+void wifiInit(); void wifiTick(); bool wifiIsSetupMode();
+void wifiForgetAndReboot();
+const char* wifiHostname();
+void otaInit(); void otaHandle();
+void webInit(); void webHandle();
+// State accessors used by the web server module:
+AppState  appCurrentState();
+uint8_t   appUserLevel();
+uint8_t   appCurrentLevel();
+bool      appLedsHidden();
+void      appToggleLedsHidden();
+void      appKickLedWalk();
 
 // ---- App-level state ----
 static AppState g_state           = AppState::IDLE;  // boot default = soft breath
-static uint8_t  g_userLevel       = LEVEL_DEFAULT;   // user's set level (long-press adjusts)
+static uint8_t  g_userLevel       = CFG_DEFAULT_LEVEL_DEFAULT;   // user's set level (long-press adjusts); overwritten in setup() once cfg is loaded
 static uint8_t  g_targetLevel     = 0;               // state-driven target for the smoother
 static uint8_t  g_currentLevel    = 0;               // smoothed actual level applied to mist+LEDs
 static int8_t   g_dimDir          = -1;              // -1 = next long-press dims, +1 = brightens
@@ -128,16 +144,20 @@ static bool mistMayBeActive(AppState s) {
 }
 
 static void enterIdle() {
-  // Special wiring: when called from TRANSITION_FROM_RUNNING, the breath
-  // restore uses a faster smoother step — capture that BEFORE the
-  // idempotency check so the flag flips even if we somehow call it twice
-  // in the same frame.
-  const bool fromTransition = (g_state == AppState::TRANSITION_FROM_RUNNING);
+  // Post-transition (container just lifted) — use the SLOW smoother step
+  // instead of the fast restore. The previous "brisk restore" (~640 ms)
+  // produced a visible brightness flash when the breath's exp(sin) phase
+  // happened to be near its inhale peak at the moment baseLevel ramped up.
+  // With the slow step (~1.3 s 0→255), the breath emerges gently and the
+  // 1.1 s WAVE→BREATH crossfade has time to dissolve naturally. Net
+  // experience: dim down to dark, then a soft breath swells in instead
+  // of snapping on. (The g_fastFadeUp lane is still used by other code
+  // paths if anything else needs it.)
   if (g_state == AppState::IDLE) return;
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE;
   g_targetLevel = g_userLevel;
-  g_fastFadeUp = fromTransition;
+  g_fastFadeUp = false;            // slow restore — see comment at top of enterIdle()
   // BREATH triggers the WAVE→BREATH crossfade in led_driver when coming
   // from RUNNING / TRANSITION. led_driver collapses no-op mode changes
   // for us if we were already BREATH (e.g. boot).
@@ -179,7 +199,7 @@ static void enterTransitionFromRunning() {
 // Wave-modulated mist level — only meaningful in RUNNING (mist is inhibited
 // in every other state, so the value is don't-care there).
 //
-// factor (Q8) = MIST_WAVE_TROUGH_Q8 + ((256 - MIST_WAVE_TROUGH_Q8) * gauss) >> 8
+// factor (Q8) = cfg.mistWaveTroughQ8 + ((256 - trough) * gauss) >> 8
 // mist_level  = (g_currentLevel * factor) >> 8
 //
 // gauss = waveIntensityAtPiezo(now) — the wave's gaussian sampled at the
@@ -188,9 +208,10 @@ static void enterTransitionFromRunning() {
 // ----------------------------------------------------------------------
 static uint8_t computeMistOutLevel(uint32_t now) {
   if (g_currentLevel == 0) return 0;
-  const uint16_t gauss = uint16_t(waveIntensityAtPiezo(now));
-  const uint16_t span  = 256u - MIST_WAVE_TROUGH_Q8;
-  const uint16_t factor = MIST_WAVE_TROUGH_Q8 + ((span * gauss) >> 8);
+  const uint16_t trough = cfg.mistWaveTroughQ8;
+  const uint16_t gauss  = uint16_t(waveIntensityAtPiezo(now));
+  const uint16_t span   = (trough > 256u) ? 0u : uint16_t(256u - trough);
+  const uint16_t factor = trough + ((span * gauss) >> 8);
   return uint8_t((uint16_t(g_currentLevel) * factor) >> 8);
 }
 
@@ -207,8 +228,11 @@ static void setLedsHidden(bool hidden) {
   Serial.println(hidden ? "hidden (mist continues at set level)" : "visible");
 }
 
+// External hook for the web UI's hide/show toggle.
+void appToggleLedsHidden() { setLedsHidden(!g_ledsHidden); }
+
 // ----------------------------------------------------------------------
-// Level smoother — runs every LEVEL_SMOOTH_TICK_MS, advances g_currentLevel
+// Level smoother — runs every cfg.levelSmoothTickMs, advances g_currentLevel
 // toward g_targetLevel. Tuned for ~1.3 s 0→255 ramp normally (step 2 per
 // 10 ms — tiny enough that the eye reads it as a continuous slide, not a
 // staircase); ~0.85 s 255→0; ~0.64 s when g_fastFadeUp is set (one-shot,
@@ -223,16 +247,16 @@ static void setLedsHidden(bool hidden) {
 // ----------------------------------------------------------------------
 static void smoothLevel() {
   const uint32_t now = millis();
-  if (now - g_lastSmoothMs < LEVEL_SMOOTH_TICK_MS) return;
+  if (now - g_lastSmoothMs < cfg.levelSmoothTickMs) return;
   g_lastSmoothMs = now;
 
   if (g_currentLevel < g_targetLevel) {
-    const uint8_t step = g_fastFadeUp ? LEVEL_SMOOTH_STEP_UP_FAST : LEVEL_SMOOTH_STEP_UP;
+    const uint8_t step = g_fastFadeUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
     const uint8_t room = g_targetLevel - g_currentLevel;
     g_currentLevel += (room < step) ? room : step;
   } else if (g_currentLevel > g_targetLevel) {
     const uint8_t room = g_currentLevel - g_targetLevel;
-    g_currentLevel -= (room < LEVEL_SMOOTH_STEP_DN) ? room : LEVEL_SMOOTH_STEP_DN;
+    g_currentLevel -= (room < cfg.levelSmoothStepDn) ? room : cfg.levelSmoothStepDn;
   }
 
   if (g_currentLevel != g_targetLevel) return;
@@ -252,15 +276,16 @@ static void smoothLevel() {
 // ----------------------------------------------------------------------
 static void smoothLedScale() {
   const uint32_t now = millis();
-  if (now - g_lastLedScaleMs < LEVEL_SMOOTH_TICK_MS) return;
+  if (now - g_lastLedScaleMs < cfg.levelSmoothTickMs) return;
   g_lastLedScaleMs = now;
 
+  const uint8_t step = cfg.ledScaleStepPerTick;
   if (g_ledScale < g_ledScaleTarget) {
     const uint8_t room = g_ledScaleTarget - g_ledScale;
-    g_ledScale += (room < LED_SCALE_STEP_PER_TICK) ? room : LED_SCALE_STEP_PER_TICK;
+    g_ledScale += (room < step) ? room : step;
   } else if (g_ledScale > g_ledScaleTarget) {
     const uint8_t room = g_ledScale - g_ledScaleTarget;
-    g_ledScale -= (room < LED_SCALE_STEP_PER_TICK) ? room : LED_SCALE_STEP_PER_TICK;
+    g_ledScale -= (room < step) ? room : step;
   }
 }
 
@@ -273,10 +298,10 @@ static void smoothLedScale() {
 // ----------------------------------------------------------------------
 static void rampUserLevel() {
   const uint32_t now = millis();
-  if (now - g_lastRampMs < LEVEL_RAMP_TICK_MS) return;
+  if (now - g_lastRampMs < cfg.levelRampTickMs) return;
   g_lastRampMs = now;
 
-  int16_t v = int16_t(g_userLevel) + int16_t(g_dimDir) * int16_t(LEVEL_RAMP_STEP);
+  int16_t v = int16_t(g_userLevel) + int16_t(g_dimDir) * int16_t(cfg.levelRampStep);
   if (v < 0)   v = 0;
   if (v > 255) v = 255;
   g_userLevel = uint8_t(v);
@@ -457,6 +482,18 @@ static void statTick() {
 }
 
 // ----------------------------------------------------------------------
+// Accessors so web_server.ino can read live state without touching the static
+// module-private variables directly.
+// ----------------------------------------------------------------------
+AppState appCurrentState()    { return g_state; }
+uint8_t  appUserLevel()       { return g_userLevel; }
+uint8_t  appCurrentLevel()    { return g_currentLevel; }
+bool     appLedsHidden()      { return g_ledsHidden; }
+
+static bool g_kickLedWalk = false;
+void appKickLedWalk()         { g_kickLedWalk = true; }
+
+// ----------------------------------------------------------------------
 // Arduino entry points
 // ----------------------------------------------------------------------
 void setup() {
@@ -464,7 +501,17 @@ void setup() {
   delay(1000);  // USB-CDC enumeration on XIAO ESP32-C6 takes hundreds of ms;
                 // shorter delays drop the first banner/help lines silently.
   Serial.println();
-  Serial.println("[APP] Block Kit V0.1 bring-up (Phase A)");
+  Serial.println("[APP] Block Kit V0.1 Production (Phase A UX + WiFi/OTA)");
+
+  // SAFETY FIRST: boost rail LOW before WiFi/OTA come up so nothing can
+  // accidentally drive the piezo during init. mistInit() will re-apply this
+  // shortly; doing it here too means the rail is LOW even on a partial init.
+  pinMode(PIN_BOOST_EN, OUTPUT);
+  digitalWrite(PIN_BOOST_EN, LOW);
+
+  // Mirror Serial into a RAM ring buffer so the web UI's Debug tab can show
+  // the recent log without USB attached.
+  logInit();
 
   // Print resolved GPIOs for sanity-check against the schematic. Catches
   // "wrong board selected" mistakes from the log alone.
@@ -474,6 +521,10 @@ void setup() {
   Serial.print("[APP] PIN_BUTTON=D6 (GPIO ");      Serial.print(PIN_BUTTON);      Serial.println(")");
   Serial.print("[APP] PIN_STATUS_LED=D7 (GPIO ");  Serial.print(PIN_STATUS_LED);  Serial.println(")");
   Serial.print("[APP] PIN_REED=D10 (GPIO ");       Serial.print(PIN_REED);        Serial.println(")");
+
+  // Load NVS-backed config (or firmware defaults on first boot).
+  configInit();
+  g_userLevel = cfg.levelDefault;
 
   Wire.begin();
 
@@ -485,14 +536,16 @@ void setup() {
   containerInit();
   buttonInit();
 
+  // WiFi onboarding via WiFiManager (blocks until STA or 3 min portal timeout).
+  // During the captive portal the device stays in IDLE — the LED ring shows
+  // the normal soft breath so the user can see it's alive while joining.
+  wifiInit();
+  otaInit();
+  webInit();
+
   // Boot lands in IDLE (default soft breath). If a container is already
   // docked at power-on, the first containerPoll() will edge-trigger
   // Inserted after the 500 ms safety dwell and we'll head into RUNNING.
-  //
-  // The static initializer above already sets g_state = IDLE so the
-  // idempotent enterIdle() is a no-op; we set target + LED mode here
-  // explicitly so neither depends on the leaf modules' init order, and we
-  // print the resolved state to make the boot log unambiguous.
   g_targetLevel = g_userLevel;
   ledSetMode(LedMode::BREATH);
   Serial.println("[APP] state=IDLE (boot, LEDs visible)");
@@ -500,6 +553,12 @@ void setup() {
 }
 
 void loop() {
+  // Networking handled FIRST every loop so an OTA recovery push can still
+  // land even if a downstream subsystem (LED driver, smoother) misbehaves.
+  otaHandle();
+  webHandle();
+  wifiTick();
+
   const uint32_t now = millis();
   pollSerial();
 
@@ -531,4 +590,10 @@ void loop() {
 
   currentSenseLogPlot(uint8_t(g_state));
   statTick();
+
+  // Web UI may request a one-shot LED chase via /api/cmd/walk.
+  if (g_kickLedWalk) {
+    g_kickLedWalk = false;
+    ledWalk();
+  }
 }

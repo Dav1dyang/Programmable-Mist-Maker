@@ -5,10 +5,10 @@
 //
 // Two modes, dispatched by ledSetMode() from the state machine:
 //   BREATH — every LED shares one brightness driven by an exp(sin) curve LUT.
-//            Peak is capped (LED_BREATH_PEAK) so idle stays *very dim and
+//            Peak is capped (cfg.ledBreathPeak) so idle stays *very dim and
 //            dramatic*; the exhale lingers at zero. Used while no container
 //            is docked.
-//   WAVE   — every LED is always lit at WAVE_BASE_LEVEL; on top of that, a
+//   WAVE   — every LED is always lit at cfg.waveBaseLevel; on top of that, a
 //            single broad gaussian swell (σ = WAVE_SIGMA_LEDS_Q8) travels
 //            bottom→top slowly, then re-enters from below with no wrap
 //            seam. This is the user-requested "soft swell wave" — NOT a
@@ -32,6 +32,7 @@
 
 #include <Adafruit_IS31FL3731.h>
 #include "pins.h"
+#include "config.h"
 
 // ---------------------------------------------------------------------------
 // Signed sine LUT — kept for any helper that wants a -127..+127 sine. Not
@@ -103,7 +104,7 @@ static bool      g_ledReady          = false;
 static uint32_t  g_ledLastRenderMs   = 0;
 
 // Render mode + crossfade. ledSetMode() captures the prior mode and starts a
-// crossfade timer. While elapsed < LED_CROSSFADE_MS we render both modes per
+// crossfade timer. While elapsed < cfg.ledCrossfadeMs we render both modes per
 // tick and linearly blend. After that we collapse g_prevMode = g_ledMode and
 // only the current mode renders — saving ~half the math in steady state.
 static LedMode   g_ledMode           = LedMode::BREATH;
@@ -197,11 +198,17 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
   // Reduce now mod period BEFORE the *64*256 multiply so the intermediate
   // result stays bounded in uint32_t (otherwise wraps every ~262 s and the
   // curve glitches at each wrap).
-  const uint32_t t       = uint32_t(now) % LED_BREATH_PERIOD_MS;
-  const uint32_t phaseQ8 = (t * 64u * 256u) / LED_BREATH_PERIOD_MS;
+  const uint16_t period = cfg.ledBreathPeriodMs ? cfg.ledBreathPeriodMs : 1;
+  const uint32_t t       = uint32_t(now) % period;
+  const uint32_t phaseQ8 = (t * 64u * 256u) / period;
   const uint8_t  curve   = breathQ(phaseQ8);  // 0..255 — full-range LUT
-  // Cap to LED_BREATH_PEAK so idle stays dim regardless of baseLevel.
-  const uint8_t  pwm     = uint8_t((uint16_t(curve) * LED_BREATH_PEAK) >> 8);
+  // Map the 0..255 curve onto [ledBreathLow .. ledBreathPeak]. The peak
+  // keeps idle dim regardless of baseLevel; the low value floors the
+  // exhale (default 0 = full black on exhale, original behavior).
+  const uint8_t lo   = cfg.ledBreathLow;
+  const uint8_t hi   = cfg.ledBreathPeak;
+  const uint8_t span = hi >= lo ? uint8_t(hi - lo) : 0;
+  const uint8_t  pwm = uint8_t(uint16_t(lo) + ((uint16_t(curve) * span) >> 8));
   for (uint8_t i = 0; i < LED_COUNT; ++i) out[i] = pwm;
 }
 
@@ -209,9 +216,9 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 // top→bottom (i=0 top, i=13 bottom), and the user asked for the swell to
 // rise from bottom to top — so y decreases as t advances (head moves
 // toward lower index = upward). The swell travels from y = LED_COUNT + 3σ
-// (off-screen below) to y = -3σ (off-screen above) over WAVE_PERIOD_MS,
+// (off-screen below) to y = -3σ (off-screen above) over cfg.wavePeriodMs,
 // then wraps. The jump is invisible: at ±3σ from any visible LED the
-// gaussian is < 1% peak, so the strip just sits at WAVE_BASE_LEVEL for a
+// gaussian is < 1% peak, so the strip just sits at cfg.waveBaseLevel for a
 // tick during the wrap before a new swell emerges smoothly from below.
 //
 // Shared between renderWaveRaw and waveIntensityAtPiezo so the visible LED
@@ -220,9 +227,10 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 static inline int32_t waveCenterYQ8(uint32_t now) {
   const int32_t span_q8 = int32_t(LED_COUNT) * 256
                         + int32_t(WAVE_TRAVEL_PAD_Q8) * 2;
-  const uint32_t t = uint32_t(now) % WAVE_PERIOD_MS;
+  const uint16_t period = cfg.wavePeriodMs ? cfg.wavePeriodMs : 1;
+  const uint32_t t = uint32_t(now) % period;
   return int32_t(LED_COUNT) * 256 + int32_t(WAVE_TRAVEL_PAD_Q8)
-       - int32_t((uint64_t(span_q8) * t) / WAVE_PERIOD_MS);
+       - int32_t((uint64_t(span_q8) * t) / period);
 }
 
 static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
@@ -234,8 +242,8 @@ static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
     const uint8_t g      = (d_q8 > 0xFFFF) ? 0 : gaussQ(uint16_t(d_q8));
     // base + (peak * gauss / 255), clamped just in case constants overflow
     // the 8-bit sum after retuning.
-    uint16_t v = uint16_t(WAVE_BASE_LEVEL)
-               + ((uint16_t(WAVE_SWELL_PEAK) * uint16_t(g)) >> 8);
+    uint16_t v = uint16_t(cfg.waveBaseLevel)
+               + ((uint16_t(cfg.waveSwellPeak) * uint16_t(g)) >> 8);
     if (v > 255) v = 255;
     out[i] = uint8_t(v);
   }
@@ -245,7 +253,7 @@ static void renderWaveRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 // 1 LED above index 0 (configurable via MIST_PIEZO_OFFSET_LEDS_Q8). When
 // the swell is centered at the piezo, returns 255 (mist crest); when far
 // away, returns 0 (mist trough). The main loop multiplies this through
-// g_currentLevel + the MIST_WAVE_TROUGH_Q8 floor to produce the actual
+// g_currentLevel + the cfg.mistWaveTroughQ8 floor to produce the actual
 // mist drive level — see `computeMistOutLevel()` in BlockKit_Test.ino.
 //
 // Because the piezo is physically above the top LED, the gaussian peaks at
@@ -283,13 +291,14 @@ void ledRender(uint8_t baseLevel) {
   uint8_t raw[LED_COUNT];
   if (g_prevMode != g_ledMode) {
     const uint32_t elapsed = now - g_crossfadeStartMs;
-    if (elapsed < LED_CROSSFADE_MS) {
+    const uint16_t xfade = cfg.ledCrossfadeMs;
+    if (xfade > 0 && elapsed < xfade) {
       uint8_t prev[LED_COUNT];
       renderRaw(g_prevMode, now, prev);
       // Blend factor in 0..256 — 0 = all prev, 256 = all curr. We use 256
       // (not 255) so curr*mix at full mix is curr*256 = exactly curr after
       // the >>8 — no rounding bias.
-      const uint16_t mix = uint16_t((elapsed * 256u) / LED_CROSSFADE_MS);
+      const uint16_t mix = uint16_t((elapsed * 256u) / xfade);
       const uint16_t inv = 256u - mix;
       for (uint8_t i = 0; i < LED_COUNT; ++i) {
         raw[i] = uint8_t((uint16_t(prev[i]) * inv + uint16_t(curr[i]) * mix) >> 8);
