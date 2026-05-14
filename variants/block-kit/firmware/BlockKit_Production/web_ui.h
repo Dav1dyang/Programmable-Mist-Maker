@@ -455,11 +455,15 @@ async function postJson(path, body){
 
 function bindLevelSlider(id, kind){
   const el=$(id);
-  el.addEventListener("input",()=>{ dragging=kind; });
+  // Mark dragging on pointerdown (covers mouse + touch); clear on pointerup
+  // BEFORE the async POST runs, so a slow fetch doesn't widen the suppression
+  // window. Keyboard arrow-key changes still fire "change" without ever
+  // setting dragging — they just send the value, which is fine.
+  el.addEventListener("pointerdown",()=>{ dragging=kind; });
+  el.addEventListener("pointerup",  ()=>{ dragging=null; });
   el.addEventListener("change",async()=>{
     try{ await postJson("/api/cmd/level",{value:levelFromPct(+el.value)}); }
     catch(e){ toast("Level: "+e.message,"err"); }
-    finally{ dragging=null; }
   });
 }
 bindLevelSlider("mistSlider","mist");
@@ -475,8 +479,13 @@ $("swWave").addEventListener("click",async()=>{
   try{ await postJson("/api/cmd/leds"); }
   catch(e){ toast("LEDs: "+e.message,"err"); }
 });
-$("bForceRun").addEventListener("click",()=>postJson("/api/cmd/state",{state:"running"})
-  .then(()=>toast("Forced RUNNING","ok")).catch(e=>toast(e.message,"err")));
+$("bForceRun").addEventListener("click",()=>{
+  // Forcing RUNNING re-arms the mist regardless of reed state. Confirm so a
+  // stray tap doesn't engage the piezo on an empty bottle.
+  if(!confirm("Force RUNNING? This re-arms the mist regardless of whether a container is docked. Use only for testing without a magnet.")) return;
+  postJson("/api/cmd/state",{state:"running"})
+    .then(()=>toast("Forced RUNNING","ok")).catch(e=>toast(e.message,"err"));
+});
 $("bForceIdle").addEventListener("click",()=>postJson("/api/cmd/state",{state:"idle"})
   .then(()=>toast("Forced IDLE","ok")).catch(e=>toast(e.message,"err")));
 $("bStLAuto").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"auto"}).catch(e=>toast(e.message,"err")));
