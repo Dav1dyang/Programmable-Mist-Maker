@@ -114,8 +114,8 @@ g_ledScale     (0..255)   ← smoothed visibility scaler; eases toward
                             over ~640 ms (step 4 / 10 ms). Multiplies the
                             baseLevel handed to ledRender; mist ignores it.
 
-mist duty   = (computeMistOutLevel(g_currentLevel, now) × MIST_DUTY_MAX) / 255
-              where computeMistOutLevel(level, now) applies the wave-sync
+mist duty   = (mistOutLevel(g_currentLevel, now) × MIST_DUTY_MAX) / 255
+              where mistOutLevel(level, now) applies the wave-sync
               factor:
                 factor (Q8) = MIST_WAVE_TROUGH_Q8
                             + ((256 - MIST_WAVE_TROUGH_Q8) × gauss_at_piezo) >> 8
@@ -157,7 +157,7 @@ Pieces sitting outside the smoother:
 
 | File | Role |
 |---|---|
-| `BlockKit_Test.ino` | state machine, smoother, LED-visibility smoother, wave-mist sync (`computeMistOutLevel`), serial parser, glue |
+| `BlockKit_Production.ino` | state machine, smoother, LED-visibility smoother, wave-mist sync (`mistOutLevel`), serial parser, glue |
 | `pins.h` | pin defs, tunables, enums — single source of truth |
 | `mist.ino` | `mistApply(level)`, `mistHardStop`, boost rail gating, inhibit |
 | `led_driver.ino` | `ledRender(baseLevel)` — renders BREATH (exp(sin) LUT, linear-interp, capped to LED_BREATH_PEAK) or WAVE (gaussian-LUT swell traveling bottom→top), 1.1 s pre-gamma crossfade between modes, gamma + per-LED I2C write cache. Also exposes `waveIntensityAtPiezo(now)` so the main loop can phase-lock mist drive to the wave swell. |
@@ -166,7 +166,7 @@ Pieces sitting outside the smoother:
 | `button.ino` | debounce, short/long-press events |
 | `current_sense.ino` | INA180 ADC @ 1 kHz, rolling mean+variance, scope mode |
 
-Arduino concatenates all `.ino` files into one translation unit, so file-scope `static` only scopes per file by convention — names use module prefixes (`g_btnLastTickMs`, `g_ledLastRenderMs`, …) to avoid collisions.
+Arduino concatenates all `.ino` files into one translation unit, so file-scope `static` only scopes per file by convention — names use module prefixes (`g_longPressTickMs`, `g_ledLastRenderMs`, …) to avoid collisions.
 
 ## Serial Commands (115200 baud)
 
@@ -277,7 +277,7 @@ subsystem (LED driver, smoother) misbehaves.
 
 ## Transition cinematic (post-PR-#6 polish)
 
-`enterIdle()` no longer sets `g_fastFadeUp = true` when called from
+`enterIdle()` no longer sets `g_fastLevelUp = true` when called from
 TRANSITION_FROM_RUNNING. The breath restore uses the slow smoother
 step (~1.3 s 0→255) instead of the original brisk (~640 ms) restore.
 Combined with the 1.1 s WAVE→BREATH crossfade, the post-removal
