@@ -75,7 +75,7 @@ void containerInit(); bool containerIsPresent(); bool containerRawPresent();
 ContainerEvent containerPoll();
 void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledRender(uint8_t); void ledAllOff(); void ledWalk();
-void ledSetMode(LedMode);
+void ledSetMode(LedMode); void ledSetModeSnap(LedMode);
 uint8_t waveIntensityAtPiezo(uint32_t now);
 void statusLedInit(); void statusLedSet(bool);
 void currentSenseInit(); void currentSenseTick();
@@ -129,19 +129,35 @@ static bool mistMayBeActive(AppState s) {
 
 static void enterIdle() {
   // Special wiring: when called from TRANSITION_FROM_RUNNING, the breath
-  // restore uses a faster smoother step — capture that BEFORE the
-  // idempotency check so the flag flips even if we somehow call it twice
-  // in the same frame.
+  // restore uses a faster smoother step AND must snap the mode swap (see
+  // below) — capture that BEFORE the idempotency check so the flag flips
+  // even if we somehow call it twice in the same frame.
   const bool fromTransition = (g_state == AppState::TRANSITION_FROM_RUNNING);
   if (g_state == AppState::IDLE) return;
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE;
   g_targetLevel = g_userLevel;
   g_fastFadeUp = fromTransition;
-  // BREATH triggers the WAVE→BREATH crossfade in led_driver when coming
-  // from RUNNING / TRANSITION. led_driver collapses no-op mode changes
-  // for us if we were already BREATH (e.g. boot).
-  ledSetMode(LedMode::BREATH);
+  if (fromTransition) {
+    // We just finished dimming the wave to baseLevel=0 — the strip is
+    // currently invisible. SNAP WAVE→BREATH instead of crossfading.
+    //
+    // A normal crossfade here flashes the strip: led_driver keeps
+    // rendering WAVE (raw 92..255) blended with BREATH (raw 0..LED_BREATH_PEAK)
+    // while the smoother ramps baseLevel back up to user_level. WAVE's
+    // much higher raw output dominates the blend mid-restore, producing
+    // a transient peak well above the idle steady-state before the
+    // crossfade tilts to BREATH (≈23 % PWM peak vs ≈4 % steady at the
+    // current LED_BREATH_PEAK=80 — the user-reported "quick flash").
+    // Snapping the mode while strip is dark makes the swap invisible,
+    // then BREATH fades in cleanly on its own with no wave bleed-through.
+    ledSetModeSnap(LedMode::BREATH);
+  } else {
+    // From any other state (e.g. boot): mode was already BREATH or this
+    // is the first frame after init — led_driver collapses redundant
+    // mode changes for us.
+    ledSetMode(LedMode::BREATH);
+  }
   if (leavingMist) mistEnable(false);
   Serial.println("[APP] -> IDLE");
 }
