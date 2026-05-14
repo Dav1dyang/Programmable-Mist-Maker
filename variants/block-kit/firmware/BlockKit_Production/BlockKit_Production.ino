@@ -409,17 +409,12 @@ static void pollSerial() {
 // happen here, never inside the leaf modules.
 // ----------------------------------------------------------------------
 static void onContainerEvent(ContainerEvent ev) {
-  // When the user has configured current-sense as the dock detector, the reed
-  // switch's electrical state is irrelevant. piezoAutoProbeForDisc() in the
-  // main loop drives dock detection instead. Returning here keeps the reed
-  // hardware tolerated-but-ignored — no rip-out required.
+  // In useAsReed mode the reed hardware is tolerated-but-ignored; auto-probe
+  // drives dock detection instead.
   if (cfg.senseUseAsReed) return;
 
   if (ev == ContainerEvent::Inserted) {
-    // Fresh dock — clear any lingering classifier state from the last run
-    // (countdown, fault). Sets g_piezoState=UNKNOWN; the first water probe
-    // in RUNNING will reclassify.
-    piezoResetForNewDock();
+    piezoResetForNewDock();   // clear stale classifier state for the fresh dock
     // Docking always wins — from any state, including TRANSITION_FROM_RUNNING
     // mid-fade. enterRunning() is idempotent if we're already RUNNING.
     enterRunning();
@@ -427,11 +422,7 @@ static void onContainerEvent(ContainerEvent ev) {
     // Only RUNNING triggers the cinematic. From IDLE states, removal is a
     // no-op (container wasn't there in the model). From TRANSITION_FROM_
     // RUNNING, we're already on our way out — let the smoother finish.
-    if (g_state == AppState::RUNNING) {
-      enterTransitionFromRunning();
-    }
-    // Reed-removal also clears any lingering piezo fault so a fresh dock
-    // probes against a clean slate.
+    if (g_state == AppState::RUNNING) enterTransitionFromRunning();
     piezoResetForNewDock();
   }
 }
@@ -623,15 +614,8 @@ void loop() {
   onContainerEvent(containerPoll());
   onButtonEvent(buttonPoll());
 
-  // Piezo-sense classifier — two paths, mutually exclusive on senseUseAsReed.
-  //
-  // (1) RUNNING: periodic water-level probe. The function rate-limits itself
-  // to one probe per cfg.senseWaterCheckIntervalS, briefly forcing PWM to
-  // senseWaterProbeDuty for ~100 ms. If it classifies WATER_DEPLETED or
-  // DISC_DISCONNECTED, fade out via enterTransitionFromRunning().
-  //
-  // (2) IDLE + senseUseAsReed: auto-probe at PWM=10 every
-  // cfg.senseAutoProbeIntervalS to detect a fresh dock without the reed.
+  // Piezo classifier dispatch — RUNNING runs the water probe + fault check;
+  // IDLE+useAsReed runs the auto-probe for dock detection. Mutually exclusive.
   if (g_state == AppState::RUNNING) {
     piezoSensePeriodicWaterCheck();
     const PiezoState ps = piezoState();

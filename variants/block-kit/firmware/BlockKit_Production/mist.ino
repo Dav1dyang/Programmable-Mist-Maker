@@ -86,11 +86,9 @@ void mistEnable(bool enabled) {
 bool mistIsRunning()  { return g_mistBoostOn; }
 bool mistIsInhibited() { return g_mistInhibited; }
 
-// Engage boost rail for a piezo-sense probe without committing to a PWM level
-// via levelToDuty(). piezo_sense.ino writes the probe PWM directly with
-// ledcWrite() and needs the rail live to draw measurable current. Idempotent.
-// Caller MUST follow up with mistBoostOffForProbe() to release if not entering
-// RUNNING.
+// Engage boost rail for a piezo-sense probe — piezo_sense writes the probe
+// PWM directly via ledcWrite() and needs the rail live to draw current.
+// Caller releases via mistBoostOffForProbe() if not entering RUNNING.
 void mistBoostOnForProbe() {
   g_mistInhibited = false;
   if (g_mistBoostOn) return;
@@ -99,6 +97,4 @@ void mistBoostOnForProbe() {
   g_mistBoostOn = true;
 }
 
-void mistBoostOffForProbe() {
-  mistHardStop();
-}
+void mistBoostOffForProbe() { mistHardStop(); }
