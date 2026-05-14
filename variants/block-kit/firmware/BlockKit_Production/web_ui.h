@@ -201,13 +201,12 @@ details.adv>div{padding:0 14px 14px}
     </div>
   </details>
 
-  <!-- Compact live row + sparkline + weather (weather hidden until configured) -->
+  <!-- Compact live row + sparkline -->
   <h2>Live</h2>
   <div class="cards">
     <div class="card" id="cState"><div class="lbl">State</div><div class="v" id="vState">-</div></div>
     <div class="card" id="cCur"><div class="lbl">Current</div><div class="v"><span id="vCurMa">-</span> mA</div></div>
     <div class="card" id="cUp"><div class="lbl">Uptime</div><div class="v" id="vUp">-</div></div>
-    <div class="card" id="cWx" hidden><div class="lbl">Outdoor</div><div class="v"><span id="vWxT">-</span>&deg;C / <span id="vWxH">-</span>%</div></div>
   </div>
   <div class="row" style="margin-top:8px">
     <span>Button raw <b id="vBtn">-</b></span>
@@ -398,11 +397,6 @@ function applyStatus(d){
   $("vHeap").textContent=d.freeHeap;
   $("vRssi").textContent=d.rssi+" dBm";
   $("setupBanner").hidden=!d.setupMode;
-  if(d.outdoorTempC!=null && d.outdoorHumidity!=null){
-    $("cWx").hidden=false;
-    $("vWxT").textContent=d.outdoorTempC.toFixed(1);
-    $("vWxH").textContent=d.outdoorHumidity.toFixed(0);
-  }
 
   // Mist tile (toggle = level>0; slider = level%)
   const mistOn = d.userLevel>0;
