@@ -24,6 +24,7 @@
 
 #include <WebServer.h>
 #include <WiFi.h>
+#include <mbedtls/base64.h>
 #include "pins.h"
 #include "config.h"
 #include "web_ui.h"
@@ -85,7 +86,6 @@ static bool requireAuth() {
   // arduino-esp32 ships a `mbedtls_base64_decode`; use it.
   uint8_t buf[96];
   size_t  outLen = 0;
-  extern int mbedtls_base64_decode(unsigned char*, size_t, size_t*, const unsigned char*, size_t);
   if (mbedtls_base64_decode(buf, sizeof(buf) - 1, &outLen,
                             (const unsigned char*)b64.c_str(), b64.length()) != 0) {
     g_http.send(401, "application/json", "{\"error\":\"bad base64\"}");
@@ -106,7 +106,11 @@ static bool requireAuth() {
   return true;
 }
 
-static const char* stateName(AppState s) {
+// Local copy: `stateName` lives as `static` in BlockKit_Production.ino and
+// Arduino concatenates all .ino files into one translation unit, so two
+// `static const char* stateName(...)` definitions in the same TU collide.
+// Renamed here to avoid the duplicate.
+static const char* webStateName(AppState s) {
   switch (s) {
     case AppState::IDLE:                    return "IDLE";
     case AppState::RUNNING:                 return "RUNNING";
@@ -132,7 +136,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"uptimeMs\":%lu,"
     "\"freeHeap\":%u,"
     "\"rssi\":%d}",
-    stateName(appCurrentState()),
+    webStateName(appCurrentState()),
     unsigned(appCurrentState()),
     digitalRead(PIN_BUTTON),
     digitalRead(PIN_REED) == LOW ? 1 : 0,

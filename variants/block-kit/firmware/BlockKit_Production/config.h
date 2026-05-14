@@ -60,6 +60,40 @@ struct Config {
 
 extern Config cfg;
 
+// Persisted byte-layout for the tunables blob in NVS. Lives in the header so
+// the Arduino IDE's auto-generated forward declarations in config.ino can see
+// it — putting the struct definition in the .ino broke compilation because
+// the IDE inserts prototypes BEFORE the struct, and the prototypes referenced
+// CfgBlob. Plain POD, no padding surprises because every field is byte/u16-
+// aligned and the secrets (C-strings) live in separate NVS keys.
+struct CfgBlob {
+  uint8_t  version;
+  uint8_t  ledBreathPeak;
+  uint16_t ledBreathPeriodMs;
+  uint8_t  ledBreathLow;
+  uint8_t  waveBaseLevel;
+  uint8_t  waveSwellPeak;
+  uint16_t wavePeriodMs;
+  uint16_t ledCrossfadeMs;
+  uint8_t  ledScaleStepPerTick;
+  uint8_t  mistDutyMax;
+  uint8_t  mistDutyMin;
+  uint8_t  levelDefault;
+  uint16_t mistWaveTroughQ8;
+  uint16_t levelSmoothTickMs;
+  uint8_t  levelSmoothStepUp;
+  uint8_t  levelSmoothStepDn;
+  uint8_t  levelSmoothStepUpFast;
+  uint16_t levelRampTickMs;
+  uint8_t  levelRampStep;
+  uint16_t buttonDebounceMs;
+  uint16_t buttonLongPressMs;
+  uint16_t buttonLongTickMs;
+  uint16_t reedInsertDwellMs;
+  uint16_t reedRemoveDwellMs;
+  uint8_t  statusLedDimDuty;
+} __attribute__((packed));
+
 // Load defaults, then overlay NVS if a valid blob exists.
 void configInit();
 // Persist the current `cfg` to NVS. Returns false on NVS error.

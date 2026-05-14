@@ -17,36 +17,9 @@ static constexpr const char* KEY_OTA_PW   = "ota_pw";
 
 Config cfg;
 
-// The exact byte layout we persist for KEY_BLOB. Plain POD, no padding
-// surprises across rebuilds because every field is byte/u16-aligned and we
-// don't include the C-string fields here.
-struct CfgBlob {
-  uint8_t  version;
-  uint8_t  ledBreathPeak;
-  uint16_t ledBreathPeriodMs;
-  uint8_t  ledBreathLow;
-  uint8_t  waveBaseLevel;
-  uint8_t  waveSwellPeak;
-  uint16_t wavePeriodMs;
-  uint16_t ledCrossfadeMs;
-  uint8_t  ledScaleStepPerTick;
-  uint8_t  mistDutyMax;
-  uint8_t  mistDutyMin;
-  uint8_t  levelDefault;
-  uint16_t mistWaveTroughQ8;
-  uint16_t levelSmoothTickMs;
-  uint8_t  levelSmoothStepUp;
-  uint8_t  levelSmoothStepDn;
-  uint8_t  levelSmoothStepUpFast;
-  uint16_t levelRampTickMs;
-  uint8_t  levelRampStep;
-  uint16_t buttonDebounceMs;
-  uint16_t buttonLongPressMs;
-  uint16_t buttonLongTickMs;
-  uint16_t reedInsertDwellMs;
-  uint16_t reedRemoveDwellMs;
-  uint8_t  statusLedDimDuty;
-} __attribute__((packed));
+// CfgBlob byte-layout lives in config.h — the Arduino IDE auto-generates
+// forward declarations for the helpers below ABOVE this file, so a struct
+// defined here wouldn't be visible to them.
 
 // --------------------------------------------------------------------------
 // SHA-256 helper (mbedtls is bundled with arduino-esp32 core).
@@ -60,10 +33,12 @@ void configSha256Hex(const char* in, size_t inLen, char outHex[CFG_SHA256_HEX_LE
   mbedtls_sha256_update(&ctx, (const unsigned char*)in, inLen);
   mbedtls_sha256_finish(&ctx, digest);
   mbedtls_sha256_free(&ctx);
-  static const char* HEX = "0123456789abcdef";
+  // Arduino's Print.h #defines HEX as 16 for Serial.print(value, HEX). Use a
+  // distinct name here to avoid the preprocessor mangling our string literal.
+  static const char* HEX_CHARS = "0123456789abcdef";
   for (int i = 0; i < 32; ++i) {
-    outHex[i * 2 + 0] = HEX[(digest[i] >> 4) & 0xF];
-    outHex[i * 2 + 1] = HEX[digest[i] & 0xF];
+    outHex[i * 2 + 0] = HEX_CHARS[(digest[i] >> 4) & 0xF];
+    outHex[i * 2 + 1] = HEX_CHARS[digest[i] & 0xF];
   }
   outHex[CFG_SHA256_HEX_LEN] = '\0';
 }
@@ -281,14 +256,17 @@ bool configSetOtaPassword(const char* pwd) {
 // Field updates (used by /api/config). Each entry validates its own range.
 // --------------------------------------------------------------------------
 
-#define SET_U8(field, name, lo, hi) \
-  if (strcmp(field, name) == 0) { \
+// `name` is the runtime field-name argument (the function's parameter).
+// `member` is the Config struct member identifier we want to assign to.
+// `key` is the string literal we compare `name` against.
+#define SET_U8(member, key, lo, hi) \
+  if (strcmp(name, (key)) == 0) { \
     if (value < (lo) || value > (hi)) return false; \
-    cfg.field = uint8_t(value); return true; }
-#define SET_U16(field, name, lo, hi) \
-  if (strcmp(field, name) == 0) { \
+    cfg.member = uint8_t(value); return true; }
+#define SET_U16(member, key, lo, hi) \
+  if (strcmp(name, (key)) == 0) { \
     if (value < (lo) || value > (hi)) return false; \
-    cfg.field = uint16_t(value); return true; }
+    cfg.member = uint16_t(value); return true; }
 
 bool configSetField(const char* name, long value) {
   if (!name) return false;
