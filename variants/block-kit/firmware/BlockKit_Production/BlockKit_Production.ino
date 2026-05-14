@@ -1,69 +1,19 @@
-// Block Kit V0.1 — bring-up firmware (Phase A).
+// Block Kit V0.1 — production firmware (Phase A).
 //
-// Phase A scope: mist control + reed switch (magnetic-on UX) + button override
-// + dual-mode LED effects (deep-dim breath / soft gaussian swell wave) + D7
-// dim indicator + scope-mode current logging. The water-level classifier
-// (Phase B) is intentionally NOT in this build.
+// Top-level state machine + main loop. Three container-driven states drive
+// the mist and LED ring; an orthogonal g_ledsHidden flag (short-press toggle)
+// fades the LED strip without touching mist.
 //
-// State machine — three container-driven states, plus an orthogonal
-// `g_ledsHidden` boolean that's toggled by the short-press button:
+//   IDLE                    — undocked: soft exp(sin) breath on all 14 LEDs.
+//   RUNNING                 — docked: gaussian swell wave + wave-modulated mist.
+//   TRANSITION_FROM_RUNNING — just lifted: mist hard-stops, wave dims to 0.
 //
-//   IDLE                    — DEFAULT idle: container undocked, LED strip
-//                             holding a *very dim, dramatic* exp(sin) breath
-//                             — the exhale lingers at full black for a beat.
-//                             Boot lands here.
-//   RUNNING                 — container docked, mist active and PULSING in
-//                             sync with the LED wave (see "Wave-mist sync"
-//                             below). LED strip runs the WAVE animation:
-//                             every LED always lit at a baseline, plus a
-//                             single slow gaussian swell traveling bottom→
-//                             top. The BREATH→WAVE swap on docking is a
-//                             1.1 s crossfade — no snap.
-//   TRANSITION_FROM_RUNNING — container just lifted: mist hard-stopped,
-//                             wave dims to 0 (mode stays WAVE during the dim
-//                             so it reads as continuous), then auto-enters
-//                             IDLE which kicks off the WAVE→BREATH
-//                             crossfade as the breath fades back in. Re-
-//                             docking during this transition cleanly re-
-//                             enters RUNNING.
+// Wave-mist sync: while RUNNING, mist drive is gated by the wave's gaussian
+// sampled 1 LED above the strip (the piezo's physical position). See
+// computeMistOutLevel() here + waveIntensityAtPiezo() in led_driver.ino.
 //
-// Orthogonal: `g_ledsHidden` (short-press toggle) hides the LED strip only.
-// The mist keeps running at the user-set level regardless of the flag, so
-// short-pressing is *not* a kill switch — it's a "blank the visuals,
-// please" gesture. A separate smoother fades the LED render to 0 over
-// ~640 ms (the wave/breath animation keeps running underneath). The
-// previous design coupled "mute LEDs" with "stop mist"; the new design
-// lets you keep the diffuser working while the room goes dark.
-//
-// One `g_userLevel` variable (0..255) drives both mist PWM duty and LED
-// brightness scale. Mist duty = (level * cfg.mistDutyMax) / 255 so level=255
-// means 50% duty (full mist). `g_targetLevel` is what each state wants the
-// level to be; `smoothLevel()` ramps `g_currentLevel` toward target with
-// step=2 per 10 ms tick (~1.3 s 0→255) so every fade feels continuous, not
-// stepped — addressing the prior "snappy" complaint.
-//
-// Wave-mist sync (RUNNING only):
-//   While in RUNNING, the mist drive level is no longer just g_currentLevel.
-//   It's modulated by the wave's gaussian swell evaluated 1 LED *above*
-//   the top of the strip — where the piezo disc physically sits. Result:
-//   the mist rises as the swell rises up the LEDs, peaks once the wave has
-//   visibly crossed the top (because that's when the wave reaches the
-//   piezo), then dims down together with the top LED as the wave continues
-//   off-screen above. At max user level the mist swings between ~36 % and
-//   100 % of full — visible pulse, but proportional to the wave's own
-//   trough-to-peak ratio so the two motions feel like one motion. See
-//   `computeMistOutLevel()` below and `waveIntensityAtPiezo()` in
-//   led_driver.ino.
-//
-// Container lift is a SAFETY event: mist hard-stops the moment the reed
-// opens (mistHardStop), while the LED smoother continues the visual fade.
-// Everything else uses the smooth path.
-//
-// The LED ring is a 14-LED vertical strip on an IS31FL3731 driver (Matrix
-// B, top=LED 1, bottom=LED 14). All strip animation + per-mode crossfade
-// logic lives in led_driver.ino; this file just flips the mode via
-// ledSetMode() at the right state transitions and the LED driver handles
-// the rest.
+// SAFETY: container lift hard-stops mist (mistEnable(false)); OTA upload
+// hard-stops mist (see ota.ino); boost rail is forced LOW first in setup().
 
 #include <Wire.h>
 #include "pins.h"

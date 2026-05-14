@@ -1,34 +1,8 @@
-// IS31FL3731 driver — premium-ambient rendering for the 14-LED vertical strip.
+// LED ring driver — IS31FL3731 Matrix B, 14-LED vertical strip.
 //
-// Matrix-B addressing: the 14 populated LEDs sit on CB1/CB2 and are written via
-// setLEDPWM(lednum, pwm, 0). drawPixel(x,y,…) writes Matrix A which is unpopulated.
-//
-// Two modes, dispatched by ledSetMode() from the state machine:
-//   BREATH — every LED shares one brightness driven by an exp(sin) curve LUT.
-//            Peak is capped (cfg.ledBreathPeak) so idle stays *very dim and
-//            dramatic*; the exhale lingers at zero. Used while no container
-//            is docked.
-//   WAVE   — every LED is always lit at cfg.waveBaseLevel; on top of that, a
-//            single broad gaussian swell (σ = WAVE_SIGMA_LEDS_Q8) travels
-//            bottom→top slowly, then re-enters from below with no wrap
-//            seam. This is the user-requested "soft swell wave" — NOT a
-//            chase. Used while a container is docked.
-//
-// Mode transitions (BREATH↔WAVE) run an automatic 1.1 s crossfade in pre-gamma
-// space — both modes render every tick during the fade and we linearly blend
-// the raw 0..255 outputs per LED before applying gamma. That's why docking an
-// idle container reads as one smooth dissolve rather than "breath fades up,
-// then snaps to chase".
-//
-// Per-tick pipeline (LED_TICK_MS = 20 ms → 50 fps):
-//   1. Render the current mode's per-LED raw 0..255 brightness.
-//   2. If a crossfade is in progress, also render the previous mode and
-//      linearly blend the two per-LED outputs.
-//   3. Scale the blended raw value by baseLevel (smoothed level from main
-//      loop) so user dimming and state fades affect both modes uniformly.
-//   4. Gamma-correct (2.2 LUT) so the curve feels visually linear.
-//   5. Write through a 14-byte per-LED cache so identical frames produce no
-//      I2C traffic (the dwell at the breath's zero-bottom is a steady state).
+// Two modes (BREATH for idle, WAVE for docked) with an automatic 1.1 s
+// crossfade between them. 50 fps render pipeline: render(s) → blend →
+// scale by baseLevel → gamma → per-LED write cache (skips no-op I2C bursts).
 
 #include <Adafruit_IS31FL3731.h>
 #include "pins.h"

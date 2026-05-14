@@ -1,7 +1,5 @@
 // Synchronous HTTP server backing the single-page web UI.
-//
-// Routes (full list in plan; auth model: GET endpoints open, POST endpoints
-// gated by HTTP Basic against the admin password hash):
+// GETs are open; POSTs require HTTP Basic against the admin password hash.
 //
 //   GET  /                  index page (PROGMEM HTML)
 //   GET  /api/status        live status JSON
@@ -15,12 +13,6 @@
 //   GET  /api/events        Server-Sent Events stream (status every 250 ms)
 //   GET  /api/log           recent log lines (plain text)
 //   GET  /api/info          device info (mac, ip, ver, mDNS) — JSON
-//
-// The synchronous WebServer fits our cooperative loop just fine: handleClient()
-// returns in microseconds when there's no client, and serves ~12 KB HTML in
-// a few ms even on slow WiFi. The SSE stream is special — we keep one client
-// fd open and write a `data: {...}\n\n` line every SSE_INTERVAL_MS from the
-// main loop's webHandle() tick.
 
 #include <WebServer.h>
 #include <WiFi.h>

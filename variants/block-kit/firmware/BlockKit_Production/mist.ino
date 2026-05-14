@@ -1,15 +1,10 @@
 // Mist drive — 108.7 kHz PWM on D0, gated by D3 boost enable.
 //
-// The main loop calls mistApply(level) every iteration with the smoothed
-// `g_currentLevel`. Level 0 means fully off; the function handles boost-rail
-// gating automatically:
-//   - level > 0 and boost OFF -> turn boost ON, settle 500 µs, then PWM
-//   - level > 0 -> update PWM duty proportionally (level 255 = cfg.mistDutyMax)
-//   - level == 0 and boost ON -> PWM 0, force D0 LOW, drop boost
-// On a real "container lifted" event the main loop calls mistHardStop() which
-// immediately cuts PWM and the boost rail regardless of smoother state — the
-// LED ring keeps fading via the smoother but mist stops the moment the reed
-// opens (safety: no surprise misting after the bottle is gone).
+// mistApply(level) gates the 5 V boost rail automatically:
+//   level 0 + boost ON  → PWM 0, D0 LOW, boost OFF.
+//   level > 0 + boost OFF → boost ON, 500 µs settle, then PWM.
+//   level > 0 + boost ON  → update duty (level 255 = cfg.mistDutyMax).
+// mistHardStop() bypasses the smoother for safety (container lift, OTA).
 
 #include "pins.h"
 #include "config.h"
