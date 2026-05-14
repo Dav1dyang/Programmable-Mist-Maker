@@ -9,10 +9,10 @@
 #include "pins.h"
 
 static uint16_t g_window[CURRENT_WINDOW_N] = {0};
-static uint16_t g_widx       = 0;
-static uint32_t g_sum        = 0;    // sum of raw ADC counts in window
-static uint64_t g_sumSq      = 0;    // sum of squares
-static uint16_t g_filled     = 0;    // count of samples seen, capped at N
+static uint16_t g_windowWriteIdx       = 0;
+static uint32_t g_windowSum       = 0;    // sum of raw ADC counts in window
+static uint64_t g_windowSumSquares      = 0;    // sum of squares
+static uint16_t g_windowFilled     = 0;    // count of samples seen, capped at N
 
 static uint32_t g_lastSampleUs   = 0;
 static bool     g_scopeMode      = false;
@@ -31,9 +31,9 @@ void currentSenseInit() {
   // Pre-seed the window with one read so the first mean is sensible.
   const uint16_t s = analogRead(PIN_CURRENT_ADC);
   for (uint16_t i = 0; i < CURRENT_WINDOW_N; ++i) g_window[i] = s;
-  g_sum = uint32_t(s) * CURRENT_WINDOW_N;
-  g_sumSq = uint64_t(s) * uint64_t(s) * CURRENT_WINDOW_N;
-  g_filled = CURRENT_WINDOW_N;
+  g_windowSum= uint32_t(s) * CURRENT_WINDOW_N;
+  g_windowSumSquares = uint64_t(s) * uint64_t(s) * CURRENT_WINDOW_N;
+  g_windowFilled = CURRENT_WINDOW_N;
 }
 
 // Convert a raw ADC count (0..4095, 0..3.3 V) to milliamps via INA180A3.
@@ -44,18 +44,18 @@ static inline float adcToMa(uint16_t raw) {
 
 // Rolling mean of the window, in mA.
 float currentMeanMa() {
-  if (g_filled == 0) return 0.0f;
-  const float meanRaw = float(g_sum) / float(g_filled);
+  if (g_windowFilled == 0) return 0.0f;
+  const float meanRaw = float(g_windowSum) / float(g_windowFilled);
   return adcToMa(uint16_t(meanRaw));
 }
 
 // Rolling variance of the window, in mA^2. Useful only as a relative number
 // while we figure out the threshold — print, don't rely on yet.
 float currentVarMa2() {
-  if (g_filled < 2) return 0.0f;
-  const float n = float(g_filled);
-  const float mean = float(g_sum) / n;
-  const float meanSq = float(g_sumSq) / n;
+  if (g_windowFilled < 2) return 0.0f;
+  const float n = float(g_windowFilled);
+  const float mean = float(g_windowSum) / n;
+  const float meanSq = float(g_windowSumSquares) / n;
   const float varRaw = meanSq - mean * mean;
   // Convert variance from raw ADC counts^2 to mA^2.
   const float countToMa = (3.3f * 1000.0f) / (4095.0f * CURRENT_SENSE_FACTOR);
@@ -71,12 +71,12 @@ void currentSenseTick() {
   const uint16_t s = analogRead(PIN_CURRENT_ADC);
 
   // Subtract the slot we're about to overwrite, add the new sample.
-  const uint16_t old = g_window[g_widx];
-  g_sum   = g_sum   - old + s;
-  g_sumSq = g_sumSq - uint64_t(old) * uint64_t(old) + uint64_t(s) * uint64_t(s);
-  g_window[g_widx] = s;
-  g_widx = (g_widx + 1) % CURRENT_WINDOW_N;
-  if (g_filled < CURRENT_WINDOW_N) ++g_filled;
+  const uint16_t old = g_window[g_windowWriteIdx];
+  g_windowSum  = g_windowSum  - old + s;
+  g_windowSumSquares = g_windowSumSquares - uint64_t(old) * uint64_t(old) + uint64_t(s) * uint64_t(s);
+  g_window[g_windowWriteIdx] = s;
+  g_windowWriteIdx = (g_windowWriteIdx + 1) % CURRENT_WINDOW_N;
+  if (g_windowFilled < CURRENT_WINDOW_N) ++g_windowFilled;
 
   // Scope mode: stream raw + mean + var at SCOPE_PRINT_HZ for Serial Plotter.
   if (g_scopeMode && (now - g_lastScopeUs >= (1000000u / SCOPE_PRINT_HZ))) {

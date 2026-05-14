@@ -1,20 +1,7 @@
-// WiFi onboarding via tzapu's WiFiManager — the de-facto ESP32 captive-portal
-// helper. On boot: if NVS has saved credentials, autoConnect() joins them as
-// STA. If not (first boot) or the saved AP is gone, autoConnect() spins up
-// "BlockKit-Setup-XXXX" as a WPA2 AP (password `blockkit-setup`), runs a
-// captive portal, lets the user pick a network + supply credentials + set
-// the admin password, then reboots into STA.
-//
-// Why WiFiManager and not a hand-rolled DNS + WebServer captive portal:
-// the captive-portal path has a long list of OS-specific quirks (iOS probe
-// at /hotspot-detect.html, Android at /generate_204, Windows at NCSI) and
-// WiFiManager already handles them all. We pay one dep for "less stuff to
-// debug" — exactly the trade David asked for.
-//
-// During the portal phase: the LED ring renders a slow alternating-half
-// pattern via the existing BREATH/WAVE mode so the user has a clear visual
-// "I'm waiting for input". After STA is up the normal state machine takes
-// over.
+// WiFi onboarding via tzapu's WiFiManager.
+// On boot: autoConnect() joins saved STA; on first boot or gone-AP it spins
+// up "BlockKit-Setup-XXXX" (WPA2, pwd `blockkit-setup`) as a captive portal.
+// WiFiManager handles iOS/Android/Windows captive-portal probes for us.
 
 #include <WiFi.h>
 #include <WiFiManager.h>

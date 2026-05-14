@@ -1,15 +1,10 @@
 // Mist drive — 108.7 kHz PWM on D0, gated by D3 boost enable.
 //
-// The main loop calls mistApply(level) every iteration with the smoothed
-// `g_currentLevel`. Level 0 means fully off; the function handles boost-rail
-// gating automatically:
-//   - level > 0 and boost OFF -> turn boost ON, settle 500 µs, then PWM
-//   - level > 0 -> update PWM duty proportionally (level 255 = cfg.mistDutyMax)
-//   - level == 0 and boost ON -> PWM 0, force D0 LOW, drop boost
-// On a real "container lifted" event the main loop calls mistHardStop() which
-// immediately cuts PWM and the boost rail regardless of smoother state — the
-// LED ring keeps fading via the smoother but mist stops the moment the reed
-// opens (safety: no surprise misting after the bottle is gone).
+// mistApply(level) gates the 5 V boost rail automatically:
+//   level 0 + boost ON  → PWM 0, D0 LOW, boost OFF.
+//   level > 0 + boost OFF → boost ON, 500 µs settle, then PWM.
+//   level > 0 + boost ON  → update duty (level 255 = cfg.mistDutyMax).
+// mistHardStop() bypasses the smoother for safety (container lift, OTA).
 
 #include "pins.h"
 #include "config.h"
@@ -39,8 +34,7 @@ static inline uint8_t levelToDuty(uint8_t level) {
   return uint8_t(scaled < cfg.mistDutyMin ? cfg.mistDutyMin : scaled);
 }
 
-// Update mist output based on the current smoothed level. Called once per
-// main-loop iteration. No-op while inhibited (post hard-stop until re-enabled).
+// No-op while inhibited (post hard-stop until mistEnable(true)).
 void mistApply(uint8_t level) {
   if (g_mistInhibited) return;
 
@@ -64,11 +58,7 @@ void mistApply(uint8_t level) {
   ledcWrite(PIN_MIST_PWM, levelToDuty(level));
 }
 
-// Immediately stop mist regardless of the smoother — used on container lift
-// for safety. Also locks mistApply() as a no-op until mistEnable(true) is
-// called, so the LED ring's gradual fade-down doesn't re-engage the boost.
-// Idempotent: if mist was already off we just (re)assert the inhibit flag
-// without churning the pins.
+// Cut PWM + boost rail and lock mistApply() until mistEnable(true). Idempotent.
 void mistHardStop() {
   if (g_mistBoostOn) {
     ledcWrite(PIN_MIST_PWM, 0);
@@ -80,8 +70,6 @@ void mistHardStop() {
   g_mistInhibited = true;
 }
 
-// Re-arm the mist path so the next mistApply(level>0) can engage the boost.
-// Called by the main loop when entering RUNNING.
 void mistEnable(bool enabled) {
   if (enabled) g_mistInhibited = false;
   else         mistHardStop();

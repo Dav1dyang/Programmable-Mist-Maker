@@ -142,6 +142,15 @@ static void unpackBlob(const CfgBlob& b) {
 // NVS init / save
 // --------------------------------------------------------------------------
 
+// Helper: write one NVS string and close. Returns false on NVS open failure.
+static bool nvsPutString(const char* key, const char* value) {
+  Preferences p;
+  if (!p.begin(NS, /*readOnly=*/false)) return false;
+  p.putString(key, value);
+  p.end();
+  return true;
+}
+
 void configInit() {
   configResetDefaults();
 
@@ -212,11 +221,7 @@ bool configSetHostname(const char* name) {
   if (name[0] == '-' || name[n - 1] == '-') return false;
   strncpy(cfg.hostname, name, CFG_HOSTNAME_MAX);
   cfg.hostname[CFG_HOSTNAME_MAX] = '\0';
-  Preferences p;
-  if (!p.begin(NS, false)) return false;
-  p.putString(KEY_HOST, cfg.hostname);
-  p.end();
-  return true;
+  return nvsPutString(KEY_HOST, cfg.hostname);
 }
 
 bool configSetAdminPassword(const char* pwd) {
@@ -224,11 +229,7 @@ bool configSetAdminPassword(const char* pwd) {
   const size_t n = strlen(pwd);
   if (n < 4 || n > 64) return false;       // min 4 chars (low bar; let's not get in the way)
   configSha256Hex(pwd, n, cfg.adminPasswordHash);
-  Preferences p;
-  if (!p.begin(NS, false)) return false;
-  p.putString(KEY_ADMIN_PW, cfg.adminPasswordHash);
-  p.end();
-  return true;
+  return nvsPutString(KEY_ADMIN_PW, cfg.adminPasswordHash);
 }
 
 bool configCheckAdminPassword(const char* pwd) {
@@ -245,11 +246,7 @@ bool configSetOtaPassword(const char* pwd) {
   if (n > CFG_OTA_PWD_MAX) return false;
   strncpy(cfg.otaPassword, pwd, CFG_OTA_PWD_MAX);
   cfg.otaPassword[CFG_OTA_PWD_MAX] = '\0';
-  Preferences p;
-  if (!p.begin(NS, false)) return false;
-  p.putString(KEY_OTA_PW, cfg.otaPassword);
-  p.end();
-  return true;
+  return nvsPutString(KEY_OTA_PW, cfg.otaPassword);
 }
 
 // --------------------------------------------------------------------------
