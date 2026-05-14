@@ -14,7 +14,15 @@ static bool g_mistBoostOn   = false;
 // is a no-op. This is the lock that prevents the LED-fade smoother (which
 // still feeds non-zero `level` during the fade) from re-engaging the boost
 // rail seconds after the container has been lifted.
-static bool g_mistInhibited = false;
+//
+// Boot-safe default = true. At power-on the state machine sits in IDLE but
+// the level smoother ramps g_currentLevel from 0 toward g_targetLevel
+// (= cfg.levelDefault, usually 255). Without this default-inhibit, the
+// boost rail would engage and the piezo would run for ~1.3 s before the
+// reed debounce fires Inserted — i.e. mist before the container is checked.
+// enterRunning() calls mistEnable(true) to unlock once a real Inserted
+// event arrives from containerPoll().
+static bool g_mistInhibited = true;
 
 void mistInit() {
   pinMode(PIN_BOOST_EN, OUTPUT);

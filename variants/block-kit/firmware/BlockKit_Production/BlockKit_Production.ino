@@ -16,6 +16,8 @@
 // hard-stops mist (see ota.ino); boost rail is forced LOW first in setup().
 
 #include <Wire.h>
+#include <Preferences.h>
+#include <nvs_flash.h>
 #include "pins.h"
 #include "config.h"
 
@@ -76,6 +78,59 @@ static uint32_t g_lastLedScaleMs   = 0;
 static void enterIdle();
 static void enterRunning();
 static void enterTransitionFromRunning();
+
+// ----------------------------------------------------------------------
+// Factory reset via triple-tap of the physical reset button.
+//
+// On every boot we increment a counter in a dedicated NVS namespace. After
+// the device runs cleanly for TAP_CLEAR_MS we wipe the counter. If the
+// user resets TAP_THRESHOLD times in a row (each boot reaching less than
+// TAP_CLEAR_MS), nvs_flash_erase() wipes the entire NVS partition —
+// blockkit config blob, admin/OTA passwords, WiFi credentials, RF cal —
+// and the device reboots into the captive portal as if it were factory new.
+// ----------------------------------------------------------------------
+static constexpr const char* TAP_NS         = "factory";
+static constexpr const char* TAP_KEY        = "rc";
+static constexpr uint8_t     TAP_THRESHOLD  = 3;
+static constexpr uint32_t    TAP_CLEAR_MS   = 5000;
+static uint32_t g_tapClearAtMs = 0;
+
+static void appNvsWipeAndReboot() {
+  Serial.println("[FACTORY] wiping NVS partition + rebooting");
+  Serial.flush();
+  // Safety: cut the boost rail before the (blocking) NVS erase.
+  pinMode(PIN_BOOST_EN, OUTPUT);
+  digitalWrite(PIN_BOOST_EN, LOW);
+  nvs_flash_erase();   // wipes blockkit cfg, WiFi creds, WiFiManager state, RF cal
+  nvs_flash_init();    // re-init the empty partition so next boot is clean
+  delay(100);
+  ESP.restart();
+}
+
+static void checkAndArmTapCounter() {
+  Preferences p;
+  if (!p.begin(TAP_NS, /*readOnly=*/false)) return;
+  const uint8_t count = uint8_t(p.getUChar(TAP_KEY, 0) + 1);
+  p.putUChar(TAP_KEY, count);
+  p.end();
+  Serial.printf("[FACTORY] reset-tap counter: %u/%u\n", count, TAP_THRESHOLD);
+  if (count >= TAP_THRESHOLD) appNvsWipeAndReboot();  // never returns
+  g_tapClearAtMs = millis() + TAP_CLEAR_MS;
+}
+
+static void clearTapCounterIfStable() {
+  if (g_tapClearAtMs == 0) return;
+  if (millis() < g_tapClearAtMs) return;
+  Preferences p;
+  if (p.begin(TAP_NS, /*readOnly=*/false)) {
+    p.putUChar(TAP_KEY, 0);
+    p.end();
+  }
+  g_tapClearAtMs = 0;
+}
+
+// Public entry — called by /api/cmd/factory-reset.
+void appFactoryReset() { appNvsWipeAndReboot(); }
 
 // ----------------------------------------------------------------------
 // State transitions
@@ -468,6 +523,11 @@ void setup() {
   pinMode(PIN_BOOST_EN, OUTPUT);
   digitalWrite(PIN_BOOST_EN, LOW);
 
+  // Reset-tap detection runs BEFORE configInit() so a bad saved config
+  // (e.g. mistDutyMax pushed past 200 → boost hiccup → WiFi unreachable)
+  // can be wiped by triple-tapping the reset button.
+  checkAndArmTapCounter();
+
   // Mirror Serial into a RAM ring buffer so the web UI's Debug tab can show
   // the recent log without USB attached.
   logInit();
@@ -525,6 +585,7 @@ void loop() {
   currentSenseTick();
   smoothLevel();
   smoothLedScale();
+  clearTapCounterIfStable();   // 5 s after boot, reset the triple-tap counter
 
   // Apply smoothed level to outputs.
   //
