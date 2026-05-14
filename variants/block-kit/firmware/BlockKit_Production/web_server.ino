@@ -14,6 +14,7 @@
 //   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
 //   POST /api/cmd/reboot    ESP.restart() after 250 ms
 //   POST /api/cmd/forget    wipe WiFi creds + reboot into captive portal
+//   POST /api/cmd/factory-reset  wipe ALL NVS (config + WiFi + admin pwd) + reboot
 //   POST /api/cmd/password  set new admin password; body = {"new":"..."}
 //   GET  /api/events        Server-Sent Events stream (status every 250 ms)
 //   GET  /api/log           recent log lines (plain text)
@@ -37,6 +38,7 @@ extern void     appSetLevel(uint8_t);
 extern void     appForceState(AppState);
 extern void     appSetStatusLedOverride(int8_t);
 extern int8_t   appStatusLedOverride();
+extern void     appFactoryReset();
 extern bool     containerIsPresent();
 extern bool     containerRawPresent();
 extern bool     mistIsRunning();
@@ -367,6 +369,17 @@ static void handleCmdForget() {
   wifiForgetAndReboot();
 }
 
+// Wipes the entire NVS partition (config blob, admin/OTA passwords, WiFi
+// credentials, RF cal) and reboots. The device comes back as factory-new
+// and lands in the captive portal. Equivalent to the physical triple-tap
+// reset; this is the same recovery path exposed to the web UI.
+static void handleCmdFactoryReset() {
+  if (!requireAuth()) return;
+  g_http.send(200, "application/json", "{\"ok\":true,\"factoryReset\":250}");
+  delay(250);
+  appFactoryReset();   // never returns
+}
+
 static void handleCmdPassword() {
   if (!requireAuth()) return;
   const String body = g_http.arg("plain");
@@ -456,6 +469,7 @@ void webInit() {
   g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
   g_http.on("/api/cmd/reboot",      HTTP_POST, handleCmdReboot);
   g_http.on("/api/cmd/forget",      HTTP_POST, handleCmdForget);
+  g_http.on("/api/cmd/factory-reset", HTTP_POST, handleCmdFactoryReset);
   g_http.on("/api/cmd/password",    HTTP_POST, handleCmdPassword);
   g_http.onNotFound([]() {
     g_http.send(404, "application/json", "{\"error\":\"not found\"}");
