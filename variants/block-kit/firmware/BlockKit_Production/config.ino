@@ -73,7 +73,7 @@ void configResetDefaults() {
   cfg.reedRemoveDwellMs       = CFG_DEFAULT_REED_REMOVE_DWELL_MS;
   cfg.statusLedDimDuty        = CFG_DEFAULT_STATUS_LED_DIM_DUTY;
   // Identity + secrets default to empty — first-boot setup populates them.
-  strncpy(cfg.hostname, "blockkit", CFG_HOSTNAME_MAX);
+  strncpy(cfg.hostname, "mistmaker", CFG_HOSTNAME_MAX);
   cfg.hostname[CFG_HOSTNAME_MAX] = '\0';
   cfg.adminPasswordHash[0] = '\0';
   cfg.otaPassword[0] = '\0';
@@ -175,7 +175,7 @@ void configInit() {
   }
 
   // 2. Identity + secrets.
-  const String host  = p.getString(KEY_HOST, "blockkit");
+  const String host  = p.getString(KEY_HOST, "mistmaker");
   const String admin = p.getString(KEY_ADMIN_PW, "");
   const String ota   = p.getString(KEY_OTA_PW,   "");
   strncpy(cfg.hostname,           host.c_str(),  CFG_HOSTNAME_MAX);

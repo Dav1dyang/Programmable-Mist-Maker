@@ -121,7 +121,7 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
 <section id="status">
   <div id="setupBanner" class="setup-banner" hidden>
     Device is in WiFi setup mode. Join the
-    <code>BlockKit-Setup-XXXX</code> AP (password <code>blockkit-setup</code>).
+    <code>MistMaker-Setup-XXXX</code> AP (password <code>mistmaker-setup</code>).
   </div>
   <div class="cards">
     <div class="card" id="cState"><div class="lbl">State</div><div class="v" id="vState">-</div></div>
@@ -180,7 +180,7 @@ pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
   <h2>Device</h2>
   <div class="kv" id="aboutKv"><b>Hostname</b><span id="aHost">-</span></div>
   <h2>OTA</h2>
-  <p>Arduino IDE → <code>Tools → Port → blockkit at &lt;ip&gt; (esp32)</code>.
+  <p>Arduino IDE → <code>Tools → Port → mistmaker at &lt;ip&gt; (esp32)</code>.
   Password is the admin password set during WiFi setup. The device hard-stops
   the mist + boost rail before flash is erased.</p>
   <h2>Admin password</h2>
