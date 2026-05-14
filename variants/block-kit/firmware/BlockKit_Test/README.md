@@ -2,41 +2,51 @@
 
 Block Kit V0.1 firmware that exercises every subsystem (mist PWM, reed switch, button, IS31FL3731 LED ring, D7 indicator LED) **plus** a "scope mode" that streams the INA180 current data so the water-detection algorithm can be designed from real bench data later (Phase B).
 
-Phase A intentionally has **no water-level classifier**. The reed switch is the primary on-gesture (magnetic-on); the button toggles state and ramps level. One unified "level" variable drives both mist PWM duty and LED ring brightness — they always move together.
+Phase A intentionally has **no water-level classifier**. The reed switch is the primary on-gesture (magnetic-on); the button short-press hides the LED strip without touching the mist; long-press ramps the level. One unified `g_userLevel` variable drives both mist PWM duty and LED ring brightness so they move together; while `RUNNING`, the mist drive is additionally modulated by the wave swell at the piezo position so the mist visibly pulses with the LED animation.
 
 ## States
 
-Four top-level states, all transitions handled in `BlockKit_Test.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is in tiny per-tick steps (+2 / 10 ms ≈ 1.3 s 0→255), so every brightness change reads as a continuous slide. The LED driver runs an automatic 1.1 s **crossfade** whenever the mode swaps between BREATH and WAVE — there is never a snap.
+Three container-driven states, all transitions handled in `BlockKit_Test.ino::loop()`. A level smoother fades `g_currentLevel` toward whatever the new state's target is in tiny per-tick steps (+2 / 10 ms ≈ 1.3 s 0→255), so every brightness change reads as a continuous slide. The LED driver runs an automatic 1.1 s **crossfade** whenever the mode swaps between BREATH and WAVE — there is never a snap.
 
-| State                     | When                              | Mist         | LED ring                                          | D7 white    |
-|---------------------------|-----------------------------------|--------------|---------------------------------------------------|-------------|
-| `IDLE_LEDS_OFF`           | No container, muted               | off          | dark                                              | dim (~10 %) |
-| `IDLE_LEDS_ON` *(default)*| No container, awake (boot lands here) | off       | deep-dim exp(sin) BREATH; exhale dwells at black  | dim (~10 %) |
-| `RUNNING`                 | Container docked                  | PWM at level | WAVE — every LED always lit, single slow gaussian swell rising bottom→top over 7.5 s | off |
-| `TRANSITION_FROM_RUNNING` | Container just lifted             | hard-stopped | Wave dims to 0 (~0.85 s), then auto-enters `IDLE_LEDS_ON` for the BREATH crossfade | dim (~10 %) |
+LED visibility is **orthogonal** to state: a separate boolean (`g_ledsHidden`, toggled by the short-press button) hides or shows the strip with its own ~640 ms fade. Mist is unaffected by this flag — short-pressing only mutes the visuals; it never stops the diffuser.
+
+| State                     | When                              | Mist                                              | LED ring                                          | D7 white    |
+|---------------------------|-----------------------------------|---------------------------------------------------|---------------------------------------------------|-------------|
+| `IDLE` *(default boot)*   | No container                      | off                                               | deep-dim exp(sin) BREATH; exhale dwells at black  | dim (~10 %) |
+| `RUNNING`                 | Container docked                  | **Wave-modulated** at piezo position — mist pulses with the LED swell; trough ≈ 36 % of set level | WAVE — every LED always lit, single slow gaussian swell rising bottom→top over 7.5 s | off |
+| `TRANSITION_FROM_RUNNING` | Container just lifted             | hard-stopped                                      | Wave dims to 0 (~0.85 s), then auto-enters `IDLE` for the BREATH crossfade | dim (~10 %) |
 
 ### Transition map
 
 | From state                  | Event                              | To state                  | Notes                                                                                  |
 |-----------------------------|------------------------------------|---------------------------|----------------------------------------------------------------------------------------|
-| `IDLE_LEDS_OFF`             | Container inserted (reed 500 ms)   | `RUNNING`                 | Mist + LEDs ramp up; BREATH→WAVE crossfade (1.1 s)                                     |
-| `IDLE_LEDS_OFF`             | Button short-press (no container)  | `IDLE_LEDS_ON`            | Deep-dim BREATH fades in (~1.3 s)                                                      |
-| `IDLE_LEDS_ON`              | Container inserted (reed 500 ms)   | `RUNNING`                 | BREATH→WAVE crossfade — dim breath dissolves into slow swell                           |
-| `IDLE_LEDS_ON`              | Button short-press                 | `IDLE_LEDS_OFF`           | Breath fades out                                                                       |
+| `IDLE`                      | Container inserted (reed 500 ms)   | `RUNNING`                 | BREATH→WAVE crossfade — dim breath dissolves into slow swell                           |
 | `RUNNING`                   | Container removed (reed 100 ms)    | `TRANSITION_FROM_RUNNING` | **Mist hard-stops** (safety); wave dims naturally as baseLevel ramps 255→0             |
-| `RUNNING`                   | Button short-press                 | `IDLE_LEDS_OFF`           | Mist hard-stops; LEDs fade out (skips cinematic)                                       |
-| `TRANSITION_FROM_RUNNING`   | Smoother lands at 0                | `IDLE_LEDS_ON`            | Mode→BREATH (WAVE→BREATH crossfade); fast restore (~0.64 s)                            |
+| `TRANSITION_FROM_RUNNING`   | Smoother lands at 0                | `IDLE`                    | Mode→BREATH (WAVE→BREATH crossfade); fast restore (~0.64 s)                            |
 | `TRANSITION_FROM_RUNNING`   | Container re-inserted              | `RUNNING`                 | Crossfade engine takes over mid-fade — clean recovery, no special case                 |
-| `RUNNING` or `IDLE_LEDS_ON` | Button long-press                  | (no transition)           | Ramps `g_userLevel`; mist + LED brightness follow live (wave traverse rate unchanged)  |
-| any state where level dims past 8 | (auto)                       | `IDLE_LEDS_OFF`           | Avoids "stuck dim" — user can re-engage                                                |
+| any state                   | Button **short-press**             | (no state change)         | Toggles `g_ledsHidden`. LED render fades to/from 0 over ~640 ms. Mist unchanged.       |
+| `IDLE` or `RUNNING`         | Button **long-press**              | (no state change)         | Ramps `g_userLevel`; mist + LED brightness follow live (wave traverse rate unchanged)  |
 
-### One level to rule them all
+### One level + an orthogonal hide flag
 
 `g_userLevel` (0..255) is the user-set "intensity". It controls:
-- **Mist PWM duty** = `(level × MIST_DUTY_MAX) / 255` — level 255 ⇒ 50 % duty (full mist).
+- **Mist PWM duty** = `(level × MIST_DUTY_MAX) / 255` — level 255 ⇒ 50 % duty (full mist). In `RUNNING` the duty is *further* modulated by the wave swell at the piezo position — see "Wave-mist sync" below.
 - **LED ring brightness** — scales the entire render (BREATH cap and WAVE base+swell) uniformly.
 
-`g_targetLevel` is what the current state wants the level to be (0 for IDLE_LEDS_OFF / TRANSITION_FROM_RUNNING, `g_userLevel` otherwise). `g_currentLevel` is smoothed toward target each tick in deliberately tiny steps so the fade reads as continuous, not stepped. Both mist and LEDs move together.
+`g_targetLevel` is what the current state wants the level to be (0 in `TRANSITION_FROM_RUNNING`, `g_userLevel` otherwise). `g_currentLevel` is smoothed toward target each tick in deliberately tiny steps so the fade reads as continuous, not stepped.
+
+`g_ledsHidden` is the short-press toggle. When set, a per-LED scaler (`g_ledScale`, 0..255 smoothed over ~640 ms) multiplies the `g_currentLevel` handed to `ledRender()`. Mist does NOT see this scaler — so blanking the visuals never stops the diffuser. Long-press to adjust the level still works whether the LEDs are hidden or not (you'll feel the change through the mist).
+
+### Wave-mist sync (RUNNING only)
+
+While `RUNNING`, mist drive is no longer a flat `g_currentLevel`. Each tick the firmware samples the wave's gaussian swell at the **piezo position** (1 LED above index 0, where the piezo disc physically sits) and uses it to modulate the mist:
+
+```
+factor (Q8) = MIST_WAVE_TROUGH_Q8 + ((256 - MIST_WAVE_TROUGH_Q8) × gauss_at_piezo) / 256
+mist_level  = (g_currentLevel × factor) / 256
+```
+
+Because the piezo sits *above* the top LED, the gaussian peaks at the piezo **after** the wave has visibly crossed the top of the strip — so the mist "continues to grow" as the swell passes the top, then dims back down together with the top LED as the wave exits off-screen above. At max user level (255) the mist swings between ~36 % and 100 % of full duty — visible pulse, but proportional to the wave's own 92/255 trough-to-peak ratio so the LEDs you see and the mist you feel feel like one motion.
 
 ### Lift-off is a SAFETY event
 
@@ -74,12 +84,12 @@ On boot you'll see the banner, the resolved pin map, and the command list. Every
 [APP] Block Kit V0.1 bring-up (Phase A)
 [APP] PIN_MIST_PWM=D0 (GPIO 0)
 [APP] PIN_REED=D10 (GPIO 18)
-[APP] -> IDLE_LEDS_OFF
+[APP] state=IDLE (boot, LEDs visible)
 [REED] inserted
 [APP] -> RUNNING
 [MIST] on (boost up)
-[STAT] state=RUNNING reed=1 btn=0 user=255 cur=140 mist=1 mean_mA=178.2
-[PLOT] 178.4,12.3,2
+[STAT] state=RUNNING leds=visible reed=1 btn=0 user=255 cur=140 mist=1 mean_mA=178.2
+[PLOT] 178.4,12.3,1
 [BTN] long-press start, dir=-1
 ```
 
@@ -92,7 +102,7 @@ On boot you'll see the banner, the resolved pin map, and the command list. Every
 | Cmd | Effect |
 |---|---|
 | `help` | Print this list |
-| `1` / `0` / `t` | Mist on / off / toggle (requires container for on) |
+| `l` / `L` / `t` | Hide LEDs / show LEDs / toggle visibility (mist is unaffected) |
 | `vN` | Set `g_userLevel` directly, 0..255 (e.g. `v180`) |
 | `w` | Run `ledWalk` (lights LEDs 0..13 in sequence — blocks ~14 s) |
 | `k` | (Phase B placeholder) recalibrate current-sense baseline |
@@ -107,10 +117,10 @@ The LED driver addresses Matrix B of the IS31FL3731 directly via `setLEDPWM(ledn
 1. **Boot output:** confirm `[APP] PIN_*=… (GPIO N)` lines match the XIAO ESP32-C6 expected values (D0=0, D10=18, D2=2, D3=21, D6=16, D7=17). If they don't, the board selected in Tools→Board is wrong.
 2. **Walk:** send `w` → 14 LEDs light in sequence with `[LED] walk i=N lednum=M`. If the physical order differs from top→bottom, reorder `LED_MAP[]` in `pins.h`.
 3. **D7 indicator:** at boot with no container, D7 should be dim and steady.
-4. **LEDs ambient toggle:** press the button briefly with no container → ring fades in to user level. Press again → fades out.
-5. **Mist trigger:** dock a container with a magnet → after the 500 ms dwell, `[APP] -> RUNNING`, D3 goes HIGH (red LED2 lights), mist + ring ramp up together over ~800 ms.
+4. **Short-press hides LEDs only:** press the button briefly (with or without a container) → `[APP] LEDs hidden …`, the strip fades to dark over ~640 ms. Mist (if a container is docked) keeps running at the same level. Press again → `[APP] LEDs visible`, strip fades back in.
+5. **Mist trigger + wave-sync:** dock a container with a magnet → after the 500 ms dwell, `[APP] -> RUNNING`, D3 goes HIGH (red LED2 lights), mist + ring ramp up together. Once steady, the **mist visibly pulses with the swell** — the mist peaks just after the LED swell crosses the top of the strip, then dims back down together with it.
 6. **Mist shut-off:** lift the container → `[REED] removed` after 100 ms, **mist hard-stops** (no fade), ring continues fading down, D7 returns to dim.
-7. **Long-press ramp:** while RUNNING (or `IDLE_LEDS_ON`), hold the button → ring + mist dim together. Release. Hold again → ramp the other direction.
+7. **Long-press ramp:** while RUNNING (or `IDLE`), hold the button → ring + mist dim together (mist still pulses with the wave on top of the dim). Release. Hold again → ramp the other direction. The ramp clamps at 0/255; long-pressing to 0 leaves you at level 0, not in a special "off" state — the LEDs stay visible (just dark), and the next long-press in the other direction brightens back up.
 8. **Current data (Phase B prep):** with a docked container at full level, send `s` and open Serial Plotter. Capture `mean_mA, var_mA2` traces for full water, low water, dry disc, no disc.
 
 ## Files

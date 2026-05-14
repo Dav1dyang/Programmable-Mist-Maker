@@ -63,6 +63,28 @@ constexpr uint32_t MIST_FREQ_HZ    = 108700;  // ceramic disc resonance
 constexpr uint8_t  MIST_PWM_RES    = 8;       // 8-bit -> 0..255 duty
 constexpr uint8_t  MIST_DUTY_MAX   = 127;     // 50% duty = full mist (peak level)
 
+// ---------- Mist ↔ wave sync (RUNNING only) ----------
+//
+// While in RUNNING, mist output is no longer a flat g_currentLevel — it's
+// modulated by the wave's gaussian swell evaluated at the piezo position
+// so the mist physically pulses in sync with the LED wave. The piezo disc
+// sits ABOVE the top LED of the strip (index 0), so the modulation is
+// evaluated 1 LED above index 0: the mist peaks AFTER the wave has visibly
+// crossed the top of the strip, then dims down together with the top LED
+// as the wave continues off-screen above. From the user's POV the mist
+// "rises with the swell, peaks at the piezo, and dims with it" — the wave
+// you see and the mist you feel are one motion.
+//
+//   factor (Q8) = MIST_WAVE_TROUGH_Q8
+//               + ((256 - MIST_WAVE_TROUGH_Q8) * gauss_at_piezo) >> 8
+//   mist_level  = (g_currentLevel * factor) >> 8
+//
+// At max user level (255), mist swings between TROUGH and FULL. The trough
+// is set so the dip is *visible but proportional* — matching WAVE_BASE_LEVEL's
+// 92/255 ≈ 36 % trough-to-peak ratio so the mist's swing mirrors the LEDs'.
+constexpr uint16_t MIST_PIEZO_OFFSET_LEDS_Q8 = 256;  // piezo sits 1 LED above index 0
+constexpr uint16_t MIST_WAVE_TROUGH_Q8       = 92;   // 92/256 ≈ 36 % — matches WAVE base/peak ratio
+
 // ---------- Status LED (D7) ----------
 // Simple on-or-off "waiting" indicator. Dim PWM when no container is docked,
 // fully off when the container is on the dock.
@@ -186,10 +208,23 @@ constexpr uint8_t  LEVEL_SMOOTH_STEP_UP_FAST = 4;   // ~0.64 s 0→255
 
 // Default level on first boot — bold first impression (full mist).
 constexpr uint8_t  LEVEL_DEFAULT         = 255;
-// Long-press ramp step + auto-off threshold.
+// Long-press ramp step. The minimum reachable level is 0 — there is no
+// auto-snap-to-off; the user holds until satisfied. Direction flips on
+// release. (The short-press toggle hides only the LEDs and leaves mist
+// running at the user's set level — see g_ledsHidden below.)
 constexpr uint16_t LEVEL_RAMP_TICK_MS    = 13;      // ~77 steps/sec while held
 constexpr uint8_t  LEVEL_RAMP_STEP       = 1;
-constexpr uint8_t  LEVEL_OFF_THRESHOLD   = 8;       // dimming below this snaps to OFF state
+
+// ---------- LED visibility scaler (short-press hide/show) ----------
+//
+// Short-press toggles `g_ledsHidden` — an orthogonal boolean that hides the
+// LED strip *without* touching mist. A separate smoother fades a per-LED
+// scale factor (0..255) between 0 (hidden) and 255 (visible) over ~640 ms
+// so the LEDs ease out instead of snapping. Mist continues to follow
+// g_currentLevel (wave-modulated in RUNNING) independent of this flag — so
+// you can "blank the visuals while keeping the diffuser running at the
+// level you set with long-press".
+constexpr uint8_t  LED_SCALE_STEP_PER_TICK = 4;     // ~640 ms 0→255 hide/show fade
 
 // ---------- Serial ----------
 constexpr uint32_t SERIAL_BAUD          = 115200;
@@ -197,41 +232,48 @@ constexpr uint32_t PLOT_PRINT_HZ        = 20;       // [PLOT] CSV rate when scop
 
 // ---------- Top-level state machine ----------
 //
-//   Boot lands in IDLE_LEDS_ON (soft breath waiting). Short-press toggles to
-//   IDLE_LEDS_OFF and back. Container docking always wins: any state +
+//   The state machine tracks ONLY container/event flow — three states.
+//   Whether the LED strip is rendered or hidden is an *orthogonal* boolean
+//   (`g_ledsHidden`) toggled by the short-press button, so muting the
+//   visuals never interrupts misting. Boot lands in IDLE with LEDs visible
+//   (soft breath waiting). Container docking always wins: any state +
 //   container → RUNNING. Container removal in RUNNING goes through a brief
-//   TRANSITION_FROM_RUNNING (wave decelerates + dims to 0, then breath fades
-//   back in) before landing back in IDLE_LEDS_ON.
+//   TRANSITION_FROM_RUNNING (wave decelerates + dims to 0, then breath
+//   fades back in) before landing back in IDLE.
 //
 //   The BREATH ↔ WAVE swap on dock/undock is always a CROSSFADE (mixed in
 //   pre-gamma space by led_driver), not a snap. So when you dock a container
 //   in idle, the dim breath dissolves smoothly into a slow swelling wave —
 //   reads as one continuous gesture, not "fade up then start chasing".
 //
-//   ┌─────────────────┐   short-press   ┌─────────────────────────────┐
-//   │ IDLE_LEDS_OFF   │ ──────────────► │ IDLE_LEDS_ON  (default boot) │
-//   │ ring dark, D7 ▒│ ◄────────────── │ deep dim breath, D7 ▒        │
-//   └────────┬────────┘   short-press   └─────────────┬───────────────┘
-//            │                                        │
-//       container ↓                              container ↓
-//            ▼                                        ▼ (BREATH→WAVE crossfade)
-//                ┌────────────────────────────────────────────┐
-//                │  RUNNING                                   │
-//                │  soft gaussian swell traveling bottom→top │
-//                │  mist on, D7 off, every LED always lit    │
-//                └─────────────────┬──────────────────────────┘
+//                ┌──────────────────────────────────────────────┐
+//                │  IDLE  (default boot, LEDs visible)          │
+//                │  deep dim BREATH, mist off, D7 ▒             │
+//                └─────────────────┬────────────────────────────┘
+//                                  │ container docked
+//                                  ▼ (BREATH→WAVE crossfade, 1.1 s)
+//                ┌──────────────────────────────────────────────┐
+//                │  RUNNING                                     │
+//                │  WAVE: soft gaussian swell, bottom → top     │
+//                │  mist on, wave-modulated at piezo position   │
+//                │  D7 off, every LED always lit                │
+//                └─────────────────┬────────────────────────────┘
 //                                  │ container removed
 //                                  ▼ (mist hard-stops; wave dims to 0)
-//                ┌────────────────────────────────────────────┐
-//                │  TRANSITION_FROM_RUNNING                   │
-//                │  level fades 255→0 with wave still         │
-//                │  rendering, then auto-enters IDLE_LEDS_ON  │
-//                │  → WAVE→BREATH crossfade as level rises    │
-//                └────────────────────────────────────────────┘
-//   Short-press from RUNNING / TRANSITION → IDLE_LEDS_OFF (skips cinematic).
+//                ┌──────────────────────────────────────────────┐
+//                │  TRANSITION_FROM_RUNNING                     │
+//                │  level fades 255→0 with wave still rendering │
+//                │  then auto-enters IDLE → WAVE→BREATH         │
+//                │  crossfade as level rises                    │
+//                └──────────────────────────────────────────────┘
+//
+//   Orthogonal: short-press toggles `g_ledsHidden` in ANY state. Hidden →
+//   the LED render is fade-scaled to 0 over ~640 ms (mode + animation
+//   continue underneath); mist is untouched and keeps running at the user-
+//   set level if a container is docked. Long-press dims `g_userLevel` —
+//   mist and LED brightness scale together exactly as before.
 enum class AppState : uint8_t {
-  IDLE_LEDS_OFF,
-  IDLE_LEDS_ON,
+  IDLE,
   RUNNING,
   TRANSITION_FROM_RUNNING,
 };
