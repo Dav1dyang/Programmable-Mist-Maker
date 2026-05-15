@@ -13,6 +13,7 @@
 //                                  return recorded mA + recommended low threshold
 //   POST /api/cmd/level     set runtime userLevel; body = {"value":0..255}
 //   POST /api/cmd/led-level set LED-only level (unlinked mode); body same
+//   POST /api/cmd/wave-period live wave-period set; body = {"ms":N} or {"bpm":N}
 //   POST /api/cmd/link      set mist+LED link mode; body = {"linked":true|false}
 //   POST /api/cmd/state     force state idle/running; body = {"state":"..."}
 //   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
@@ -389,6 +390,32 @@ static void handleCmdLedLevel() {
   g_http.send(200, "application/json", "{\"ok\":true}");
 }
 
+// Live wave-period set — for a streaming companion (e.g. an mmWave breathing
+// sensor) that wants the LED wave + mist modulation to breathe at the user's
+// actual respiratory rate. Body: {"ms": 500..60000} OR {"bpm": 1..120}.
+// RAM only — does NOT call configSave(), so high-frequency updates won't
+// chew through NVS flash cycles. Reboot reverts to the persisted default
+// (set once via POST /api/config if you want a different baseline).
+static void handleCmdWavePeriod() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  long ms = 0, bpm = 0;
+  if (!jsonGetLong(body, "ms", ms)) {
+    if (!jsonGetLong(body, "bpm", bpm) || bpm <= 0) {
+      g_http.send(400, "application/json", "{\"error\":\"need 'ms' or 'bpm'\"}");
+      return;
+    }
+    ms = 60000L / bpm;
+  }
+  if (ms < 500 || ms > 60000) {
+    g_http.send(400, "application/json", "{\"error\":\"ms must be 500..60000\"}");
+    return;
+  }
+  cfg.wavePeriodMs = uint16_t(ms);
+  Serial.printf("[WEB] wavePeriodMs=%ld (live)\n", ms);
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
 // Toggle the mist+LED link mode. Body: {"linked": true|false}. Persists to
 // NVS so the user's preference survives reboot.
 static void handleCmdLink() {
@@ -565,6 +592,7 @@ void webInit() {
   g_http.on("/api/cmd/calibrate-water", HTTP_POST, handleCmdCalibrateWater);
   g_http.on("/api/cmd/level",       HTTP_POST, handleCmdLevel);
   g_http.on("/api/cmd/led-level",   HTTP_POST, handleCmdLedLevel);
+  g_http.on("/api/cmd/wave-period", HTTP_POST, handleCmdWavePeriod);
   g_http.on("/api/cmd/link",        HTTP_POST, handleCmdLink);
   g_http.on("/api/cmd/state",       HTTP_POST, handleCmdState);
   g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
