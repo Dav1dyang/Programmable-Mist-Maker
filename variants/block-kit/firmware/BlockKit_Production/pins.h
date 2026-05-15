@@ -165,6 +165,7 @@ constexpr uint16_t CFG_DEFAULT_SENSE_WATER_CHECK_INTERVAL_S  = 60;    // seconds
 constexpr uint16_t CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S        = 300;   // 5 min countdown before WATER_DEPLETED
 constexpr bool     CFG_DEFAULT_SENSE_USE_AS_REED             = false; // true = ignore reed switch, auto-probe instead
 constexpr uint16_t CFG_DEFAULT_SENSE_AUTO_PROBE_INTERVAL_S    = 5;     // auto-probe interval in IDLE when senseUseAsReed=true
+constexpr bool     CFG_DEFAULT_MIST_LED_LINKED                = true;  // mist + LED levels move together unless user unlinks
 
 // ---------- Top-level state machine ----------
 //

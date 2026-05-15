@@ -63,6 +63,7 @@ struct Config {
   uint16_t senseWaterShutdownS;             // seconds of low water before WATER_DEPLETED hard-stop
   bool     senseUseAsReed;                  // true = ignore reed switch, use auto-probe instead
   uint16_t senseAutoProbeIntervalS;         // seconds between auto-probes when senseUseAsReed=true
+  bool     mistLedLinked;                   // true (default) = mist and LED levels move together
 
   // --- Identity + secrets (separate NVS keys; NEVER returned by /api/config) ---
   char     hostname[CFG_HOSTNAME_MAX + 1];           // mDNS + ArduinoOTA hostname
