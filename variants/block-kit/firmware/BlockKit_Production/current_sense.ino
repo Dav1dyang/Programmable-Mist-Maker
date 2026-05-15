@@ -16,7 +16,7 @@ static uint16_t g_windowFilled     = 0;    // count of samples seen, capped at N
 
 static uint32_t g_lastSampleUs   = 0;
 static bool     g_scopeMode      = false;
-static bool     g_plotMuted      = false;
+static bool     g_plotMuted      = true;   // bench-only stream; toggle on via serial `m` or UI
 static uint32_t g_lastScopeUs    = 0;
 static uint32_t g_lastPlotMs     = 0;
 

@@ -64,18 +64,18 @@ static void classifyWaterReading(float ma) {
   if (ma < discDisconn) {
     g_piezoState = PiezoState::DISC_DISCONNECTED;
     g_waterLowSinceMs = 0;
-    Serial.printf("[SENSE] DISC_DISCONNECTED — %.1f mA < %.1f\n", ma, discDisconn);
+    logPrintf("[SENSE] DISC_DISCONNECTED — %.1f mA < %.1f\n", ma, discDisconn);
     return;
   }
   if (ma < waterLow) {
     if (g_piezoState != PiezoState::WATER_LOW && g_piezoState != PiezoState::WATER_DEPLETED) {
       g_waterLowSinceMs = millis();
-      Serial.printf("[SENSE] WATER_LOW — countdown begins (%.1f mA)\n", ma);
+      logPrintf("[SENSE] WATER_LOW — countdown begins (%.1f mA)\n", ma);
     }
     if (g_waterLowSinceMs > 0 &&
         millis() - g_waterLowSinceMs >= uint32_t(cfg.senseWaterShutdownS) * 1000u) {
       g_piezoState = PiezoState::WATER_DEPLETED;
-      Serial.println("[SENSE] WATER_DEPLETED — countdown expired");
+      logPrintln("[SENSE] WATER_DEPLETED — countdown expired");
     } else {
       g_piezoState = PiezoState::WATER_LOW;
     }
@@ -129,12 +129,12 @@ void piezoSensePeriodicDiscCheck() {
 // Caller decides whether to apply the recommended threshold via /api/config POST.
 float piezoCalibrateWaterBaseline() {
   if (!mistIsRunning()) {
-    Serial.println("[SENSE] calibrate skipped — mist not running");
+    logPrintln("[SENSE] calibrate skipped — mist not running");
     return 0.0f;
   }
   const float ma = probeAtDuty(cfg.senseWaterProbeDuty, 100, 100);
-  Serial.printf("[SENSE] calibrate: %.1f mA — recommended low threshold %.1f mA\n",
-                ma, ma * 0.85f);
+  logPrintf("[SENSE] calibrate: %.1f mA — recommended low threshold %.1f mA\n",
+            ma, ma * 0.85f);
   return ma;
 }
 
@@ -163,7 +163,7 @@ bool piezoAutoProbeForDisc() {
 
   if (inFault) {
     if (!present) {
-      Serial.println("[SENSE] post-fault lift detected");
+      logPrintln("[SENSE] post-fault lift detected");
       piezoResetForNewDock();
     }
     mistBoostOffForProbe();

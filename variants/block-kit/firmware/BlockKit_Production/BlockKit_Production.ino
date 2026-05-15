@@ -47,6 +47,8 @@ float      piezoCalibrateWaterBaseline();
 // New in production firmware:
 void logInit();
 size_t logSnapshot(char*, size_t);
+void logPrintln(const char* s);
+void logPrintf(const char* fmt, ...);
 void wifiInit(); void wifiTick(); bool wifiIsSetupMode();
 void wifiForgetAndReboot();
 const char* wifiHostname();
@@ -175,7 +177,7 @@ static void enterIdle() {
   // for us if we were already BREATH (e.g. boot).
   ledSetMode(LedMode::BREATH);
   if (leavingMist) mistEnable(false);
-  Serial.println("[APP] -> IDLE");
+  logPrintln("[APP] -> IDLE");
 }
 
 static void enterRunning() {
@@ -191,7 +193,7 @@ static void enterRunning() {
   ledSetMode(LedMode::WAVE);
   g_fastLevelUp = false;
   mistEnable(true);                        // re-arm the mist path
-  Serial.println("[APP] -> RUNNING");
+  logPrintln("[APP] -> RUNNING");
 }
 
 static void enterTransitionFromRunning() {
@@ -204,7 +206,7 @@ static void enterTransitionFromRunning() {
   // crossfade for the restore.
   g_fastLevelUp = false;
   mistEnable(false);                       // hard-stop + inhibit
-  Serial.println("[APP] -> TRANSITION_FROM_RUNNING");
+  logPrintln("[APP] -> TRANSITION_FROM_RUNNING");
 }
 
 // ----------------------------------------------------------------------
@@ -622,7 +624,7 @@ void loop() {
     if (cfg.senseUseAsReed) piezoSensePeriodicDiscCheck();   // reed events are ignored — need fast removal signal
     const PiezoState ps = piezoState();
     if (ps == PiezoState::WATER_DEPLETED || ps == PiezoState::DISC_DISCONNECTED) {
-      Serial.println(ps == PiezoState::WATER_DEPLETED
+      logPrintln(ps == PiezoState::WATER_DEPLETED
                        ? "[APP] water depleted — fading out"
                        : "[APP] disc disconnected — fading out");
       enterTransitionFromRunning();
