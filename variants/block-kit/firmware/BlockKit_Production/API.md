@@ -213,7 +213,7 @@ postJson("/api/cmd/wave-period",
 
 The next `/api/status` (or SSE frame) carries the updated `wavePeriodMs`, so the companion can confirm acceptance without polling `/api/config`. Reboot reverts to the NVS-persisted default (factory: 7500 ms); to change the *baseline* rate, POST once to `/api/config` instead.
 
-Avoid changing the period more often than once per breath cycle — the wave's phase is computed as `millis() % wavePeriodMs`, so a large abrupt jump can snap the visible swell to a new position. Small breath-to-breath drift (e.g. 6800 → 7200 ms) is sub-pixel and invisible.
+Be aware that changing the period mid-cycle can cause a visible **phase jump** in the swell. The wave's phase is computed as `millis() % wavePeriodMs`, so the new position after the change depends on the absolute uptime value and may land anywhere within the new cycle — even small period changes can hop the swell to a different LED. If smooth motion matters more than rapid response, debounce sensor updates to once every few breath cycles, or accept the discontinuity as part of the look.
 
 ## 8. Notes and gotchas
 
