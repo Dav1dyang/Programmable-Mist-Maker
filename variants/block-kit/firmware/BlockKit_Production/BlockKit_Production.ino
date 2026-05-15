@@ -289,6 +289,12 @@ static void smoothLevel() {
   g_currentLedLevel = rampToward(g_currentLedLevel, g_targetLedLevel, stepUp, cfg.levelSmoothStepDn);
 
   if (g_currentLevel != g_targetLevel) return;
+  // In unlinked mode the LED may still be ramping when the mist hits 0
+  // (mist target is lower than LED target during normal use, but on lift
+  // both targets go to 0 — and if LED was higher it has further to fall).
+  // Wait for BOTH smoothers before declaring the transition complete so
+  // the wave fully fades to black before BREATH crossfade kicks in.
+  if (g_currentLedLevel != g_targetLedLevel) return;
   g_fastLevelUp = false;
   if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
     enterIdle();
@@ -631,7 +637,8 @@ void setup() {
   // Boot lands in IDLE (default soft breath). If a container is already
   // docked at power-on, the first containerPoll() will edge-trigger
   // Inserted after the 500 ms safety dwell and we'll head into RUNNING.
-  g_targetLevel = g_userLevel;
+  g_targetLevel    = g_userLevel;
+  g_targetLedLevel = g_userLedLevel;
   ledSetMode(LedMode::BREATH);
   Serial.println("[APP] state=IDLE (boot, LEDs visible)");
   printHelp();

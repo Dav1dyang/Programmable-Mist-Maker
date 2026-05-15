@@ -638,13 +638,15 @@ function bindLevelSlider(id, kind, endpoint){
 bindLevelSlider("mistSlider","mist","/api/cmd/level");
 bindLevelSlider("waveSlider","wave","/api/cmd/led-level");
 
-// Link/unlink toggle — flips cfg.mistLedLinked. Firmware snaps the LED
-// level to mist on re-link so the two start aligned.
+// Link/unlink toggle — flips cfg.mistLedLinked. Sends 0/1 to match the
+// rest of the API's integer-boolean convention (the server's jsonGetLong
+// helper doesn't parse true/false). Firmware snaps the LED level to mist
+// on re-link so the two start aligned.
 $("bLink").addEventListener("click",async()=>{
   if(!ensureAdmin()) return;
   const currentlyLinked = $("bLink").classList.contains("linked");
   try{
-    await postJson("/api/cmd/link",{linked: !currentlyLinked});
+    await postJson("/api/cmd/link",{linked: currentlyLinked ? 0 : 1});
     toast(currentlyLinked ? "Mist and LED unlinked" : "Mist and LED linked","ok");
   }catch(e){ toast("Could not toggle link: "+e.message,"err"); }
 });
