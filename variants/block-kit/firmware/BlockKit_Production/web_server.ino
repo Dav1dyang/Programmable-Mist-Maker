@@ -154,6 +154,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"userLevel\":%u,"
     "\"userLedLevel\":%u,"
     "\"mistLedLinked\":%u,"
+    "\"wavePeriodMs\":%u,"
     "\"currentLevel\":%u,"
     "\"meanMa\":%.1f,"
     "\"varMa2\":%.1f,"
@@ -175,6 +176,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     appUserLevel(),
     appUserLedLevel(),
     cfg.mistLedLinked ? 1 : 0,
+    cfg.wavePeriodMs,
     appCurrentLevel(),
     currentMeanMa(),
     currentVarMa2(),
