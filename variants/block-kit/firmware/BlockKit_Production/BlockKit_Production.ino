@@ -41,6 +41,7 @@ float      piezoLastProbeMa();
 uint32_t   piezoWaterCountdownS();
 void       piezoResetForNewDock();
 void       piezoSensePeriodicWaterCheck();
+void       piezoSensePeriodicDiscCheck();
 bool       piezoAutoProbeForDisc();
 float      piezoCalibrateWaterBaseline();
 // New in production firmware:
@@ -618,6 +619,7 @@ void loop() {
   // IDLE+useAsReed runs the auto-probe for dock detection. Mutually exclusive.
   if (g_state == AppState::RUNNING) {
     piezoSensePeriodicWaterCheck();
+    if (cfg.senseUseAsReed) piezoSensePeriodicDiscCheck();   // reed events are ignored — need fast removal signal
     const PiezoState ps = piezoState();
     if (ps == PiezoState::WATER_DEPLETED || ps == PiezoState::DISC_DISCONNECTED) {
       Serial.println(ps == PiezoState::WATER_DEPLETED

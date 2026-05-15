@@ -11,6 +11,7 @@
 extern float adcToMa(uint16_t raw);
 extern void mistEnable(bool);
 extern bool mistIsInhibited();
+extern bool mistIsRunning();
 extern void mistBoostOnForProbe();
 extern void mistBoostOffForProbe();
 
@@ -90,17 +91,47 @@ static void classifyWaterReading(float ma) {
 }
 
 // Caller's responsibility to invoke only when state == RUNNING.
+//
+// Skips the probe if the boost rail isn't actually engaged — happens when the
+// user has set userLevel=0 in RUNNING (mist paused but state held). Probing
+// against a powered-down rail reads near-zero current and would falsely
+// classify a still-docked disc as DISC_DISCONNECTED.
 void piezoSensePeriodicWaterCheck() {
   const uint32_t now = millis();
   if (g_lastWaterCheckMs == 0) { g_lastWaterCheckMs = now; return; }
   if (now - g_lastWaterCheckMs < uint32_t(cfg.senseWaterCheckIntervalS) * 1000u) return;
   g_lastWaterCheckMs = now;
+  if (!mistIsRunning()) return;   // boost off — meaningful probe impossible
   classifyWaterReading(probeAtDuty(cfg.senseWaterProbeDuty, 50, 50));
 }
 
-// Called from the web "Calibrate water" button. Caller decides whether to
-// apply the recommended threshold via /api/config POST.
+// Fast disc-presence check during RUNNING — only relevant when senseUseAsReed
+// is enabled, since reed-removal events are ignored in that mode. Probes at
+// PWM=10 every senseAutoProbeIntervalS; below threshold → DISC_DISCONNECTED.
+// The main loop catches the state change and fades out. Less visible than the
+// water probe (PWM=10 vs 64) and much faster cadence than 60 s water checks.
+void piezoSensePeriodicDiscCheck() {
+  static uint32_t lastTickMs = 0;
+  const uint32_t now = millis();
+  if (lastTickMs == 0) { lastTickMs = now; return; }
+  if (now - lastTickMs < uint32_t(cfg.senseAutoProbeIntervalS) * 1000u) return;
+  lastTickMs = now;
+  if (!mistIsRunning()) return;   // mist paused — no meaningful read available
+  const float ma = probeAtDuty(cfg.senseProbeDuty, 30, 30);
+  const float thresh = float(cfg.senseDiscPresentMa10x) / 10.0f;
+  g_lastProbeMa = ma;
+  Serial.printf("[SENSE] removal-check: %.1f mA (thresh %.1f)\n", ma, thresh);
+  if (ma < thresh) g_piezoState = PiezoState::DISC_DISCONNECTED;
+}
+
+// Called from the web "Calibrate water" button. Returns 0.0 if the rail isn't
+// engaged (the caller — web handler — should reject and surface an error).
+// Caller decides whether to apply the recommended threshold via /api/config POST.
 float piezoCalibrateWaterBaseline() {
+  if (!mistIsRunning()) {
+    Serial.println("[SENSE] calibrate skipped — mist not running");
+    return 0.0f;
+  }
   const float ma = probeAtDuty(cfg.senseWaterProbeDuty, 100, 100);
   Serial.printf("[SENSE] calibrate: %.1f mA — recommended low threshold %.1f mA\n",
                 ma, ma * 0.85f);

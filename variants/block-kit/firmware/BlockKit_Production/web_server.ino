@@ -327,12 +327,24 @@ static void handleCmdPlotMute() {
 
 // "Calibrate now" — capture current at senseWaterProbeDuty as the water-OK
 // baseline. The user clicks this when the device is in a known-good state
-// (water present, mist running). Returns the recorded mA and a recommended
-// low-water threshold (recorded × 0.85). Caller (UI) decides whether to
-// apply via /api/config POST.
+// (water present, mist running). Rejects with 409 if state isn't RUNNING or
+// the boost rail is off (probe would read ~0 mA and we'd recommend a
+// disabling-low threshold). Returns the recorded mA + recommended low-water
+// threshold (recorded × 0.85) on success; UI decides whether to apply via
+// /api/config POST.
 static void handleCmdCalibrateWater() {
   if (!requireAuth()) return;
+  if (appCurrentState() != AppState::RUNNING || !mistIsRunning()) {
+    g_http.send(409, "application/json",
+                "{\"error\":\"calibrate requires RUNNING with mist actively flowing\"}");
+    return;
+  }
   const float ma = piezoCalibrateWaterBaseline();
+  if (ma <= 0.0f) {
+    g_http.send(409, "application/json",
+                "{\"error\":\"probe returned ~0 mA — check that water + disc are present\"}");
+    return;
+  }
   char body[128];
   snprintf(body, sizeof(body),
            "{\"ok\":true,\"recordedMa\":%.1f,\"recommendedLowMa\":%.1f}",
