@@ -18,115 +18,156 @@ const char INDEX_HTML[] PROGMEM = R"==(<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0c0d10">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#fcfbf8">
 <title>Mist Maker</title>
 <style>
 :root{
-  --bg:#0c0d10; --fg:#e7eaee; --mut:#8a93a1; --line:#1d2128;
-  --card:#13151a; --accent:#7ab7ff; --ok:#5bd99c; --warn:#f1c14a; --err:#ff7c7c;
-  --r:10px;
+  --bg:#fcfbf8; --card:#ffffff; --fg:#2d3848; --mut:#7a8395;
+  --line:#eef0f3; --line-strong:#e2e5ea;
+  --accent:#7a9bb9; --accent-soft:#e7eff7;
+  --ok:#7fb89a; --ok-soft:#e6f1ec;
+  --warn:#d6a865; --warn-soft:#f7ecd9;
+  --err:#c47878; --err-soft:#f4dfdf;
+  --r:14px; --r-sm:10px;
+  --shadow:0 1px 2px rgba(40,55,80,.04), 0 4px 14px rgba(40,55,80,.05);
+  --serif:Georgia,Cambria,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  font-size:clamp(14px,1.7vw,16px);line-height:1.45}
-a{color:var(--accent)}
-header{padding:14px 16px;border-bottom:1px solid var(--line);
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-h1{font-size:clamp(16px,2.2vw,20px);margin:0;font-weight:600;letter-spacing:.3px}
-.meta{color:var(--mut);font-size:.9em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dot{width:9px;height:9px;border-radius:50%;background:#555;display:inline-block;vertical-align:middle}
-.dot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}
-.dot.warn{background:var(--warn)}
-.dot.err{background:var(--err)}
-nav.tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--line);
-  overflow-x:auto;-webkit-overflow-scrolling:touch}
+  font-family:var(--sans);font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+header{padding:24px 20px 16px;max-width:960px;margin:0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h1{font-family:var(--serif);font-size:26px;margin:0;font-weight:400;letter-spacing:-.2px;color:var(--fg)}
+.meta{color:var(--mut);font-size:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.meta>*+*::before{content:"·";margin-right:10px;color:var(--line-strong)}
+.dot{width:8px;height:8px;border-radius:50%;background:#bcc0c8;display:inline-block;vertical-align:middle;transition:background .2s}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.dot.warn{background:var(--warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.dot.err{background:var(--err);box-shadow:0 0 0 4px var(--err-soft)}
+nav.tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--line);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:960px;margin:0 auto}
 nav.tabs button{background:transparent;border:0;color:var(--mut);
-  padding:10px 14px;font-size:1em;cursor:pointer;border-radius:var(--r) var(--r) 0 0;
-  border-bottom:2px solid transparent;white-space:nowrap}
+  padding:14px 18px;font:inherit;font-size:15px;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
 nav.tabs button:hover{color:var(--fg)}
 nav.tabs button.active{color:var(--fg);border-bottom-color:var(--accent)}
-main{padding:16px;max-width:980px;margin:0 auto}
+main{padding:24px 20px 40px;max-width:960px;margin:0 auto}
 section[hidden]{display:none!important}
-h2{font-size:1.05em;margin:18px 0 8px;color:var(--mut);font-weight:500;
-  text-transform:uppercase;letter-spacing:.6px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
-.card .lbl{color:var(--mut);font-size:.82em;text-transform:uppercase;letter-spacing:.5px}
-.card .v{font-size:clamp(20px,3vw,28px);font-weight:600;margin-top:2px}
-.card.green .v{color:var(--ok)}
-.card.warn .v{color:var(--warn)}
-.card.err .v{color:var(--err)}
-.row{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--mut);font-size:.92em;margin:8px 0}
-.row span b{color:var(--fg);font-weight:600}
-.spark{width:100%;height:60px;background:#0a0b0e;border:1px solid var(--line);
-  border-radius:var(--r);margin-top:10px}
-fieldset{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:12px 0;background:var(--card)}
-fieldset>legend{padding:0 6px;color:var(--mut);font-size:.82em;
-  text-transform:uppercase;letter-spacing:.5px}
-.field{display:grid;grid-template-columns:1fr 1fr 90px;gap:8px 12px;align-items:center;
-  padding:6px 0;border-top:1px dashed var(--line)}
-.field:first-of-type{border-top:0}
-.field label{color:var(--fg)}
-.field .hint{color:var(--mut);font-size:.85em}
-.field input[type=range]{width:100%}
-.field input[type=number]{width:90px;background:#0a0b0e;color:var(--fg);
-  border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit}
-button.btn{background:var(--accent);color:#0c0d10;border:0;padding:10px 16px;
-  border-radius:var(--r);font:inherit;font-weight:600;cursor:pointer}
-button.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
-button.btn.danger{background:#3a1416;color:var(--err);border:1px solid var(--err)}
-button.btn:disabled{opacity:.5;cursor:not-allowed}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--card);border:1px solid var(--line);padding:10px 14px;
-  border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;
-  pointer-events:none;transition:opacity .2s;z-index:9}
-.toast.show{opacity:1}
-.toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
-pre.log{background:#0a0b0e;border:1px solid var(--line);border-radius:var(--r);
-  padding:10px;max-height:320px;overflow:auto;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;
-  white-space:pre-wrap;color:var(--mut)}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;
-  font-size:.95em;color:var(--mut)}
-.kv b{color:var(--fg);font-weight:500}
-.setup-banner{background:#3a2a14;color:var(--warn);border:1px solid var(--warn);
-  padding:10px 14px;border-radius:var(--r);margin-bottom:12px}
-/* Quick-control tiles (Status tab) */
-.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 14px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
-.tile h3{margin:0 0 8px;font-size:.9em;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;font-weight:500;
+h2{font-family:var(--serif);font-size:20px;font-weight:400;margin:32px 0 12px;color:var(--fg);letter-spacing:-.1px}
+h2:first-child{margin-top:8px}
+p{margin:8px 0}
+.lede{color:var(--mut);font-size:15px;margin-bottom:16px}
+
+/* Cards (generic + status grid) */
+.card{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:14px 0}
+.status-card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-height:120px}
+.status-card .lbl{color:var(--mut);font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+.status-card .v{font-size:22px;font-weight:500;line-height:1.2;color:var(--fg)}
+.status-card .v.small{font-size:16px;font-weight:400}
+.status-card .sub{color:var(--mut);font-size:13px}
+.status-card .ctrl{margin-top:auto;display:flex;gap:6px;flex-wrap:wrap}
+.status-card.ok    {background:var(--ok-soft)}
+.status-card.warn  {background:var(--warn-soft)}
+.status-card.err   {background:var(--err-soft)}
+
+/* Quick-control tiles */
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:8px 0 18px}
+.tile{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.tile h3{margin:0 0 4px;font:inherit;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;font-weight:500;
   display:flex;align-items:center;justify-content:space-between;gap:8px}
-.tile .pct{font-size:clamp(22px,3vw,30px);font-weight:600;margin:2px 0 6px}
-.tile .sub{color:var(--mut);font-size:.85em;margin-bottom:10px}
-.tile input[type=range]{width:100%;margin:6px 0 0}
+.tile .pct{font-family:var(--serif);font-size:34px;font-weight:400;line-height:1.1;margin:6px 0 4px;color:var(--fg)}
+.tile .pct .unit{font-size:18px;color:var(--mut);margin-left:4px}
+.tile .sub{color:var(--mut);font-size:13px;margin-bottom:14px;min-height:1.2em}
+.tile input[type=range]{width:100%;margin:0}
+
 /* Toggle switch */
-.sw{position:relative;width:42px;height:24px;background:#2a2e36;border-radius:12px;cursor:pointer;flex-shrink:0;
-  transition:background .15s;border:0;padding:0}
+.sw{position:relative;width:44px;height:26px;background:#dde1e7;border-radius:13px;cursor:pointer;flex-shrink:0;
+  transition:background .18s;border:0;padding:0}
 .sw.on{background:var(--accent)}
-.sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;
-  transition:left .15s}
-.sw.on::after{left:20px}
-/* Status pills + override row */
-.pills{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:8px 0 12px;color:var(--mut);font-size:.9em}
-.pills .grp{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
-  border-radius:999px;padding:4px 10px 4px 12px}
-.pills .grp .name{font-size:.85em;text-transform:uppercase;letter-spacing:.5px}
-.pills .grp .val{color:var(--fg);font-weight:500}
-.btn.mini{padding:3px 9px;font-size:.82em;border-radius:8px}
-.btn.mini.active{background:var(--accent);color:#0c0d10;border-color:transparent}
-/* Advanced settings collapse */
-details.adv{margin:12px 0;border:1px solid var(--line);border-radius:var(--r);
-  background:var(--card);padding:0}
-details.adv>summary{padding:12px 14px;cursor:pointer;color:var(--mut);
-  text-transform:uppercase;letter-spacing:.5px;font-size:.85em;font-weight:500;list-style:none}
-details.adv>summary::after{content:" \25be";color:var(--mut)}
-details.adv[open]>summary::after{content:" \25b4"}
-details.adv>div{padding:0 14px 14px}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,.15);transition:left .18s}
+.sw.on::after{left:21px}
+
+/* Segmented control (e.g. Container source, status-LED override) */
+.seg{display:inline-flex;background:var(--accent-soft);border-radius:999px;padding:3px;gap:0}
+.seg button{background:transparent;border:0;color:var(--mut);font:inherit;font-size:13px;cursor:pointer;
+  padding:6px 14px;border-radius:999px;font-weight:500;line-height:1.2;white-space:nowrap}
+.seg button.active{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(40,55,80,.08)}
+
+/* Pretty range slider (light theme) */
+input[type=range]{-webkit-appearance:none;appearance:none;height:6px;background:var(--line);border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;background:var(--card);
+  border:2px solid var(--accent);border-radius:50%;cursor:pointer;box-shadow:0 1px 3px rgba(40,55,80,.18)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;background:var(--card);border:2px solid var(--accent);border-radius:50%;cursor:pointer}
+
+/* Number inputs */
+input[type=number],input[type=password],input[type=text]{background:#fff;color:var(--fg);
+  border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px}
+input[type=number]:focus,input[type=password]:focus,input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* Buttons */
+button.btn{background:var(--accent);color:#fff;border:0;padding:10px 18px;
+  border-radius:var(--r-sm);font:inherit;font-size:14px;font-weight:500;cursor:pointer;
+  transition:opacity .15s}
+button.btn:hover{opacity:.88}
+button.btn.ghost{background:#fff;color:var(--fg);border:1px solid var(--line-strong)}
+button.btn.ghost:hover{background:var(--accent-soft);border-color:var(--accent)}
+button.btn.danger{background:var(--err-soft);color:var(--err);border:1px solid var(--err)}
+button.btn:disabled{opacity:.5;cursor:not-allowed}
+button.btn.mini{padding:6px 12px;font-size:13px;border-radius:8px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#fff;color:var(--fg);padding:12px 18px;border-radius:var(--r-sm);
+  box-shadow:0 10px 30px rgba(40,55,80,.14);opacity:0;pointer-events:none;
+  transition:opacity .2s;z-index:9;font-size:14px}
+.toast.show{opacity:1}
+.toast.ok{box-shadow:0 0 0 1px var(--ok),0 10px 30px rgba(40,55,80,.14)}
+.toast.err{box-shadow:0 0 0 1px var(--err),0 10px 30px rgba(40,55,80,.14)}
+
+/* Log + diagnostics */
+pre.log{background:#fafbfc;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:14px;max-height:340px;overflow:auto;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;
+  white-space:pre-wrap;color:#525a6a}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;font-size:14px;color:var(--mut)}
+.kv b{color:var(--fg);font-weight:500}
+.row{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--mut);font-size:14px;margin:8px 0}
+.row span b{color:var(--fg);font-weight:500}
+.spark{width:100%;height:64px;background:#fafbfc;border:1px solid var(--line);border-radius:var(--r-sm);margin-top:10px}
+
+/* Config form */
+.cfg-group{background:var(--card);border-radius:var(--r);padding:18px 20px;margin:14px 0;box-shadow:var(--shadow)}
+.cfg-group>h3{margin:0 0 10px;color:var(--fg);font-family:var(--serif);font-size:18px;font-weight:400;letter-spacing:-.1px}
+.field{display:grid;grid-template-columns:1fr 1fr 90px;gap:8px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.field:first-of-type{border-top:0;padding-top:4px}
+.field label{color:var(--fg);font-size:14px}
+.field .hint{color:var(--mut);font-size:12px;margin-top:2px}
+.field input[type=range]{width:100%}
+.field input[type=number]{width:90px}
+
+/* Setup banner (WiFi captive portal) */
+.setup-banner{background:var(--warn-soft);color:#7a5a20;border-radius:var(--r-sm);padding:14px 18px;margin-bottom:14px;font-size:14px}
+
+/* Advanced collapse */
+details.adv{margin:14px 0;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+details.adv>summary{padding:14px 18px;cursor:pointer;color:var(--fg);font-size:14px;font-weight:500;list-style:none}
+details.adv>summary::after{content:" ▾";color:var(--mut);float:right}
+details.adv[open]>summary::after{content:" ▴"}
+details.adv>div{padding:0 18px 18px}
+
 @media(max-width:560px){
-  .field{grid-template-columns:1fr 1fr;}
+  header{padding:16px}
+  main{padding:16px 14px 32px}
+  h1{font-size:22px}
+  .field{grid-template-columns:1fr 1fr}
   .field .hint{grid-column:1/-1}
+  .meta{font-size:13px}
 }
 </style>
 </head>
@@ -134,11 +175,10 @@ details.adv>div{padding:0 14px 14px}
 <header>
   <h1>Mist Maker</h1>
   <span class="meta">
-    <span id="connDot" class="dot"></span>
-    <span id="connTxt">connecting…</span> ·
-    <span id="hostShow">-</span> ·
-    <span id="ipShow">-</span> ·
-    <span id="verShow">-</span>
+    <span><span id="connDot" class="dot"></span> <span id="connTxt">connecting…</span></span>
+    <span id="hostShow">—</span>
+    <span id="ipShow">—</span>
+    <span id="verShow">—</span>
   </span>
 </header>
 <nav class="tabs">
@@ -152,53 +192,79 @@ details.adv>div{padding:0 14px 14px}
 <section id="status">
   <div id="setupBanner" class="setup-banner" hidden>
     Device is in WiFi setup mode. Join the
-    <code>MistMaker-Setup-XXXX</code> AP (password <code>mistmaker-setup</code>).
+    <code>MistMaker-Setup-XXXX</code> network (password <code>mistmaker-setup</code>).
   </div>
 
-  <!-- Quick-control tiles: mist + LED wave -->
+  <!-- Primary controls -->
   <div class="tile-grid">
-    <div class="tile" id="tileMist">
-      <h3>Mist <button class="sw" id="swMist" aria-label="mist toggle"></button></h3>
-      <div class="pct"><span id="mistPct">-</span>%</div>
-      <div class="sub" id="mistSub">-</div>
+    <div class="tile">
+      <h3>Mist <button class="sw" id="swMist" aria-label="Toggle mist"></button></h3>
+      <div class="pct"><span id="mistPct">0</span><span class="unit">%</span></div>
+      <div class="sub" id="mistSub">—</div>
       <input type="range" min="0" max="100" step="1" id="mistSlider" value="0">
     </div>
-    <div class="tile" id="tileWave">
-      <h3>LED Wave <button class="sw" id="swWave" aria-label="wave toggle"></button></h3>
-      <div class="pct"><span id="wavePct">-</span>%</div>
-      <div class="sub" id="waveSub">-</div>
+    <div class="tile">
+      <h3>LED wave <button class="sw" id="swWave" aria-label="Toggle LED wave"></button></h3>
+      <div class="pct"><span id="wavePct">0</span><span class="unit">%</span></div>
+      <div class="sub" id="waveSub">—</div>
       <input type="range" min="0" max="100" step="1" id="waveSlider" value="0">
     </div>
   </div>
 
-  <!-- Hardware status + manual override pills -->
-  <div class="pills">
-    <div class="grp"><span class="name">Reed</span>
-      <span class="val" id="pReed">-</span>
-      <button class="btn mini ghost" id="bForceRun">Force RUNNING</button>
-      <button class="btn mini ghost" id="bForceIdle">Force IDLE</button>
+  <!-- How does the device know a container is docked? -->
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:14px 0">
+    <div>
+      <div style="font-size:14px;font-weight:500">Container detection</div>
+      <div style="color:var(--mut);font-size:13px;margin-top:2px" id="srcHint">How the diffuser knows the dispenser is placed.</div>
     </div>
-    <div class="grp"><span class="name">Indicator LED</span>
-      <span class="val" id="pStat">-</span>
-      <button class="btn mini ghost" id="bStLAuto">Auto</button>
-      <button class="btn mini ghost" id="bStLOn">On</button>
-      <button class="btn mini ghost" id="bStLOff">Off</button>
-    </div>
-    <div class="grp"><span class="name">Piezo</span>
-      <span class="val" id="pPiezo">-</span>
-      <span class="val" id="pPiezoMa" style="color:var(--mut);font-size:.85em">-</span>
-      <button class="btn mini ghost" id="bCalWater" title="Run a probe at the water-level PWM and use the result to recommend a low-water threshold. Best while mist is running with water present.">Calibrate water</button>
+    <div class="seg" id="srcSeg">
+      <button data-src="reed">Magnet (reed)</button>
+      <button data-src="sense">Current sense</button>
     </div>
   </div>
 
-  <!-- Mist pulse depth (friendly wrapper around cfg.mistWaveTroughQ8) -->
-  <details class="adv" id="quickPulse"><summary>Mist pulse depth (how visible is the breathing)</summary>
+  <!-- Three at-a-glance status cards -->
+  <div class="status-grid">
+    <div class="status-card" id="cardContainer">
+      <div class="lbl">Container</div>
+      <div class="v" id="vContainer">—</div>
+      <div class="sub" id="vContainerSub">—</div>
+    </div>
+    <div class="status-card" id="cardWater">
+      <div class="lbl">Water &amp; disc</div>
+      <div class="v" id="vWater">—</div>
+      <div class="sub" id="vWaterMa">—</div>
+      <div class="ctrl">
+        <button class="btn mini ghost" id="bCalWater" title="Capture the current with water present, then suggest a low-water threshold. Run while mist is flowing normally.">Calibrate</button>
+      </div>
+    </div>
+    <div class="status-card" id="cardStatLed">
+      <div class="lbl">Status light</div>
+      <div class="v small" id="vStat">—</div>
+      <div class="ctrl">
+        <div class="seg" id="statSeg">
+          <button data-mode="auto">Auto</button>
+          <button data-mode="on">On</button>
+          <button data-mode="off">Off</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiet override row -->
+  <div class="actions" style="margin:6px 0 18px">
+    <button class="btn ghost mini" id="bForceRun">Start mist manually</button>
+    <button class="btn ghost mini" id="bForceIdle">Stop mist manually</button>
+  </div>
+
+  <!-- Mist pulse depth -->
+  <details class="adv" id="quickPulse"><summary>Mist pulse depth — how visible is the breathing wave</summary>
     <div>
-      <p style="color:var(--mut);font-size:.9em;margin:8px 0">
-        0% = mist runs steady. 100% = mist swings full range with the LED wave.
-        Default ~64% (matches the LED wave's own visible range).
+      <p class="lede" style="margin:6px 0 12px">
+        0% means the mist runs steady. 100% swings the full range with the LED wave.
+        Default 64% matches the LED's own visible range.
       </p>
-      <div class="field" style="grid-template-columns:1fr 90px">
+      <div class="field" style="grid-template-columns:1fr 90px;border-top:0">
         <input type="range" min="0" max="100" step="1" id="pulseSlider" value="64">
         <input type="number" min="0" max="100" step="1" id="pulseNum" value="64">
       </div>
@@ -206,95 +272,88 @@ details.adv>div{padding:0 14px 14px}
     </div>
   </details>
 
-  <!-- Compact live row + sparkline -->
-  <h2>Live</h2>
-  <div class="cards">
-    <div class="card" id="cState"><div class="lbl">State</div><div class="v" id="vState">-</div></div>
-    <div class="card" id="cCur"><div class="lbl">Current</div><div class="v"><span id="vCurMa">-</span> mA</div></div>
-    <div class="card" id="cUp"><div class="lbl">Uptime</div><div class="v" id="vUp">-</div></div>
-  </div>
-  <div class="row" style="margin-top:8px">
-    <span>Button raw <b id="vBtn">-</b></span>
-    <span>Reed raw <b id="vReed">-</b></span>
-    <span>User level <b id="vUl">-</b></span>
-    <span>Current level <b id="vCl">-</b></span>
-    <span>Free heap <b id="vHeap">-</b></span>
-    <span>RSSI <b id="vRssi">-</b></span>
+  <!-- Live readings -->
+  <h2>Live readings</h2>
+  <div class="status-grid">
+    <div class="status-card"><div class="lbl">State</div><div class="v" id="vState">—</div><div class="sub" id="vUp">—</div></div>
+    <div class="status-card"><div class="lbl">Current draw</div><div class="v"><span id="vCurMa">—</span> mA</div><div class="sub">Sampled at 1 kHz</div></div>
+    <div class="status-card"><div class="lbl">Signal</div><div class="v"><span id="vRssi">—</span> dBm</div><div class="sub"><span id="vHeap">—</span> bytes free</div></div>
   </div>
   <svg class="spark" id="spark" viewBox="0 0 300 60" preserveAspectRatio="none">
-    <polyline id="sparkLine" fill="none" stroke="#7ab7ff" stroke-width="1.5" points=""/>
+    <polyline id="sparkLine" fill="none" stroke="#7a9bb9" stroke-width="1.5" points=""/>
   </svg>
 </section>
 
 <section id="config" hidden>
-  <p style="color:var(--mut)">Most users will only need the Status tab. The
-  settings below are fine-tuning knobs (kept collapsed by default). Move a
-  slider, then <b>Save &amp; Apply</b>. Saving prompts for the admin password
-  set during WiFi setup.</p>
-  <details class="adv" open><summary>Advanced settings</summary>
-    <div>
-      <div id="cfgForm"></div>
-      <div class="actions">
-        <button class="btn" id="btnSave">Save &amp; Apply</button>
-        <button class="btn ghost" id="btnRevert">Revert</button>
-        <button class="btn ghost" id="btnDefaults">Reset to defaults</button>
-      </div>
-    </div>
-  </details>
+  <p class="lede">
+    Most people only need the Status tab. These knobs fine-tune timing, brightness, and
+    sensing thresholds. Adjust the sliders, then <b>Save &amp; apply</b> — saving asks for the
+    admin password you set during WiFi setup.
+  </p>
+  <div id="cfgForm"></div>
+  <div class="actions">
+    <button class="btn" id="btnSave">Save &amp; apply</button>
+    <button class="btn ghost" id="btnRevert">Revert</button>
+    <button class="btn ghost" id="btnDefaults">Reset everything to defaults</button>
+  </div>
 </section>
 
 <section id="debug" hidden>
-  <h2>Live raw</h2>
+  <h2>Raw signals</h2>
   <div class="row">
-    <span>ADC mean <b id="dCur">-</b> mA</span>
-    <span>ADC var <b id="dVar">-</b></span>
-    <span>Reed raw <b id="dReed">-</b></span>
-    <span>Button raw <b id="dBtn">-</b></span>
-    <span>State <b id="dState">-</b></span>
+    <span>ADC mean <b id="dCur">—</b> mA</span>
+    <span>ADC variance <b id="dVar">—</b></span>
+    <span>Reed raw <b id="dReed">—</b></span>
+    <span>Button raw <b id="dBtn">—</b></span>
+    <span>State <b id="dState">—</b></span>
   </div>
+
   <h2>Commands</h2>
   <div class="actions">
-    <button class="btn ghost" id="btnWalk">LED walk (w)</button>
-    <button class="btn ghost" id="btnLeds">Hide / show LEDs (t)</button>
-    <button class="btn ghost" id="btnScope">Toggle scope plot (s)</button>
-    <button class="btn ghost" id="btnPlotMute">Mute [PLOT] stream (m)</button>
+    <button class="btn ghost" id="btnWalk">LED chase animation</button>
+    <button class="btn ghost" id="btnLeds">Toggle LED visibility</button>
+    <button class="btn ghost" id="btnPlotMute">Toggle plot stream</button>
     <button class="btn ghost" id="btnRefreshLog">Refresh log</button>
-    <button class="btn ghost" id="btnReboot">Reboot</button>
-    <button class="btn danger" id="btnForget">Forget WiFi</button>
+    <button class="btn ghost" id="btnReboot">Reboot device</button>
+    <button class="btn danger" id="btnForget">Forget WiFi network</button>
   </div>
-  <h2>Serial-only commands</h2>
-  <p style="color:var(--mut);font-size:.9em">These are useful when tethered to
-  a laptop over USB — they aren't worth a button:</p>
-  <div class="kv" style="font-size:.9em">
-    <b><code>help</code></b><span>print the full command list</span>
-    <b><code>vN</code></b><span>set runtime level 0..255 (use Status tile instead from UI)</span>
-    <b><code>r</code></b><span>dump reed raw + debounced state (Status pill shows this live)</span>
-    <b><code>k</code></b><span>recalibrate baseline (Phase B placeholder)</span>
-  </div>
-  <h2>Recent log</h2>
+
+  <h2>Recent activity log</h2>
+  <p class="lede">
+    Important events from the device — state changes, water/disc detection, calibration runs.
+    The bench-only plot stream (high-frequency current readings for Arduino Serial Plotter) is
+    muted by default; use <b>Toggle plot stream</b> above to see it on USB serial. The log here
+    is in RAM (~80 lines) and resets when you reboot.
+  </p>
   <pre class="log" id="log">(loading)</pre>
 </section>
 
 <section id="about" hidden>
   <h2>Device</h2>
-  <div class="kv" id="aboutKv"><b>Hostname</b><span id="aHost">-</span></div>
-  <h2>OTA</h2>
-  <p>Arduino IDE → <code>Tools → Port → mistmaker at &lt;ip&gt; (esp32)</code>.
-  Password is the admin password set during WiFi setup. The device hard-stops
-  the mist + boost rail before flash is erased.</p>
-  <h2>Recovery</h2>
-  <p style="color:var(--mut)">If the device is unreachable on the network (bad
-  config, lost password, etc.), <b>press the physical reset button 3 times in
-  a row</b> — within ~5 seconds of each boot. The firmware wipes all NVS and
-  reboots into the captive portal so you can start fresh. Same effect as
-  clicking "Reset to defaults" in Config (which requires the admin password).</p>
+  <div class="card"><div class="kv" id="aboutKv"><b>Hostname</b><span>—</span></div></div>
+
+  <h2>Updates over WiFi</h2>
+  <p class="lede">
+    In the Arduino IDE: <code>Tools → Port → mistmaker at &lt;ip&gt; (esp32)</code>. Use the
+    admin password below. The diffuser stops the mist and powers down the boost rail before
+    flash is erased, so flashing is always safe.
+  </p>
+
+  <h2>If you get locked out</h2>
+  <p class="lede">
+    If the device drops off the network (wrong WiFi, lost password, anything strange),
+    <b>press the physical reset button three times in a row</b> within about five seconds
+    each. The firmware wipes everything in non-volatile storage and reboots back into setup
+    mode — same effect as <i>Reset everything to defaults</i> in Config, just without needing
+    the password.
+  </p>
+
   <h2>Admin password</h2>
-  <p style="color:var(--mut)">Set or change the password used for config writes,
-  commands, and OTA.</p>
+  <p class="lede">
+    Set or change the password used for the config writes, commands, and over-the-air flashing.
+  </p>
   <div class="actions">
-    <input type="password" id="pwdNew" placeholder="new password (min 4 chars)"
-      style="flex:1;min-width:160px;background:#0a0b0e;color:var(--fg);
-      border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit">
+    <input type="password" id="pwdNew" placeholder="New password (min 4 characters)" style="flex:1;min-width:200px">
     <button class="btn" id="btnSetPwd">Set password</button>
   </div>
 </section>
@@ -341,17 +400,16 @@ const FIELDS=[
  {grp:"Status LED (D7)",f:[
   ["statusLedDimDuty","Dim duty (0..255)",0,255,1],
  ]},
- {grp:"Current-sense (piezo classifier)",f:[
-  ["senseProbeDuty","Disc-probe PWM (low)",0,255,1],
+ {grp:"Water & disc sensing",f:[
+  ["senseProbeDuty","Disc-presence probe PWM (low)",0,255,1],
   ["senseDiscPresentMa10x","Disc-present threshold (mA × 10)",0,5000,1],
-  ["senseWaterProbeDuty","Water-probe PWM",0,255,1],
-  ["senseWaterLowMa10x","Water-low threshold (mA × 10)",0,5000,1],
-  ["senseDiscDisconnMidMa10x","Disc-disconnected mid-run threshold (mA × 10)",0,5000,1],
-  ["senseWaterHystMa10x","Water hysteresis (mA × 10)",0,500,1],
-  ["senseWaterCheckIntervalS","Water check interval (s)",5,3600,1],
-  ["senseWaterShutdownS","Water-low countdown (s)",30,7200,10],
-  ["senseUseAsReed","Use current-sense as reed (0/1)",0,1,1],
-  ["senseAutoProbeIntervalS","Auto-probe interval (s, reed-disabled)",1,3600,1],
+  ["senseWaterProbeDuty","Water-level probe PWM",0,255,1],
+  ["senseWaterLowMa10x","Low-water threshold (mA × 10)",0,5000,1],
+  ["senseDiscDisconnMidMa10x","Disc came loose threshold (mA × 10)",0,5000,1],
+  ["senseWaterHystMa10x","Water recovery hysteresis (mA × 10)",0,500,1],
+  ["senseWaterCheckIntervalS","Water check interval (seconds)",5,3600,1],
+  ["senseWaterShutdownS","Low-water countdown to shutoff (seconds)",30,7200,10],
+  ["senseAutoProbeIntervalS","Auto-probe interval when using current sense (s)",1,3600,1],
  ]},
 ];
 
@@ -407,67 +465,91 @@ function pctFromLevel(l){ return Math.round(l*100/255); }
 function levelFromPct(p){ return Math.max(0,Math.min(255,Math.round(p*255/100))); }
 
 function applyStatus(d){
-  // Live row + state cards
-  $("vState").textContent=d.state;
+  // Live readings
+  $("vState").textContent= d.state==="RUNNING" ? "Running" :
+                            d.state==="IDLE" ? "Idle, waiting" :
+                            d.state==="XFADE_OUT" ? "Fading out" : d.state;
   $("vCurMa").textContent=d.meanMa.toFixed(1);
-  $("cCur").classList.toggle("green",d.meanMa>50&&d.meanMa<500);
-  $("cCur").classList.toggle("err",d.meanMa>=500);
-  $("vUp").textContent=fmtUptime(d.uptimeMs);
-  $("vBtn").textContent=d.btnRaw;
-  $("vReed").textContent=d.reedRaw+(d.reedPresent?" (docked)":"");
-  $("vUl").textContent=d.userLevel;
-  $("vCl").textContent=d.currentLevel;
-  $("vHeap").textContent=d.freeHeap;
-  $("vRssi").textContent=d.rssi+" dBm";
+  $("vUp").textContent="up "+fmtUptime(d.uptimeMs);
+  $("vHeap").textContent=d.freeHeap.toLocaleString();
+  $("vRssi").textContent=d.rssi;
   $("setupBanner").hidden=!d.setupMode;
 
-  // Mist tile (toggle = level>0; slider = level%)
+  // Mist tile
   const mistOn = d.userLevel>0;
   $("swMist").classList.toggle("on",mistOn);
   const mistPct = pctFromLevel(d.userLevel);
   $("mistPct").textContent = mistPct;
   if(dragging!=="mist") $("mistSlider").value = mistPct;
-  $("mistSub").textContent = d.mist ? "flowing (docked)" :
-      (d.reedPresent ? "queued — waiting on settle" : "ready (no container)");
+  $("mistSub").textContent = d.mist ? "Flowing" :
+      (d.reedPresent ? "Ready, settling…" : "Waiting for a container");
   if(d.userLevel>0) lastNonZeroLevel = d.userLevel;
 
-  // LED Wave tile (toggle = ledsHidden inverse; slider mirrors level)
+  // LED Wave tile
   $("swWave").classList.toggle("on",!d.ledsHidden);
   $("wavePct").textContent = mistPct;
   if(dragging!=="wave") $("waveSlider").value = mistPct;
-  $("waveSub").textContent = d.ledsHidden ? "hidden (mist continues)" :
-      (d.state==="RUNNING" ? "swelling" : "breathing");
+  $("waveSub").textContent = d.ledsHidden ? "Hidden — mist still flows" :
+      (d.state==="RUNNING" ? "Swelling with the mist" : "Soft breath");
 
-  // Reed pill + status-LED pill
-  $("pReed").textContent = d.reedPresent ? "docked" : "empty";
+  // Container detection source segmented control (lastCfg may have arrived already)
+  const useSense = !!(lastCfg && lastCfg.senseUseAsReed);
+  for(const b of document.querySelectorAll("#srcSeg button")){
+    b.classList.toggle("active", (b.dataset.src==="sense")===useSense);
+  }
+  $("srcHint").textContent = useSense
+    ? "Using the piezo's current draw to detect the container — reed switch ignored."
+    : "Using the reed (magnet) switch on the base — the default.";
+
+  // Container status card
+  const docked = useSense
+    ? (d.piezoState==="WATER_OK" || d.piezoState==="WATER_LOW" || d.piezoState==="WATER_DEPLETED")
+    : !!d.reedPresent;
+  $("vContainer").textContent = docked ? "Docked" : "Empty";
+  $("vContainerSub").textContent = useSense
+    ? (docked ? "Detected by current sense" : "Place a container to start")
+    : (d.reedRaw ? "Magnet detected" : "No magnet — place a container to start");
+  $("cardContainer").className = "status-card " + (docked ? "ok" : "");
+
+  // Water & disc status card
+  const wmap = {
+    "UNKNOWN":           ["—","Waiting for first probe",""],
+    "WATER_OK":          ["Good","Plenty of water","ok"],
+    "WATER_LOW":         ["Low water","Refill soon","warn"],
+    "WATER_DEPLETED":    ["Empty","Stopped — lift dispenser to reset","err"],
+    "DISC_MISSING":      ["No disc","Dispenser not detected","warn"],
+    "DISC_DISCONNECTED": ["Disc came loose","Stopped — lift dispenser to reset","err"],
+    "DISC_DRY":          ["Dry disc","Add water","warn"]
+  };
+  const w = wmap[d.piezoState] || ["—","",""];
+  let vText = w[0], subText = w[1];
+  if(d.piezoState==="WATER_LOW" && d.waterCountdownS>0){
+    const mm = Math.floor(d.waterCountdownS/60), ss = d.waterCountdownS%60;
+    subText = "Refill within "+mm+":"+(ss<10?"0":"")+ss;
+  }
+  $("vWater").textContent = vText;
+  $("vWaterMa").textContent = "Last probe: " + (d.piezoProbeMa||0).toFixed(1) + " mA · " + subText;
+  $("cardWater").className = "status-card " + (w[2] || "");
+
+  // Status-light card (segmented)
   const sOv = d.statLedOverride;
-  $("pStat").textContent = sOv===1 ? "forced ON" : sOv===0 ? "forced OFF" : "auto";
-  $("bStLAuto").classList.toggle("active",sOv===-1);
-  $("bStLOn").classList.toggle("active",sOv===1);
-  $("bStLOff").classList.toggle("active",sOv===0);
-
-  // Piezo pill — classifier state + last probe current. WATER_LOW shows the
-  // countdown until WATER_DEPLETED triggers a hard-stop.
-  if(d.piezoState!=null){
-    let label = d.piezoState;
-    if(d.piezoState==="WATER_LOW" && d.waterCountdownS>0){
-      const mm = Math.floor(d.waterCountdownS/60), ss = d.waterCountdownS%60;
-      label = "low water ("+mm+":"+(ss<10?"0":"")+ss+")";
-    } else if(d.piezoState==="WATER_OK"){ label = "ok"; }
-      else if(d.piezoState==="DISC_MISSING"){ label = "no disc"; }
-      else if(d.piezoState==="DISC_DISCONNECTED"){ label = "disc fell off"; }
-      else if(d.piezoState==="WATER_DEPLETED"){ label = "empty — lift to reset"; }
-      else if(d.piezoState==="UNKNOWN"){ label = "—"; }
-    $("pPiezo").textContent = label;
-    $("pPiezoMa").textContent = (d.piezoProbeMa||0).toFixed(1) + " mA";
+  $("vStat").textContent = sOv===1 ? "Forced on" : sOv===0 ? "Forced off" : "Following dock";
+  const sMode = sOv===1 ? "on" : sOv===0 ? "off" : "auto";
+  for(const b of document.querySelectorAll("#statSeg button")){
+    b.classList.toggle("active", b.dataset.mode===sMode);
   }
 
+  // Connection state (header dot)
+  // (kept simple — SSE onopen/onerror toggle it)
+
   // Debug tab raw row
-  $("dCur").textContent=d.meanMa.toFixed(1);
-  $("dVar").textContent=d.varMa2.toFixed(1);
-  $("dReed").textContent=d.reedRaw;
-  $("dBtn").textContent=d.btnRaw;
-  $("dState").textContent=d.state+" ("+d.stateInt+")";
+  if($("dCur")) {
+    $("dCur").textContent=d.meanMa.toFixed(1);
+    $("dVar").textContent=d.varMa2.toFixed(1);
+    $("dReed").textContent=d.reedRaw;
+    $("dBtn").textContent=d.btnRaw;
+    $("dState").textContent=d.state+" ("+d.stateInt+")";
+  }
 
   // Sparkline (last 120 samples ~30 s @ 4 Hz)
   sparkBuf.push(d.meanMa);
@@ -519,17 +601,36 @@ $("swWave").addEventListener("click",async()=>{
   catch(e){ toast("LEDs: "+e.message,"err"); }
 });
 $("bForceRun").addEventListener("click",()=>{
-  // Forcing RUNNING re-arms the mist regardless of reed state. Confirm so a
-  // stray tap doesn't engage the piezo on an empty bottle.
-  if(!confirm("Force RUNNING? This re-arms the mist regardless of whether a container is docked. Use only for testing without a magnet.")) return;
+  // Force-RUNNING re-arms mist regardless of dock state. Confirm so a stray
+  // tap doesn't fire the piezo on an empty bottle.
+  if(!confirm("Start the mist manually? This runs even if no container is docked — use only for testing.")) return;
   postJson("/api/cmd/state",{state:"running"})
-    .then(()=>toast("Forced RUNNING","ok")).catch(e=>toast(e.message,"err"));
+    .then(()=>toast("Mist started","ok")).catch(e=>toast(e.message,"err"));
 });
 $("bForceIdle").addEventListener("click",()=>postJson("/api/cmd/state",{state:"idle"})
-  .then(()=>toast("Forced IDLE","ok")).catch(e=>toast(e.message,"err")));
-$("bStLAuto").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"auto"}).catch(e=>toast(e.message,"err")));
-$("bStLOn").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"on"}).catch(e=>toast(e.message,"err")));
-$("bStLOff").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"off"}).catch(e=>toast(e.message,"err")));
+  .then(()=>toast("Mist stopped","ok")).catch(e=>toast(e.message,"err")));
+
+// Status-light segmented control
+document.querySelectorAll("#statSeg button").forEach(b=>{
+  b.addEventListener("click",()=>postJson("/api/cmd/statled",{mode:b.dataset.mode})
+    .catch(e=>toast(e.message,"err")));
+});
+
+// Container-detection source segmented switch (writes cfg.senseUseAsReed)
+document.querySelectorAll("#srcSeg button").forEach(b=>{
+  b.addEventListener("click",async()=>{
+    const wantSense = b.dataset.src==="sense";
+    const cur = !!(lastCfg && lastCfg.senseUseAsReed);
+    if(wantSense===cur) return;
+    if(wantSense && !confirm("Switch to current-sense detection? The reed switch will be ignored. You can switch back any time.")) return;
+    if(!ensureAdmin()) return;
+    try{
+      await postJson("/api/config",{field:"senseUseAsReed",value: wantSense ? 1 : 0});
+      lastCfg.senseUseAsReed = wantSense ? 1 : 0;
+      toast(wantSense ? "Now using current sense" : "Now using magnet (reed)","ok");
+    }catch(e){ toast("Could not switch: "+e.message,"err"); }
+  });
+});
 
 // Calibrate water — capture mA at water-probe duty, offer to apply ×0.85 as
 // the new low-water threshold. Best run while mist is actively flowing with
@@ -584,8 +685,8 @@ function renderConfigForm(values){
   const root=$("cfgForm");
   root.innerHTML="";
   for(const g of FIELDS){
-    const fs=document.createElement("fieldset");
-    const lg=document.createElement("legend"); lg.textContent=g.grp; fs.appendChild(lg);
+    const fs=document.createElement("div"); fs.className="cfg-group";
+    const lg=document.createElement("h3"); lg.textContent=g.grp; fs.appendChild(lg);
     for(const [name,label,lo,hi,step] of g.f){
       const div=document.createElement("div"); div.className="field";
       const cur = values[name] ?? lo;
@@ -669,10 +770,9 @@ async function postCmd(path,confirmMsg){
 }
 $("btnWalk").addEventListener("click",()=>postCmd("/api/cmd/walk"));
 $("btnLeds").addEventListener("click",()=>postCmd("/api/cmd/leds"));
-$("btnScope").addEventListener("click",()=>postCmd("/api/cmd/scope"));
 $("btnPlotMute").addEventListener("click",()=>postCmd("/api/cmd/plotmute"));
 $("btnReboot").addEventListener("click",()=>postCmd("/api/cmd/reboot","Reboot the device?"));
-$("btnForget").addEventListener("click",()=>postCmd("/api/cmd/forget","Forget WiFi credentials and reboot into setup mode?"));
+$("btnForget").addEventListener("click",()=>postCmd("/api/cmd/forget","Forget the saved WiFi network and reboot into setup mode?"));
 
 // --- About tab --------------------------------------------------------------
 async function loadInfo(){
@@ -684,14 +784,14 @@ async function loadInfo(){
     $("verShow").textContent=d.firmware;
     const kv=$("aboutKv");
     kv.innerHTML=
-      `<b>Hostname</b><span>${d.hostname} (http://${d.hostname}.local/)</span>`+
-      `<b>IP</b><span>${d.ip}</span>`+
+      `<b>Hostname</b><span><a href="http://${d.hostname}.local/">${d.hostname}.local</a></span>`+
+      `<b>IP address</b><span>${d.ip}</span>`+
       `<b>MAC</b><span>${d.mac}</span>`+
-      `<b>SSID</b><span>${d.ssid} (${d.rssi} dBm)</span>`+
+      `<b>Wi-Fi network</b><span>${d.ssid} · ${d.rssi} dBm</span>`+
       `<b>Firmware</b><span>${d.firmware}</span>`+
-      `<b>Built</b><span>${d.buildDate}</span>`+
-      `<b>Free heap</b><span>${d.freeHeap}</span>`+
-      `<b>OTA</b><span>port ${d.otaPort}, admin password ${d.hasAdminPwd?"set":"NOT SET (any host can flash!)"}</span>`;
+      `<b>Build date</b><span>${d.buildDate}</span>`+
+      `<b>Free memory</b><span>${d.freeHeap.toLocaleString()} bytes</span>`+
+      `<b>OTA flashing</b><span>Port ${d.otaPort} · password ${d.hasAdminPwd?"set":"<b style=\"color:var(--err)\">not set — anyone on the network can flash this device</b>"}</span>`;
   }catch(e){ /* ignore */ }
 }
 $("btnSetPwd").addEventListener("click",async()=>{
@@ -733,6 +833,12 @@ loadInfo();
 // rendering the full config form (that happens lazily when Config tab opens).
 fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>{
   lastCfg=c; syncPulseFromCfg();
+  // Reflect the saved sensing source in the segmented switch right away,
+  // before the first SSE frame paints the rest of the status card.
+  const useSense = !!c.senseUseAsReed;
+  for(const b of document.querySelectorAll("#srcSeg button")){
+    b.classList.toggle("active", (b.dataset.src==="sense")===useSense);
+  }
 }).catch(()=>{});
 startSse();
 </script>
