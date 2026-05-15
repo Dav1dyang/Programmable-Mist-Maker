@@ -85,3 +85,16 @@ void mistEnable(bool enabled) {
 
 bool mistIsRunning()  { return g_mistBoostOn; }
 bool mistIsInhibited() { return g_mistInhibited; }
+
+// Engage boost rail for a piezo-sense probe — piezo_sense writes the probe
+// PWM directly via ledcWrite() and needs the rail live to draw current.
+// Caller releases via mistBoostOffForProbe() if not entering RUNNING.
+void mistBoostOnForProbe() {
+  g_mistInhibited = false;
+  if (g_mistBoostOn) return;
+  digitalWrite(PIN_BOOST_EN, HIGH);
+  delayMicroseconds(500);
+  g_mistBoostOn = true;
+}
+
+void mistBoostOffForProbe() { mistHardStop(); }

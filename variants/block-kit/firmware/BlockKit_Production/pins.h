@@ -152,6 +152,20 @@ constexpr uint16_t CFG_DEFAULT_REED_REMOVE_DWELL_MS  = 100;
 // Status LED (D7)
 constexpr uint8_t  CFG_DEFAULT_STATUS_LED_DIM_DUTY   = 24;    // ~10 %
 
+// Current-sense classifier — disc-presence + water-level detection.
+// Bench numbers per David's 2026-05-15 measurements (XIAO ESP32-C6 + INA180A3
+// + 30 mΩ shunt). Stored as uint16_t × 10 in NVS so 0.1 mA precision survives.
+constexpr uint8_t  CFG_DEFAULT_SENSE_PROBE_DUTY              = 10;    // PWM for disc-presence probe
+constexpr uint16_t CFG_DEFAULT_SENSE_DISC_PRESENT_MA10X      = 100;   // 10.0 mA — above = disc present at PWM=10
+constexpr uint8_t  CFG_DEFAULT_SENSE_WATER_PROBE_DUTY        = 64;    // PWM for water-level probe
+constexpr uint16_t CFG_DEFAULT_SENSE_WATER_LOW_MA10X         = 1100;  // 110.0 mA — below = water low at PWM=64
+constexpr uint16_t CFG_DEFAULT_SENSE_DISC_DISCONN_MID_MA10X  = 700;   // 70.0 mA — below at PWM=64 means disc fell off
+constexpr uint8_t  CFG_DEFAULT_SENSE_WATER_HYST_MA10X        = 50;    // 5.0 mA hysteresis on recovery
+constexpr uint16_t CFG_DEFAULT_SENSE_WATER_CHECK_INTERVAL_S  = 60;    // seconds between water probes
+constexpr uint16_t CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S        = 300;   // 5 min countdown before WATER_DEPLETED
+constexpr bool     CFG_DEFAULT_SENSE_USE_AS_REED             = false; // true = ignore reed switch, auto-probe instead
+constexpr uint16_t CFG_DEFAULT_SENSE_AUTO_PROBE_INTERVAL_S    = 5;     // auto-probe interval in IDLE when senseUseAsReed=true
+
 // ---------- Top-level state machine ----------
 //
 // Three container-driven states, plus an orthogonal `g_ledsHidden` boolean
@@ -180,4 +194,16 @@ enum class ButtonEvent : uint8_t {
   LongPressStart,
   LongPressTick,
   LongPressEnd,
+};
+
+// Piezo health states from the current-sense classifier (orthogonal to AppState).
+// Set by piezo_sense.ino, surfaced in /api/status and the web UI status pill.
+enum class PiezoState : uint8_t {
+  UNKNOWN,           // before first probe (boot, idle pre-dock)
+  DISC_MISSING,      // probe on dock returned current below disc-present threshold
+  DISC_DRY,          // disc present at PWM=10 but water-level probe says dry (rare)
+  WATER_OK,          // last water probe was above threshold — normal operation
+  WATER_LOW,         // last water probe below threshold — countdown active
+  WATER_DEPLETED,    // countdown expired — mist hard-stopped, awaiting container lift
+  DISC_DISCONNECTED, // disc snapped off mid-run — hard-stopped immediately
 };

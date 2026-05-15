@@ -184,6 +184,11 @@ details.adv>div{padding:0 14px 14px}
       <button class="btn mini ghost" id="bStLOn">On</button>
       <button class="btn mini ghost" id="bStLOff">Off</button>
     </div>
+    <div class="grp"><span class="name">Piezo</span>
+      <span class="val" id="pPiezo">-</span>
+      <span class="val" id="pPiezoMa" style="color:var(--mut);font-size:.85em">-</span>
+      <button class="btn mini ghost" id="bCalWater" title="Run a probe at the water-level PWM and use the result to recommend a low-water threshold. Best while mist is running with water present.">Calibrate water</button>
+    </div>
   </div>
 
   <!-- Mist pulse depth (friendly wrapper around cfg.mistWaveTroughQ8) -->
@@ -336,6 +341,18 @@ const FIELDS=[
  {grp:"Status LED (D7)",f:[
   ["statusLedDimDuty","Dim duty (0..255)",0,255,1],
  ]},
+ {grp:"Current-sense (piezo classifier)",f:[
+  ["senseProbeDuty","Disc-probe PWM (low)",0,255,1],
+  ["senseDiscPresentMa10x","Disc-present threshold (mA × 10)",0,5000,1],
+  ["senseWaterProbeDuty","Water-probe PWM",0,255,1],
+  ["senseWaterLowMa10x","Water-low threshold (mA × 10)",0,5000,1],
+  ["senseDiscDisconnMidMa10x","Disc-disconnected mid-run threshold (mA × 10)",0,5000,1],
+  ["senseWaterHystMa10x","Water hysteresis (mA × 10)",0,500,1],
+  ["senseWaterCheckIntervalS","Water check interval (s)",5,3600,1],
+  ["senseWaterShutdownS","Water-low countdown (s)",30,7200,10],
+  ["senseUseAsReed","Use current-sense as reed (0/1)",0,1,1],
+  ["senseAutoProbeIntervalS","Auto-probe interval (s, reed-disabled)",1,3600,1],
+ ]},
 ];
 
 // --- helpers ----------------------------------------------------------------
@@ -429,6 +446,22 @@ function applyStatus(d){
   $("bStLOn").classList.toggle("active",sOv===1);
   $("bStLOff").classList.toggle("active",sOv===0);
 
+  // Piezo pill — classifier state + last probe current. WATER_LOW shows the
+  // countdown until WATER_DEPLETED triggers a hard-stop.
+  if(d.piezoState!=null){
+    let label = d.piezoState;
+    if(d.piezoState==="WATER_LOW" && d.waterCountdownS>0){
+      const mm = Math.floor(d.waterCountdownS/60), ss = d.waterCountdownS%60;
+      label = "low water ("+mm+":"+(ss<10?"0":"")+ss+")";
+    } else if(d.piezoState==="WATER_OK"){ label = "ok"; }
+      else if(d.piezoState==="DISC_MISSING"){ label = "no disc"; }
+      else if(d.piezoState==="DISC_DISCONNECTED"){ label = "disc fell off"; }
+      else if(d.piezoState==="WATER_DEPLETED"){ label = "empty — lift to reset"; }
+      else if(d.piezoState==="UNKNOWN"){ label = "—"; }
+    $("pPiezo").textContent = label;
+    $("pPiezoMa").textContent = (d.piezoProbeMa||0).toFixed(1) + " mA";
+  }
+
   // Debug tab raw row
   $("dCur").textContent=d.meanMa.toFixed(1);
   $("dVar").textContent=d.varMa2.toFixed(1);
@@ -497,6 +530,26 @@ $("bForceIdle").addEventListener("click",()=>postJson("/api/cmd/state",{state:"i
 $("bStLAuto").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"auto"}).catch(e=>toast(e.message,"err")));
 $("bStLOn").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"on"}).catch(e=>toast(e.message,"err")));
 $("bStLOff").addEventListener("click",()=>postJson("/api/cmd/statled",{mode:"off"}).catch(e=>toast(e.message,"err")));
+
+// Calibrate water — capture mA at water-probe duty, offer to apply ×0.85 as
+// the new low-water threshold. Best run while mist is actively flowing with
+// known-good water level.
+$("bCalWater").addEventListener("click",async()=>{
+  if(!ensureAdmin()) return;
+  try{
+    const r = await postJson("/api/cmd/calibrate-water");
+    const recorded = r.recordedMa.toFixed(1);
+    const recommended = r.recommendedLowMa.toFixed(1);
+    if(confirm("Recorded "+recorded+" mA. Apply recommended low-water threshold of "+recommended+" mA (~85% of recorded)?")){
+      const v10 = Math.round(r.recommendedLowMa * 10);
+      await postJson("/api/config",{field:"senseWaterLowMa10x",value:v10});
+      toast("Threshold set to "+recommended+" mA","ok");
+      loadConfig();
+    } else {
+      toast("Recorded "+recorded+" mA (not applied)","ok");
+    }
+  }catch(e){ toast("Calibrate failed: "+e.message,"err"); }
+});
 
 // --- Mist pulse depth (UI-friendly wrapper around cfg.mistWaveTroughQ8) ----
 // pulseDepth% 0..100 maps to troughQ8 = round((1-pulse/100)*256). 0% pulse
