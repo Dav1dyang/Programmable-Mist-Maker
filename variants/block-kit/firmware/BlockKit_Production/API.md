@@ -58,6 +58,7 @@ int rc = http.POST("{\"value\":180}");
 | GET    | `/api/log`                    | none        | Last ~6 KB of serial log as plain text                          |
 | GET    | `/api/events`                 | none        | Server-Sent Events stream of `/api/status` (§5)                 |
 | POST   | `/api/cmd/level`              | admin       | Set user level 0..255. Body: `{"value":N}` (mist + LED intensity) |
+| POST   | `/api/cmd/wave-period`        | admin       | Live wave-period set (RAM only, no NVS). Body: `{"ms":N}` (500..60000) or `{"bpm":N}` (1..120). |
 | POST   | `/api/cmd/state`              | admin       | Force state. Body: `{"state":"idle"\|"running"}`                |
 | POST   | `/api/cmd/leds`               | admin       | Toggle LED strip hide/show (mist unaffected). No body.          |
 | POST   | `/api/cmd/walk`               | admin       | Run a one-shot LED chase animation. No body.                    |
@@ -87,6 +88,7 @@ JSON object emitted by `GET /api/status` and each SSE `data:` frame. Stable wire
   "ledsHidden": 0,            // int: 1 if the LED strip has been faded out by short-press
   "setupMode": 0,             // int: 1 if device is in WiFi captive-portal setup mode
   "userLevel": 255,           // u8: 0..255 user-set intensity (mist + LED)
+  "wavePeriodMs": 7500,       // u16: current wave-animation period in ms (live, see §7)
   "currentLevel": 255,        // u8: smoothed level actually being applied
   "meanMa": 12.3,             // float: rolling 256-sample mean current (mA)
   "varMa2": 0.5,              // float: rolling variance, mA^2
@@ -197,6 +199,21 @@ For tightly-coupled experiments you can even rewrite thresholds on the fly:
 // Make the diffuser more sensitive to early water-low warnings:
 postJson("/api/config", "{\"field\":\"senseWaterLowMa10x\",\"value\":1200}");
 ```
+
+### Driving the wave from a live breathing sensor
+
+A separate device on the LAN — say an mmWave radar breathing-rate sensor — can drive the mist maker's LED wave + mist modulation at the user's actual respiratory rate. Use `/api/cmd/wave-period`, **not** `/api/config`, for live streaming: the dedicated endpoint updates RAM only, so a sensor pushing once per second won't burn through the NVS sector that backs the saved config blob.
+
+```cpp
+// each fresh breath estimate from the sensor
+const int bpm = mmwave.bpm();          // e.g. 6..30
+postJson("/api/cmd/wave-period",
+         String("{\"bpm\":") + bpm + "}");
+```
+
+The next `/api/status` (or SSE frame) carries the updated `wavePeriodMs`, so the companion can confirm acceptance without polling `/api/config`. Reboot reverts to the NVS-persisted default (factory: 7500 ms); to change the *baseline* rate, POST once to `/api/config` instead.
+
+Avoid changing the period more often than once per breath cycle — the wave's phase is computed as `millis() % wavePeriodMs`, so a large abrupt jump can snap the visible swell to a new position. Small breath-to-breath drift (e.g. 6800 → 7200 ms) is sub-pixel and invisible.
 
 ## 8. Notes and gotchas
 
