@@ -12,6 +12,8 @@
 //   POST /api/cmd/calibrate-water  capture current at water-probe duty,
 //                                  return recorded mA + recommended low threshold
 //   POST /api/cmd/level     set runtime userLevel; body = {"value":0..255}
+//   POST /api/cmd/led-level set LED-only level (unlinked mode); body same
+//   POST /api/cmd/link      set mist+LED link mode; body = {"linked":true|false}
 //   POST /api/cmd/state     force state idle/running; body = {"state":"..."}
 //   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
 //   POST /api/cmd/reboot    ESP.restart() after 250 ms
@@ -149,6 +151,8 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"ledsHidden\":%d,"
     "\"setupMode\":%d,"
     "\"userLevel\":%u,"
+    "\"userLedLevel\":%u,"
+    "\"mistLedLinked\":%u,"
     "\"currentLevel\":%u,"
     "\"meanMa\":%.1f,"
     "\"varMa2\":%.1f,"
@@ -168,6 +172,8 @@ static size_t buildStatusJson(char* out, size_t cap) {
     appLedsHidden() ? 1 : 0,
     wifiIsSetupMode() ? 1 : 0,
     appUserLevel(),
+    appUserLedLevel(),
+    cfg.mistLedLinked ? 1 : 0,
     appCurrentLevel(),
     currentMeanMa(),
     currentVarMa2(),
@@ -353,6 +359,7 @@ static void handleCmdCalibrateWater() {
 }
 
 // Live level set — mirrors serial 'vN'. Body: {"value": 0..255}.
+// In linked mode (default) the LED level mirrors automatically.
 static void handleCmdLevel() {
   if (!requireAuth()) return;
   const String body = g_http.arg("plain");
@@ -363,6 +370,37 @@ static void handleCmdLevel() {
   }
   appSetLevel(uint8_t(v));
   Serial.printf("[WEB] level=%ld\n", v);
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// LED-only level set — used by the wave slider in unlinked mode. In linked
+// mode the firmware mirrors back to userLevel so dragging either slider
+// keeps both in sync.
+static void handleCmdLedLevel() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  long v = 0;
+  if (!jsonGetLong(body, "value", v) || v < 0 || v > 255) {
+    g_http.send(400, "application/json", "{\"error\":\"value must be 0..255\"}");
+    return;
+  }
+  appSetLedLevel(uint8_t(v));
+  Serial.printf("[WEB] led-level=%ld\n", v);
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
+// Toggle the mist+LED link mode. Body: {"linked": true|false}. Persists to
+// NVS so the user's preference survives reboot.
+static void handleCmdLink() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  long v = 0;
+  if (!jsonGetLong(body, "linked", v)) {
+    g_http.send(400, "application/json", "{\"error\":\"missing 'linked' boolean\"}");
+    return;
+  }
+  appSetMistLedLinked(v != 0);
+  configSave();
   g_http.send(200, "application/json", "{\"ok\":true}");
 }
 
@@ -526,6 +564,8 @@ void webInit() {
   g_http.on("/api/cmd/plotmute",    HTTP_POST, handleCmdPlotMute);
   g_http.on("/api/cmd/calibrate-water", HTTP_POST, handleCmdCalibrateWater);
   g_http.on("/api/cmd/level",       HTTP_POST, handleCmdLevel);
+  g_http.on("/api/cmd/led-level",   HTTP_POST, handleCmdLedLevel);
+  g_http.on("/api/cmd/link",        HTTP_POST, handleCmdLink);
   g_http.on("/api/cmd/state",       HTTP_POST, handleCmdState);
   g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
   g_http.on("/api/cmd/reboot",      HTTP_POST, handleCmdReboot);

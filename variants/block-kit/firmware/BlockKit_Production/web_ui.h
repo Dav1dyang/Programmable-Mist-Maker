@@ -77,6 +77,30 @@ p{margin:8px 0}
 
 /* Quick-control tiles */
 .tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:8px 0 18px}
+/* When the pair has a link toggle between them, switch to an explicit
+   3-column grid (tile | chip | tile) so the chip lives in the flow instead
+   of floating over either tile's content. On narrow viewports the row
+   wraps so each item gets its own line. */
+.tile-grid.linkable{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.link-toggle{background:#fff;border:1px solid var(--line-strong);border-radius:999px;
+  padding:6px 14px 6px 10px;display:inline-flex;align-items:center;gap:8px;
+  font:inherit;font-size:13px;color:var(--mut);cursor:pointer;align-self:center;
+  white-space:nowrap;box-shadow:var(--shadow);
+  transition:color .15s,border-color .15s,background .15s}
+.link-toggle:hover{color:var(--fg);border-color:var(--accent)}
+.link-toggle.linked{color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
+.link-toggle .link-icon{display:inline-block;width:12px;height:12px;border-radius:50%;
+  border:2px solid currentColor;position:relative}
+.link-toggle.linked .link-icon{background:currentColor}
+.link-toggle:not(.linked) .link-icon::after{content:"";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%) rotate(45deg);width:14px;height:2px;background:currentColor;
+  border-radius:1px}
+@media(max-width:720px){
+  /* Stack vertically on narrow viewports: tiles full-width, link chip
+     centered between them. */
+  .tile-grid.linkable{grid-template-columns:1fr}
+  .link-toggle{justify-self:center;margin:-2px 0}
+}
 .tile{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
 .tile h3{margin:0 0 4px;font:inherit;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;font-weight:500;
   display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -195,14 +219,21 @@ details.adv>div{padding:0 18px 18px}
     <code>MistMaker-Setup-XXXX</code> network (password <code>mistmaker-setup</code>).
   </div>
 
-  <!-- Primary controls -->
-  <div class="tile-grid">
+  <!-- Primary controls — Mist + LED wave tiles separated by a chain-link
+       toggle. Click the link to decouple the two sliders so you can dim the
+       LEDs without throttling the mist (or vice-versa). -->
+  <div class="tile-grid linkable" id="tilePair">
     <div class="tile">
       <h3>Mist <button class="sw" id="swMist" aria-label="Toggle mist"></button></h3>
       <div class="pct"><span id="mistPct">0</span><span class="unit">%</span></div>
       <div class="sub" id="mistSub">—</div>
       <input type="range" min="0" max="100" step="1" id="mistSlider" value="0">
     </div>
+    <button class="link-toggle linked" id="bLink" type="button"
+      aria-label="Toggle mist and LED link" title="Mist and LED levels move together — click to unlink">
+      <span class="link-icon" aria-hidden="true"></span>
+      <span class="link-label">Linked</span>
+    </button>
     <div class="tile">
       <h3>LED wave <button class="sw" id="swWave" aria-label="Toggle LED wave"></button></h3>
       <div class="pct"><span id="wavePct">0</span><span class="unit">%</span></div>
@@ -485,12 +516,27 @@ function applyStatus(d){
       (d.reedPresent ? "Ready, settling…" : "Waiting for a container");
   if(d.userLevel>0) lastNonZeroLevel = d.userLevel;
 
-  // LED Wave tile
+  // LED Wave tile — uses userLedLevel which equals userLevel when linked,
+  // and rides its own slider when unlinked. Fall back to userLevel for
+  // older firmwares that don't yet emit the field.
+  const ledLevel = (d.userLedLevel != null) ? d.userLedLevel : d.userLevel;
   $("swWave").classList.toggle("on",!d.ledsHidden);
-  $("wavePct").textContent = mistPct;
-  if(dragging!=="wave") $("waveSlider").value = mistPct;
+  const wavePct = pctFromLevel(ledLevel);
+  $("wavePct").textContent = wavePct;
+  if(dragging!=="wave") $("waveSlider").value = wavePct;
   $("waveSub").textContent = d.ledsHidden ? "Hidden — mist still flows" :
       (d.state==="RUNNING" ? "Swelling with the mist" : "Soft breath");
+
+  // Link toggle reflects the live cfg flag (mistLedLinked may be 1 or 0).
+  if(d.mistLedLinked != null){
+    const linked = !!d.mistLedLinked;
+    const lb = $("bLink");
+    lb.classList.toggle("linked", linked);
+    lb.querySelector(".link-label").textContent = linked ? "Linked" : "Unlinked";
+    lb.title = linked
+      ? "Mist and LED levels move together — click to unlink"
+      : "Mist and LED are independent — click to link";
+  }
 
   // Container detection source segmented control (lastCfg may have arrived already)
   const useSense = !!(lastCfg && lastCfg.senseUseAsReed);
@@ -574,7 +620,7 @@ async function postJson(path, body){
   return r.json().catch(()=>({}));
 }
 
-function bindLevelSlider(id, kind){
+function bindLevelSlider(id, kind, endpoint){
   const el=$(id);
   // Mark dragging on pointerdown (covers mouse + touch); clear on pointerup
   // BEFORE the async POST runs, so a slow fetch doesn't widen the suppression
@@ -583,12 +629,27 @@ function bindLevelSlider(id, kind){
   el.addEventListener("pointerdown",()=>{ dragging=kind; });
   el.addEventListener("pointerup",  ()=>{ dragging=null; });
   el.addEventListener("change",async()=>{
-    try{ await postJson("/api/cmd/level",{value:levelFromPct(+el.value)}); }
+    try{ await postJson(endpoint,{value:levelFromPct(+el.value)}); }
     catch(e){ toast("Level: "+e.message,"err"); }
   });
 }
-bindLevelSlider("mistSlider","mist");
-bindLevelSlider("waveSlider","wave");
+// Mist slider → mist level. Wave slider → LED level (firmware mirrors back
+// to mist in linked mode, so dragging either slider keeps them aligned).
+bindLevelSlider("mistSlider","mist","/api/cmd/level");
+bindLevelSlider("waveSlider","wave","/api/cmd/led-level");
+
+// Link/unlink toggle — flips cfg.mistLedLinked. Sends 0/1 to match the
+// rest of the API's integer-boolean convention (the server's jsonGetLong
+// helper doesn't parse true/false). Firmware snaps the LED level to mist
+// on re-link so the two start aligned.
+$("bLink").addEventListener("click",async()=>{
+  if(!ensureAdmin()) return;
+  const currentlyLinked = $("bLink").classList.contains("linked");
+  try{
+    await postJson("/api/cmd/link",{linked: currentlyLinked ? 0 : 1});
+    toast(currentlyLinked ? "Mist and LED unlinked" : "Mist and LED linked","ok");
+  }catch(e){ toast("Could not toggle link: "+e.message,"err"); }
+});
 
 $("swMist").addEventListener("click",async()=>{
   const wantOn = !$("swMist").classList.contains("on");

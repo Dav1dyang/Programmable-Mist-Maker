@@ -26,6 +26,7 @@ static constexpr const char* KEY_SNS_WCI  = "snsWci";   // water check interval 
 static constexpr const char* KEY_SNS_WS   = "snsWs";    // water shutdown timeout (s)
 static constexpr const char* KEY_SNS_UAR  = "snsUar";   // useAsReed bool
 static constexpr const char* KEY_SNS_API  = "snsApi";   // auto-probe interval (s)
+static constexpr const char* KEY_MLLINK   = "mlLink";   // mist+LED levels linked bool
 
 Config cfg;
 
@@ -94,6 +95,7 @@ void configResetDefaults() {
   cfg.senseWaterShutdownS        = CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S;
   cfg.senseUseAsReed             = CFG_DEFAULT_SENSE_USE_AS_REED;
   cfg.senseAutoProbeIntervalS    = CFG_DEFAULT_SENSE_AUTO_PROBE_INTERVAL_S;
+  cfg.mistLedLinked              = CFG_DEFAULT_MIST_LED_LINKED;
   // Identity + secrets default to empty — first-boot setup populates them.
   strncpy(cfg.hostname, "mistmaker", CFG_HOSTNAME_MAX);
   cfg.hostname[CFG_HOSTNAME_MAX] = '\0';
@@ -220,6 +222,7 @@ void configInit() {
   cfg.senseWaterShutdownS      = p.getUShort(KEY_SNS_WS,  CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S);
   cfg.senseUseAsReed           = p.getBool  (KEY_SNS_UAR, CFG_DEFAULT_SENSE_USE_AS_REED);
   cfg.senseAutoProbeIntervalS  = p.getUShort(KEY_SNS_API, CFG_DEFAULT_SENSE_AUTO_PROBE_INTERVAL_S);
+  cfg.mistLedLinked            = p.getBool  (KEY_MLLINK,  CFG_DEFAULT_MIST_LED_LINKED);
 
   p.end();
 }
@@ -245,6 +248,7 @@ bool configSave() {
   p.putUShort(KEY_SNS_WS,  cfg.senseWaterShutdownS);
   p.putBool  (KEY_SNS_UAR, cfg.senseUseAsReed);
   p.putUShort(KEY_SNS_API, cfg.senseAutoProbeIntervalS);
+  p.putBool  (KEY_MLLINK,  cfg.mistLedLinked);
   p.end();
   if (put != sizeof(blob)) {
     Serial.printf("[CFG] save failed: wrote %u / %u bytes\n",
@@ -361,6 +365,7 @@ bool configSetField(const char* name, long value) {
   SET_U16(senseWaterShutdownS,       "senseWaterShutdownS",       30, 7200);
   SET_U8 (senseUseAsReed,            "senseUseAsReed",            0, 1);
   SET_U16(senseAutoProbeIntervalS,   "senseAutoProbeIntervalS",   1, 3600);
+  SET_U8 (mistLedLinked,             "mistLedLinked",             0, 1);
   return false;  // unknown name
 }
 
@@ -417,6 +422,7 @@ size_t configToJson(char* out, size_t cap) {
   APPEND("\"senseWaterShutdownS\":%u,",      cfg.senseWaterShutdownS);
   APPEND("\"senseUseAsReed\":%u,",           cfg.senseUseAsReed ? 1 : 0);
   APPEND("\"senseAutoProbeIntervalS\":%u,",  cfg.senseAutoProbeIntervalS);
+  APPEND("\"mistLedLinked\":%u,",            cfg.mistLedLinked ? 1 : 0);
   APPEND("\"hostname\":\"%s\"",          cfg.hostname);
   APPEND("}");
   return n;

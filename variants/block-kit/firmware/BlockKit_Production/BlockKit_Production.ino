@@ -57,16 +57,26 @@ void webInit(); void webHandle();
 // State accessors used by the web server module:
 AppState  appCurrentState();
 uint8_t   appUserLevel();
+uint8_t   appUserLedLevel();
 uint8_t   appCurrentLevel();
 bool      appLedsHidden();
 void      appToggleLedsHidden();
 void      appKickLedWalk();
+void      appSetLedLevel(uint8_t level);
+void      appSetMistLedLinked(bool linked);
 
 // ---- App-level state ----
 static AppState g_state             = AppState::IDLE;  // boot default = soft breath
 static uint8_t  g_userLevel         = CFG_DEFAULT_LEVEL_DEFAULT;  // overwritten from cfg in setup()
-static uint8_t  g_targetLevel       = 0;    // state-driven target for the smoother
-static uint8_t  g_currentLevel      = 0;    // smoothed level applied to mist+LEDs
+static uint8_t  g_targetLevel       = 0;    // state-driven target for the mist smoother
+static uint8_t  g_currentLevel      = 0;    // smoothed mist drive level
+// Parallel pair for the LED strip: when cfg.mistLedLinked the user-level
+// setter mirrors mist→LED automatically, so legacy single-knob behaviour is
+// preserved. When unlinked, the wave-slider on the web UI drives userLedLevel
+// independently and the LED brightness rides its own smoother.
+static uint8_t  g_userLedLevel      = CFG_DEFAULT_LEVEL_DEFAULT;
+static uint8_t  g_targetLedLevel    = 0;
+static uint8_t  g_currentLedLevel   = 0;
 static int8_t   g_levelAdjustDir    = -1;   // -1 = next long-press dims, +1 = brightens
 static uint32_t g_lastSmoothMs      = 0;
 static uint32_t g_lastRampMs        = 0;
@@ -170,7 +180,8 @@ static void enterIdle() {
   if (g_state == AppState::IDLE) return;
   const bool leavingMist = mistMayBeActive(g_state);
   g_state = AppState::IDLE;
-  g_targetLevel = g_userLevel;
+  g_targetLevel    = g_userLevel;
+  g_targetLedLevel = g_userLedLevel;
   g_fastLevelUp = false;            // slow restore — see comment at top of enterIdle()
   // BREATH triggers the WAVE→BREATH crossfade in led_driver when coming
   // from RUNNING / TRANSITION. led_driver collapses no-op mode changes
@@ -183,7 +194,8 @@ static void enterIdle() {
 static void enterRunning() {
   if (g_state == AppState::RUNNING) return;
   g_state = AppState::RUNNING;
-  g_targetLevel = g_userLevel;
+  g_targetLevel    = g_userLevel;
+  g_targetLedLevel = g_userLedLevel;
   // Mode flip directly to WAVE — led_driver runs an automatic 1.1 s
   // crossfade from whatever the previous mode was (BREATH in idle, or
   // WAVE-still-fading if we re-dock mid-transition). The old design used a
@@ -199,7 +211,8 @@ static void enterRunning() {
 static void enterTransitionFromRunning() {
   if (g_state == AppState::TRANSITION_FROM_RUNNING) return;
   g_state = AppState::TRANSITION_FROM_RUNNING;
-  g_targetLevel = 0;
+  g_targetLevel    = 0;
+  g_targetLedLevel = 0;
   // Mode STAYS as WAVE — the wave naturally dims to black as baseLevel
   // ramps 255→0 (it scales the whole render uniformly). When the smoother
   // lands at 0 it auto-enters IDLE which kicks off the WAVE→BREATH
@@ -272,9 +285,16 @@ static void smoothLevel() {
   g_lastSmoothMs = now;
 
   const uint8_t stepUp = g_fastLevelUp ? cfg.levelSmoothStepUpFast : cfg.levelSmoothStepUp;
-  g_currentLevel = rampToward(g_currentLevel, g_targetLevel, stepUp, cfg.levelSmoothStepDn);
+  g_currentLevel    = rampToward(g_currentLevel,    g_targetLevel,    stepUp, cfg.levelSmoothStepDn);
+  g_currentLedLevel = rampToward(g_currentLedLevel, g_targetLedLevel, stepUp, cfg.levelSmoothStepDn);
 
   if (g_currentLevel != g_targetLevel) return;
+  // In unlinked mode the LED may still be ramping when the mist hits 0
+  // (mist target is lower than LED target during normal use, but on lift
+  // both targets go to 0 — and if LED was higher it has further to fall).
+  // Wait for BOTH smoothers before declaring the transition complete so
+  // the wave fully fades to black before BREATH crossfade kicks in.
+  if (g_currentLedLevel != g_targetLedLevel) return;
   g_fastLevelUp = false;
   if (g_state == AppState::TRANSITION_FROM_RUNNING && g_targetLevel == 0) {
     enterIdle();
@@ -309,6 +329,11 @@ static void rampLevel() {
   g_userLevel = uint8_t(v);
 
   g_targetLevel = g_userLevel;
+  // Hardware long-press always affects mist; mirror to LED only when linked.
+  if (cfg.mistLedLinked) {
+    g_userLedLevel   = g_userLevel;
+    g_targetLedLevel = g_targetLevel;
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -358,11 +383,13 @@ static void handleCommand(const char* cmd, uint8_t len) {
       const long v = parseNumberArg(cmd, len);
       if (v < 0 || v > 255) { Serial.println("[CMD] v: 0..255"); return; }
       g_userLevel = uint8_t(v);
+      if (cfg.mistLedLinked) g_userLedLevel = g_userLevel;
       // IDLE and RUNNING both follow user level live; TRANSITION_FROM_RUNNING
       // is fading to 0 and overriding target would interrupt the cinematic.
       const bool applyNow = g_state != AppState::TRANSITION_FROM_RUNNING;
       if (applyNow) {
         g_targetLevel = g_userLevel;
+        if (cfg.mistLedLinked) g_targetLedLevel = g_userLedLevel;
         Serial.print("[APP] user level=");
         Serial.println(v);
       } else {
@@ -493,6 +520,7 @@ static void statusTick() {
 // ----------------------------------------------------------------------
 AppState appCurrentState()    { return g_state; }
 uint8_t  appUserLevel()       { return g_userLevel; }
+uint8_t  appUserLedLevel()    { return g_userLedLevel; }
 uint8_t  appCurrentLevel()    { return g_currentLevel; }
 bool     appLedsHidden()      { return g_ledsHidden; }
 
@@ -507,10 +535,38 @@ int8_t  appStatusLedOverride()            { return g_statusLedOverride; }
 
 // Live user-level setter — mirrors the serial 'v' command. Skips applying
 // during TRANSITION_FROM_RUNNING so the fade-out cinematic isn't interrupted.
+// When mist+LED are linked (default), also mirrors to userLedLevel so the
+// LED follows. In unlinked mode the wave slider drives the LED separately
+// via appSetLedLevel().
 void appSetLevel(uint8_t level) {
   g_userLevel = level;
+  if (cfg.mistLedLinked) g_userLedLevel = level;
   if (g_state != AppState::TRANSITION_FROM_RUNNING) {
     g_targetLevel = g_userLevel;
+    if (cfg.mistLedLinked) g_targetLedLevel = g_userLedLevel;
+  }
+}
+
+// LED-only level setter — used in unlinked mode by the wave slider. In
+// linked mode mirrors to userLevel so dragging either slider keeps both in
+// lockstep.
+void appSetLedLevel(uint8_t level) {
+  g_userLedLevel = level;
+  if (cfg.mistLedLinked) g_userLevel = level;
+  if (g_state != AppState::TRANSITION_FROM_RUNNING) {
+    g_targetLedLevel = g_userLedLevel;
+    if (cfg.mistLedLinked) g_targetLevel = g_userLevel;
+  }
+}
+
+// Toggle whether mist and LED levels move together. When (re)linking, snap
+// the LED to match the mist so the two start aligned — otherwise the wave
+// tile would visibly jump on the next slider drag.
+void appSetMistLedLinked(bool linked) {
+  cfg.mistLedLinked = linked;
+  if (linked) {
+    g_userLedLevel = g_userLevel;
+    if (g_state != AppState::TRANSITION_FROM_RUNNING) g_targetLedLevel = g_userLedLevel;
   }
 }
 
@@ -558,7 +614,8 @@ void setup() {
 
   // Load NVS-backed config (or firmware defaults on first boot).
   configInit();
-  g_userLevel = cfg.levelDefault;
+  g_userLevel    = cfg.levelDefault;
+  g_userLedLevel = cfg.levelDefault;   // boot linked unless config has a separate save (TBD)
 
   Wire.begin();
 
@@ -580,7 +637,8 @@ void setup() {
   // Boot lands in IDLE (default soft breath). If a container is already
   // docked at power-on, the first containerPoll() will edge-trigger
   // Inserted after the 500 ms safety dwell and we'll head into RUNNING.
-  g_targetLevel = g_userLevel;
+  g_targetLevel    = g_userLevel;
+  g_targetLedLevel = g_userLedLevel;
   ledSetMode(LedMode::BREATH);
   Serial.println("[APP] state=IDLE (boot, LEDs visible)");
   printHelp();
@@ -609,8 +667,12 @@ void loop() {
   // LEDs: scaled by g_ledScale (the short-press hide/show fade) so the
   // strip can be blanked without touching mist.
   mistApply(mistOutLevel(now));
+  // LEDs ride their own smoothed level (g_currentLedLevel) so the wave
+  // slider in unlinked mode can dim the visuals without touching the mist.
+  // In linked mode appSetLevel() keeps userLedLevel in lockstep with
+  // userLevel, so behaviour is identical to the pre-link era.
   const uint8_t ledBase =
-      uint8_t((uint16_t(g_currentLevel) * uint16_t(g_ledScale)) >> 8);
+      uint8_t((uint16_t(g_currentLedLevel) * uint16_t(g_ledScale)) >> 8);
   ledRender(ledBase);
 
   // Input edges + diagnostics
