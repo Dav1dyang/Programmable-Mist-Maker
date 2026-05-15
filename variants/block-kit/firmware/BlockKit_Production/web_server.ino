@@ -13,6 +13,7 @@
 //                                  return recorded mA + recommended low threshold
 //   POST /api/cmd/level     set runtime userLevel; body = {"value":0..255}
 //   POST /api/cmd/led-level set LED-only level (unlinked mode); body same
+//   POST /api/cmd/wave-period live wave-period set; body = {"ms":N} or {"bpm":N}
 //   POST /api/cmd/link      set mist+LED link mode; body = {"linked":true|false}
 //   POST /api/cmd/state     force state idle/running; body = {"state":"..."}
 //   POST /api/cmd/statled   override indicator LED; body = {"mode":"auto|on|off"}
@@ -54,6 +55,7 @@ extern void     wifiForgetAndReboot();
 extern bool     wifiIsSetupMode();
 extern size_t   logSnapshot(char*, size_t);
 extern Config   cfg;   // defined in config.ino
+extern uint16_t g_liveWavePeriodMs;   // defined in led_driver.ino; 0 = use cfg.wavePeriodMs
 
 static WebServer  g_http(80);
 
@@ -153,6 +155,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     "\"userLevel\":%u,"
     "\"userLedLevel\":%u,"
     "\"mistLedLinked\":%u,"
+    "\"wavePeriodMs\":%u,"
     "\"currentLevel\":%u,"
     "\"meanMa\":%.1f,"
     "\"varMa2\":%.1f,"
@@ -174,6 +177,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     appUserLevel(),
     appUserLedLevel(),
     cfg.mistLedLinked ? 1 : 0,
+    g_liveWavePeriodMs ? g_liveWavePeriodMs : cfg.wavePeriodMs,
     appCurrentLevel(),
     currentMeanMa(),
     currentVarMa2(),
@@ -389,6 +393,36 @@ static void handleCmdLedLevel() {
   g_http.send(200, "application/json", "{\"ok\":true}");
 }
 
+// Live wave-period set — for a streaming companion (e.g. an mmWave breathing
+// sensor) that wants the LED wave + mist modulation to breathe at the user's
+// actual respiratory rate. Body: {"ms": 500..60000} OR {"bpm": 1..120}.
+// RAM only — does NOT call configSave(), so high-frequency updates won't
+// chew through NVS flash cycles. Reboot reverts to the persisted default
+// (set once via POST /api/config if you want a different baseline).
+static void handleCmdWavePeriod() {
+  if (!requireAuth()) return;
+  const String body = g_http.arg("plain");
+  long ms = 0, bpm = 0;
+  if (jsonGetLong(body, "ms", ms)) {
+    if (ms < 500 || ms > 60000) {
+      g_http.send(400, "application/json", "{\"error\":\"ms must be 500..60000\"}");
+      return;
+    }
+  } else if (jsonGetLong(body, "bpm", bpm)) {
+    if (bpm < 1 || bpm > 120) {
+      g_http.send(400, "application/json", "{\"error\":\"bpm must be 1..120\"}");
+      return;
+    }
+    ms = 60000L / bpm;
+  } else {
+    g_http.send(400, "application/json", "{\"error\":\"need 'ms' or 'bpm'\"}");
+    return;
+  }
+  g_liveWavePeriodMs = uint16_t(ms);
+  Serial.printf("[WEB] wavePeriodMs=%ld (live override)\n", ms);
+  g_http.send(200, "application/json", "{\"ok\":true}");
+}
+
 // Toggle the mist+LED link mode. Body: {"linked": true|false}. Persists to
 // NVS so the user's preference survives reboot.
 static void handleCmdLink() {
@@ -565,6 +599,7 @@ void webInit() {
   g_http.on("/api/cmd/calibrate-water", HTTP_POST, handleCmdCalibrateWater);
   g_http.on("/api/cmd/level",       HTTP_POST, handleCmdLevel);
   g_http.on("/api/cmd/led-level",   HTTP_POST, handleCmdLedLevel);
+  g_http.on("/api/cmd/wave-period", HTTP_POST, handleCmdWavePeriod);
   g_http.on("/api/cmd/link",        HTTP_POST, handleCmdLink);
   g_http.on("/api/cmd/state",       HTTP_POST, handleCmdState);
   g_http.on("/api/cmd/statled",     HTTP_POST, handleCmdStatLed);
