@@ -403,15 +403,19 @@ static void handleCmdWavePeriod() {
   if (!requireAuth()) return;
   const String body = g_http.arg("plain");
   long ms = 0, bpm = 0;
-  if (!jsonGetLong(body, "ms", ms)) {
-    if (!jsonGetLong(body, "bpm", bpm) || bpm <= 0) {
-      g_http.send(400, "application/json", "{\"error\":\"need 'ms' or 'bpm'\"}");
+  if (jsonGetLong(body, "ms", ms)) {
+    if (ms < 500 || ms > 60000) {
+      g_http.send(400, "application/json", "{\"error\":\"ms must be 500..60000\"}");
+      return;
+    }
+  } else if (jsonGetLong(body, "bpm", bpm)) {
+    if (bpm < 1 || bpm > 120) {
+      g_http.send(400, "application/json", "{\"error\":\"bpm must be 1..120\"}");
       return;
     }
     ms = 60000L / bpm;
-  }
-  if (ms < 500 || ms > 60000) {
-    g_http.send(400, "application/json", "{\"error\":\"ms must be 500..60000\"}");
+  } else {
+    g_http.send(400, "application/json", "{\"error\":\"need 'ms' or 'bpm'\"}");
     return;
   }
   g_liveWavePeriodMs = uint16_t(ms);
