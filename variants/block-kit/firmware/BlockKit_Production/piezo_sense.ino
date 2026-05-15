@@ -14,6 +14,7 @@ extern bool mistIsInhibited();
 extern bool mistIsRunning();
 extern void mistBoostOnForProbe();
 extern void mistBoostOffForProbe();
+extern uint8_t waveIntensityAtPiezo(uint32_t now);
 
 static PiezoState g_piezoState     = PiezoState::UNKNOWN;
 static float      g_lastProbeMa    = 0.0f;
@@ -108,16 +109,35 @@ void piezoSensePeriodicWaterCheck() {
 // Fast disc-presence check during RUNNING — only relevant when senseUseAsReed
 // is enabled, since reed-removal events are ignored in that mode. Probes at
 // PWM=10 every senseAutoProbeIntervalS; below threshold → DISC_DISCONNECTED.
-// The main loop catches the state change and fades out. Less visible than the
-// water probe (PWM=10 vs 64) and much faster cadence than 60 s water checks.
+//
+// To keep the 5 s cadence but hide the visible mist dip + LED freeze, the
+// probe is "armed" on each interval and then deferred until the wave's
+// natural trough (gauss at piezo ≈ 0) — that's already the dimmest moment,
+// so dropping PWM to 10 for 20 ms there is almost imperceptible. Bounded by
+// a 2 s timeout so the cadence doesn't drift if a trough is slow to arrive.
 void piezoSensePeriodicDiscCheck() {
   static uint32_t lastTickMs = 0;
+  static uint32_t armedAtMs  = 0;   // 0 = not armed
   const uint32_t now = millis();
   if (lastTickMs == 0) { lastTickMs = now; return; }
-  if (now - lastTickMs < uint32_t(cfg.senseAutoProbeIntervalS) * 1000u) return;
-  lastTickMs = now;
-  if (!mistIsRunning()) return;   // mist paused — no meaningful read available
-  const float ma = probeAtDuty(cfg.senseProbeDuty, 30, 30);
+  if (now - lastTickMs >= uint32_t(cfg.senseAutoProbeIntervalS) * 1000u) {
+    lastTickMs = now;
+    armedAtMs = now;                // arm — actual probe waits for trough
+  }
+  if (armedAtMs == 0) return;
+  if (!mistIsRunning()) { armedAtMs = 0; return; }
+
+  // Threshold ≈ bottom 10% of the gauss range. Most of each wave cycle is
+  // below this, so we almost always probe in-trough within the 2 s budget.
+  const uint8_t gauss = waveIntensityAtPiezo(now);
+  if (gauss > 24 && (now - armedAtMs) < 2000u) return;
+  armedAtMs = 0;
+
+  // Shorter probe (20 ms total) than the IDLE-mode auto-probe: the boost
+  // rail is already engaged and steady, so 10 ms is plenty of settle for
+  // a PWM duty change at 108.7 kHz. 10 ms of sampling at the ESP32-C6 ADC
+  // rate is still ~3000 samples — overkill for a stable mean.
+  const float ma = probeAtDuty(cfg.senseProbeDuty, 10, 10);
   const float thresh = float(cfg.senseDiscPresentMa10x) / 10.0f;
   g_lastProbeMa = ma;
   Serial.printf("[SENSE] removal-check: %.1f mA (thresh %.1f)\n", ma, thresh);
