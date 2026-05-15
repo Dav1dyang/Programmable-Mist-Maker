@@ -8,6 +8,13 @@
 #include "pins.h"
 #include "config.h"
 
+// Live wave-period override pushed by streaming companions (e.g. an mmWave
+// breathing sensor) via POST /api/cmd/wave-period. 0 means "no override —
+// use the NVS-persisted cfg.wavePeriodMs". Kept OUT of the Config struct
+// on purpose so the next configSave() can't accidentally bake a transient
+// sensor reading into NVS. Cleared on reboot.
+uint16_t g_liveWavePeriodMs = 0;
+
 // LUT size — 64-entry lookup tables (one inhale/exhale cycle for breath,
 // 0..4σ for gauss). Size is a power of 2 so we can mask instead of mod.
 constexpr uint8_t LUT_SIZE = 64;
@@ -194,7 +201,8 @@ static void renderBreathRaw(uint32_t now, uint8_t out[LED_COUNT]) {
 static inline int32_t waveCenterYQ8(uint32_t now) {
   const int32_t spanQ8 = int32_t(LED_COUNT) * 256
                         + int32_t(WAVE_TRAVEL_PAD_Q8) * 2;
-  const uint16_t period = cfg.wavePeriodMs ? cfg.wavePeriodMs : 1;
+  const uint16_t baseline = cfg.wavePeriodMs ? cfg.wavePeriodMs : 1;
+  const uint16_t period   = g_liveWavePeriodMs ? g_liveWavePeriodMs : baseline;
   const uint32_t t = uint32_t(now) % period;
   return int32_t(LED_COUNT) * 256 + int32_t(WAVE_TRAVEL_PAD_Q8)
        - int32_t((uint64_t(spanQ8) * t) / period);

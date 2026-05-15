@@ -55,6 +55,7 @@ extern void     wifiForgetAndReboot();
 extern bool     wifiIsSetupMode();
 extern size_t   logSnapshot(char*, size_t);
 extern Config   cfg;   // defined in config.ino
+extern uint16_t g_liveWavePeriodMs;   // defined in led_driver.ino; 0 = use cfg.wavePeriodMs
 
 static WebServer  g_http(80);
 
@@ -176,7 +177,7 @@ static size_t buildStatusJson(char* out, size_t cap) {
     appUserLevel(),
     appUserLedLevel(),
     cfg.mistLedLinked ? 1 : 0,
-    cfg.wavePeriodMs,
+    g_liveWavePeriodMs ? g_liveWavePeriodMs : cfg.wavePeriodMs,
     appCurrentLevel(),
     currentMeanMa(),
     currentVarMa2(),
@@ -413,8 +414,8 @@ static void handleCmdWavePeriod() {
     g_http.send(400, "application/json", "{\"error\":\"ms must be 500..60000\"}");
     return;
   }
-  cfg.wavePeriodMs = uint16_t(ms);
-  Serial.printf("[WEB] wavePeriodMs=%ld (live)\n", ms);
+  g_liveWavePeriodMs = uint16_t(ms);
+  Serial.printf("[WEB] wavePeriodMs=%ld (live override)\n", ms);
   g_http.send(200, "application/json", "{\"ok\":true}");
 }
 
