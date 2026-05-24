@@ -226,6 +226,13 @@ static void awaitDemoTapAtBoot() {
       if (++taps >= DEMO_TOGGLE_TAPS) {
         Serial.println("[APP] boot-tap detected — entering demo mode, rebooting");
         Serial.flush();
+        // Mirror the safety pattern from toggleDemoMode(): cut mist + boost
+        // rail before restart so a future change in setup() init order can
+        // never leave the piezo driving across the reboot. Today mistInit()
+        // has already run and the rail is LOW; these calls are belt-and-
+        // braces for whoever rearranges setup() next.
+        mistHardStop();
+        digitalWrite(PIN_BOOST_EN, LOW);
         configSetDemoMode(true);
         clearFactoryTapCounter();
         statusLedFlash(/*enteringDemo=*/true);
@@ -235,6 +242,15 @@ static void awaitDemoTapAtBoot() {
     delay(2);                     // crude pacing — buttonPoll's debounce does the real work
   }
   statusLedSet(false);
+  // Drain any in-flight button activity from the window so the first runtime
+  // onButtonEvent() doesn't see a stale release as ShortPress #1 (a press
+  // started during the last ~debounce ms of the window would otherwise leak
+  // into the runtime 5-tap counter AND toggle the LED visibility once for
+  // free). Bounded wait so a user holding the button forever doesn't stall.
+  const uint32_t releaseDeadline = millis() + 500;
+  while (digitalRead(PIN_BUTTON) == HIGH && millis() < releaseDeadline) delay(2);
+  const uint32_t drainEnd = millis() + 60;     // > cfg.buttonDebounceMs default of 50
+  while (millis() < drainEnd) { buttonPoll(); delay(2); }
 }
 
 // ----------------------------------------------------------------------
