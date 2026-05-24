@@ -27,6 +27,7 @@ static constexpr const char* KEY_SNS_WS   = "snsWs";    // water shutdown timeou
 static constexpr const char* KEY_SNS_UAR  = "snsUar";   // useAsReed bool
 static constexpr const char* KEY_SNS_API  = "snsApi";   // auto-probe interval (s)
 static constexpr const char* KEY_MLLINK   = "mlLink";   // mist+LED levels linked bool
+static constexpr const char* KEY_DEMO     = "demoOn";   // demo-mode flag (WiFi/OTA/web off)
 
 Config cfg;
 
@@ -290,6 +291,28 @@ bool configCheckAdminPassword(const char* pwd) {
   char hex[CFG_SHA256_HEX_LEN + 1];
   configSha256Hex(pwd, strlen(pwd), hex);
   return strcmp(hex, cfg.adminPasswordHash) == 0;
+}
+
+// --------------------------------------------------------------------------
+// Demo mode flag — standalone NVS key (not part of CfgBlob) so the gesture
+// toggle path doesn't need to re-serialize every other tunable, and so a
+// blob version bump can never reset it.
+// --------------------------------------------------------------------------
+
+bool configIsDemoMode() {
+  Preferences p;
+  if (!p.begin(NS, /*readOnly=*/true)) return false;
+  const bool on = p.getBool(KEY_DEMO, false);
+  p.end();
+  return on;
+}
+
+bool configSetDemoMode(bool on) {
+  Preferences p;
+  if (!p.begin(NS, /*readOnly=*/false)) return false;
+  p.putBool(KEY_DEMO, on);
+  p.end();
+  return true;
 }
 
 bool configSetOtaPassword(const char* pwd) {

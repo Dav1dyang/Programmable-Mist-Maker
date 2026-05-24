@@ -130,3 +130,12 @@ bool configSetHostname(const char* name);
 
 // Convenience: SHA-256 → 64-char lowercase hex.
 void configSha256Hex(const char* in, size_t inLen, char outHex[CFG_SHA256_HEX_LEN + 1]);
+
+// Demo mode: when true the firmware skips WiFi/OTA/web at boot and runs
+// fully offline with current-sense as the dock trigger. Lives in its own
+// NVS key (outside CfgBlob) so it survives schema bumps and so a corrupted
+// blob can't accidentally toggle it. Toggled at runtime by the 5-tap
+// gesture in onButtonEvent(); persists across power cycles. Erased by the
+// factory-reset flow (nvs_flash_erase wipes the whole partition).
+bool configIsDemoMode();
+bool configSetDemoMode(bool on);

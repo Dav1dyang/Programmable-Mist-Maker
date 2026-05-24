@@ -163,7 +163,7 @@ constexpr uint16_t CFG_DEFAULT_SENSE_DISC_DISCONN_MID_MA10X  = 700;   // 70.0 mA
 constexpr uint8_t  CFG_DEFAULT_SENSE_WATER_HYST_MA10X        = 50;    // 5.0 mA hysteresis on recovery
 constexpr uint16_t CFG_DEFAULT_SENSE_WATER_CHECK_INTERVAL_S  = 60;    // seconds between water probes
 constexpr uint16_t CFG_DEFAULT_SENSE_WATER_SHUTDOWN_S        = 300;   // 5 min countdown before WATER_DEPLETED
-constexpr bool     CFG_DEFAULT_SENSE_USE_AS_REED             = false; // true = ignore reed switch, auto-probe instead
+constexpr bool     CFG_DEFAULT_SENSE_USE_AS_REED             = true;  // true = ignore reed switch, current-sense auto-probe is the dock trigger (default since the demo-mode work)
 constexpr uint16_t CFG_DEFAULT_SENSE_AUTO_PROBE_INTERVAL_S    = 5;     // auto-probe interval in IDLE when senseUseAsReed=true
 constexpr bool     CFG_DEFAULT_MIST_LED_LINKED                = true;  // mist + LED levels move together unless user unlinks
 
