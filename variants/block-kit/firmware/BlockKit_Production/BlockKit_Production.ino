@@ -30,7 +30,7 @@ void buttonInit();    ButtonEvent buttonPoll();
 void ledInit(); void ledRender(uint8_t); void ledAllOff(); void ledWalk();
 void ledSetMode(LedMode);
 uint8_t waveIntensityAtPiezo(uint32_t now);
-void statusLedInit(); void statusLedSet(bool);
+void statusLedInit(); void statusLedSet(bool); void statusLedFlash(bool enteringDemo);
 void currentSenseInit(); void currentSenseTick();
 void currentSenseLogPlot(uint8_t); void currentSenseToggleScope();
 void currentSenseTogglePlotMute();
@@ -96,6 +96,13 @@ static uint8_t  g_ledScale         = 255;   // smoothed: 0 (hidden) … 255 (vis
 static uint8_t  g_ledScaleTarget   = 255;   // 0 or 255, set by short-press
 static uint32_t g_lastLedScaleMs   = 0;
 
+// Demo mode — orthogonal to AppState. True = WiFi/OTA/web were skipped at
+// boot and current sense is forced as the dock trigger; the device runs
+// fully offline. Mirrors configIsDemoMode() at boot; the only thing that
+// can flip it at runtime is the 5-tap toggle, which writes NVS and reboots,
+// so this variable is read-only after setup() returns.
+static bool     g_demoMode         = false;
+
 static void enterIdle();
 static void enterRunning();
 static void enterTransitionFromRunning();
@@ -152,6 +159,28 @@ static void clearTapCounterIfStable() {
 
 // Public entry — called by /api/cmd/factory-reset.
 void appFactoryReset() { appNvsWipeAndReboot(); }
+
+// ----------------------------------------------------------------------
+// Demo-mode toggle — invoked by the 5-tap gesture in onButtonEvent().
+//
+// Flips the persisted demo flag, flashes the status LED for visual
+// confirmation, and reboots so setup() re-runs the WiFi/web init from a
+// clean slate. Going via reboot (rather than live tear-down) avoids having
+// to teach wifiInit()/webInit() how to undo themselves and re-running
+// WiFiManager's 3-minute portal block on the way back to config mode.
+// Mist + boost rail are cut first so the reboot can't leave the piezo
+// driving — same safety pattern as appNvsWipeAndReboot().
+// ----------------------------------------------------------------------
+static void toggleDemoMode() {
+  const bool enteringDemo = !g_demoMode;
+  Serial.printf("[DEMO] %s mode — rebooting\n", enteringDemo ? "entering DEMO" : "returning to CONFIG");
+  Serial.flush();
+  mistHardStop();
+  digitalWrite(PIN_BOOST_EN, LOW);
+  configSetDemoMode(enteringDemo);
+  statusLedFlash(enteringDemo);    // blocking ~600 ms (enter) or ~1000 ms (exit)
+  ESP.restart();                   // never returns
+}
 
 // ----------------------------------------------------------------------
 // State transitions
@@ -457,14 +486,31 @@ static void onContainerEvent(ContainerEvent ev) {
   }
 }
 
+// 5-tap gesture → toggle demo mode. Counter resets if the gap between two
+// consecutive short-presses exceeds DEMO_TOGGLE_GAP_MS, so casual one-off
+// LED-hide taps in normal use can't accumulate by accident. The single-press
+// LED hide/show toggle still runs on every tap — the gesture rides on top.
+static constexpr uint8_t  DEMO_TOGGLE_TAPS    = 5;
+static constexpr uint32_t DEMO_TOGGLE_GAP_MS  = 400;
+static uint8_t  g_tapCount  = 0;
+static uint32_t g_lastTapMs = 0;
+
 static void onButtonEvent(ButtonEvent ev) {
   switch (ev) {
-    case ButtonEvent::ShortPress:
+    case ButtonEvent::ShortPress: {
+      const uint32_t now = millis();
+      if (now - g_lastTapMs > DEMO_TOGGLE_GAP_MS) g_tapCount = 0;
+      g_lastTapMs = now;
+      if (++g_tapCount >= DEMO_TOGGLE_TAPS) {
+        g_tapCount = 0;
+        toggleDemoMode();           // never returns
+      }
       // Short-press toggles ONLY the LED strip visibility (smoothly faded
       // by g_ledScale). Mist stays at the user's set level — if a container
       // is docked, the diffuser keeps running while the visuals go dark.
       setLedsHidden(!g_ledsHidden);
       return;
+    }
     case ButtonEvent::LongPressStart:
       // Long-press ramps the user level in IDLE / RUNNING; the cinematic
       // dim of TRANSITION_FROM_RUNNING is left alone.
@@ -627,12 +673,25 @@ void setup() {
   containerInit();
   buttonInit();
 
-  // WiFi onboarding via WiFiManager (blocks until STA or 3 min portal timeout).
-  // During the captive portal the device stays in IDLE — the LED ring shows
-  // the normal soft breath so the user can see it's alive while joining.
-  wifiInit();
-  otaInit();
-  webInit();
+  // Demo mode: skip WiFi / OTA / web entirely and force current-sense as the
+  // dock trigger. The flag is persisted in NVS by the 5-tap gesture; another
+  // 5-tap returns the device to config mode on the next boot. This is the
+  // ONLY clean path to operate the device offline — wifiInit() otherwise
+  // blocks on WiFiManager and reboots on portal timeout, so a quiet venue
+  // with no known network would loop forever without this guard.
+  g_demoMode = configIsDemoMode();
+  if (g_demoMode) {
+    cfg.senseUseAsReed = true;       // runtime override — always current-sense in demo
+    Serial.println("[APP] DEMO MODE — WiFi/OTA/web disabled. Tap button 5× to return to config mode.");
+  } else {
+    Serial.println("[APP] CONFIG MODE — WiFi up. Tap button 5× to enter demo mode (WiFi off).");
+    // WiFi onboarding via WiFiManager (blocks until STA or 3 min portal timeout).
+    // During the captive portal the device stays in IDLE — the LED ring shows
+    // the normal soft breath so the user can see it's alive while joining.
+    wifiInit();
+    otaInit();
+    webInit();
+  }
 
   // Boot lands in IDLE (default soft breath). If a container is already
   // docked at power-on, the first containerPoll() will edge-trigger
@@ -647,9 +706,14 @@ void setup() {
 void loop() {
   // Networking handled FIRST every loop so an OTA recovery push can still
   // land even if a downstream subsystem (LED driver, smoother) misbehaves.
-  otaHandle();
-  webHandle();
-  wifiTick();
+  // Skipped entirely in demo mode — the radio was never started, the web
+  // server was never bound, so calling these would be a no-op but we save
+  // the cycles and keep the loop's intent obvious.
+  if (!g_demoMode) {
+    otaHandle();
+    webHandle();
+    wifiTick();
+  }
 
   const uint32_t now = millis();
   pollSerial();
