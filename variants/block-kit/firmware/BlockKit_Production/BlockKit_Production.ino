@@ -103,6 +103,12 @@ static uint32_t g_lastLedScaleMs   = 0;
 // so this variable is read-only after setup() returns.
 static bool     g_demoMode         = false;
 
+// 5-tap toggle gesture (shared by the boot-time window AND the runtime
+// onButtonEvent handler). Lives at the top of the file so both call sites
+// see the same constants without a forward-declaration dance.
+static constexpr uint8_t  DEMO_TOGGLE_TAPS    = 5;
+static constexpr uint32_t DEMO_TOGGLE_GAP_MS  = 400;
+
 static void enterIdle();
 static void enterRunning();
 static void enterTransitionFromRunning();
@@ -146,15 +152,23 @@ static void checkAndArmTapCounter() {
   g_tapClearAtMs = millis() + TAP_CLEAR_MS;
 }
 
-static void clearTapCounterIfStable() {
-  if (g_tapClearAtMs == 0) return;
-  if (millis() < g_tapClearAtMs) return;
+// Unconditionally clear the factory-reset tap counter. Used both by the
+// runtime "5 seconds of stable operation" path AND by any setup()-time
+// reboot path (boot-tap demo toggle) that needs to make sure its own
+// reboot is not counted as a partial boot toward the 3-tap factory wipe.
+static void clearFactoryTapCounter() {
   Preferences p;
   if (p.begin(TAP_NS, /*readOnly=*/false)) {
     p.putUChar(TAP_KEY, 0);
     p.end();
   }
   g_tapClearAtMs = 0;
+}
+
+static void clearTapCounterIfStable() {
+  if (g_tapClearAtMs == 0) return;
+  if (millis() < g_tapClearAtMs) return;
+  clearFactoryTapCounter();
 }
 
 // Public entry — called by /api/cmd/factory-reset.
@@ -178,8 +192,49 @@ static void toggleDemoMode() {
   mistHardStop();
   digitalWrite(PIN_BOOST_EN, LOW);
   configSetDemoMode(enteringDemo);
+  clearFactoryTapCounter();        // demo toggle is a deliberate reboot, not a "failed boot"
   statusLedFlash(enteringDemo);    // blocking ~600 ms (enter) or ~1000 ms (exit)
   ESP.restart();                   // never returns
+}
+
+// ----------------------------------------------------------------------
+// Boot-time demo-mode entry — the escape hatch that makes the device usable
+// offline on a fresh unit (or in a venue with no reachable WiFi). Without
+// this window, wifiInit() blocks in WiFiManager's captive portal for 3
+// minutes and then reboots, so the runtime 5-tap handler in onButtonEvent()
+// could never fire on a no-WiFi unit.
+//
+// Same gesture as runtime (5 short presses with <DEMO_TOGGLE_GAP_MS between
+// each) so users only need to remember one thing. Status LED is held at the
+// dim "waiting" level so the user has a visible cue that the window is open;
+// it goes dark when the window expires and CONFIG-mode boot continues.
+// ----------------------------------------------------------------------
+static constexpr uint32_t DEMO_BOOT_WINDOW_MS = 3000;
+
+static void awaitDemoTapAtBoot() {
+  Serial.printf("[APP] tap user button 5× within %us to enter demo mode\n",
+                (unsigned)(DEMO_BOOT_WINDOW_MS / 1000));
+  statusLedSet(true);
+  const uint32_t windowEnd = millis() + DEMO_BOOT_WINDOW_MS;
+  uint8_t  taps    = 0;
+  uint32_t lastTap = 0;
+  while (millis() < windowEnd) {
+    if (buttonPoll() == ButtonEvent::ShortPress) {
+      const uint32_t now = millis();
+      if (now - lastTap > DEMO_TOGGLE_GAP_MS) taps = 0;
+      lastTap = now;
+      if (++taps >= DEMO_TOGGLE_TAPS) {
+        Serial.println("[APP] boot-tap detected — entering demo mode, rebooting");
+        Serial.flush();
+        configSetDemoMode(true);
+        clearFactoryTapCounter();
+        statusLedFlash(/*enteringDemo=*/true);
+        ESP.restart();            // never returns
+      }
+    }
+    delay(2);                     // crude pacing — buttonPoll's debounce does the real work
+  }
+  statusLedSet(false);
 }
 
 // ----------------------------------------------------------------------
@@ -490,8 +545,8 @@ static void onContainerEvent(ContainerEvent ev) {
 // consecutive short-presses exceeds DEMO_TOGGLE_GAP_MS, so casual one-off
 // LED-hide taps in normal use can't accumulate by accident. The single-press
 // LED hide/show toggle still runs on every tap — the gesture rides on top.
-static constexpr uint8_t  DEMO_TOGGLE_TAPS    = 5;
-static constexpr uint32_t DEMO_TOGGLE_GAP_MS  = 400;
+// DEMO_TOGGLE_TAPS / DEMO_TOGGLE_GAP_MS are defined near g_demoMode at the
+// top of the file so the boot-time tap window can reuse them.
 static uint8_t  g_tapCount  = 0;
 static uint32_t g_lastTapMs = 0;
 
@@ -684,6 +739,13 @@ void setup() {
     cfg.senseUseAsReed = true;       // runtime override — always current-sense in demo
     Serial.println("[APP] DEMO MODE — WiFi/OTA/web disabled. Tap button 5× to return to config mode.");
   } else {
+    // Boot-time escape hatch — give the user a chance to enter demo mode
+    // BEFORE wifiInit() blocks on WiFiManager. Without this the runtime
+    // 5-tap handler in loop() never gets to run on a no-WiFi unit because
+    // wifiInit's portal timeout reboots the device first. If a 5-tap is
+    // detected the call below reboots and never returns; on timeout it
+    // returns and CONFIG-mode boot continues normally.
+    awaitDemoTapAtBoot();
     Serial.println("[APP] CONFIG MODE — WiFi up. Tap button 5× to enter demo mode (WiFi off).");
     // WiFi onboarding via WiFiManager (blocks until STA or 3 min portal timeout).
     // During the captive portal the device stays in IDLE — the LED ring shows
