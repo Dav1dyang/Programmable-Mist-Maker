@@ -30,13 +30,20 @@ The repository is being split into four hardware variants, each with their own P
 
 | Variant | Folder | MCU | Power | Sensing | LEDs | Status |
 |---|---|---|---|---|---|---|
-| **Xiao Extension Kit** | [`variants/xiao-extension-kit/`](variants/xiao-extension-kit/) | XIAO ESP32-C6 | USB / breadboard | — | — | planned |
-| **Battery Kit**        | [`variants/battery-kit/`](variants/battery-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | — | — | planned |
-| **Block Kit**          | [`variants/block-kit/`](variants/block-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | INA180 + reed switch | IS31FL3731 × 14 | V0.1 — Phase A firmware shipped |
-| **I2C MultiPack Kit**  | [`variants/i2c-multipack-kit/`](variants/i2c-multipack-kit/) | XIAO ESP32-C6 | TBD | — | — | planned |
+| **Xiao Extension Kit** | [`variants/xiao-extension-kit/`](variants/xiao-extension-kit/) | XIAO ESP32-C6 | USB-C | INA180 current sense | — | **V0.1 — hardware + firmware ready** |
+| **Battery Kit**        | [`variants/battery-kit/`](variants/battery-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | INA180 + battery monitor | status LED | **V0.3 — hardware + firmware ready** |
+| **Block Kit**          | [`variants/block-kit/`](variants/block-kit/) | XIAO ESP32-C6 | Li-Po + USB-C | INA180 + reed switch | IS31FL3731 × 14 | V0.1 — demoed at OHS 2026 |
+| **I2C MultiPack Kit**  | [`variants/i2c-multipack-kit/`](variants/i2c-multipack-kit/) | XIAO ESP32-C6 | TBD | — | — | in design — next up |
 | **V1.4 (legacy)**      | [`legacy/v1-4/`](legacy/v1-4/) | XIAO ESP32-C6 | USB / Li-Po | — | — | shipped, no further changes |
 
 Safety, cleaning, and known-issues notes (later in this file) apply to every variant.
+
+### New to the project? Start here
+
+1. Pick a variant above (the Extension Kit is the easiest first build) and open its README — each has a pin map, an order-ready BOM + JLCPCB files, and step-by-step build instructions.
+2. Flash the variant's **BringUp** sketch to verify your assembly feature by feature.
+3. Install the [**MistMaker Arduino library**](https://github.com/owochel/MistMaker) (v1.1+) and work through the examples: `MistBlink` → `MistDimming` → `WaterDetect` → `WiFiPhoneControl` (control it from your phone) → `HomeAssistant_MQTT`.
+4. Smart home? See [`firmware-examples/home-assistant/`](firmware-examples/home-assistant/) for a no-code ESPHome config.
 
 ## How It Works
 
@@ -115,38 +122,30 @@ When connecting the board for development or testing:
 
 ## Code & Firmware
 
-This repository includes example sketches using the MistMaker library.
+Firmware lives in two places:
 
-> 💡 **Note:** You must [install the MistMaker library](https://github.com/owochel/MistMaker/tree/main) for these examples to compile and run properly.
+**1. The [MistMaker Arduino library](https://github.com/owochel/MistMaker) (v1.1+)** — the recommended way to program any variant. One pin-preset line targets your board, and the API covers PWM dimming, current-sense disc/water detection (auto or manual calibration), and battery monitoring with graceful low-battery shutdown.
 
-### Library Example Code
+| Example (`File > Examples > MistMaker`) | Shows |
+|---|---|
+| `MistBlink` | Hello-world: 6 s ON / 3 s OFF mist cycle |
+| `MistDimming` | "Breathing" mist via `setLevel(0..255)` |
+| `WaterDetect` | Disc-presence + water-level detection with auto-calibration |
+| `WiFiPhoneControl` | Phone control (WiFi AP + web UI) + graceful low-battery power-off |
+| `HomeAssistant_MQTT` | Native Home Assistant device via MQTT Discovery |
 
-- [`SimpleControl.ino`](legacy/v1-4/example-code/WithLibrary/SimpleControl/SimpleControl.ino)  
-  A basic test sketch that uses a button to toggle the mist maker on and off.
+**2. Per-variant firmware in this repo** — each variant folder has a `BringUp` sketch (library-free, per-feature hardware verification) and, for the Block Kit, full production firmware:
 
-  Features:
-  - 108.7kHz PWM output for the mist maker
-  - Button toggle for mist on/off
-  - Serial output with status information
+- [`variants/xiao-extension-kit/firmware/ExtensionKit_BringUp/`](variants/xiao-extension-kit/firmware/ExtensionKit_BringUp/)
+- [`variants/battery-kit/firmware/BatteryKit_BringUp/`](variants/battery-kit/firmware/BatteryKit_BringUp/)
+- [`variants/block-kit/firmware/`](variants/block-kit/firmware/) (BringUp + Production with web UI/OTA)
+- [`firmware-examples/home-assistant/`](firmware-examples/home-assistant/) (ESPHome YAML — no code at all)
 
-- [`Blink.ino`](legacy/v1-4/example-code/WithLibrary/Blink/Blink.ino)  
-  A blink-style sketch that turns the mist maker on and off at a fixed 2-second interval.
+Legacy V1.4 sketches remain under [`legacy/v1-4/example-code/`](legacy/v1-4/example-code/).
 
-  Features:
-  - 108.7kHz PWM output for the mist maker
-  - Automatic on/off blinking every 2 seconds
-  - Serial output with status information
+## Enclosures
 
-### NON-Library Example Code
-
-> 💡 **Note:** You don't need the library to run the code below.
-
-* [WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino](legacy/v1-4/example-code/WithoutLibrary-108kHz_Output_3V3_XIAOC6/WithoutLibrary-108kHz_Output_3V3_XIAOC6.ino) - Basic test with button control without using the libary
-
-The example sketch provides:
-* 108.7kHz PWM output for the mist maker
-* Button toggle for mist on/off
-* Serial output with status information
+A multi-purpose, 3D-printable **demo enclosure** that fits the current kits is in progress — the goal is that you can download, print, and have a finished object the same day you solder. STLs will land in each variant's `enclosure/` folder. Until then, the legacy duck/UFO containers in [`legacy/v1-4/EnclosureDesignMaterials/`](legacy/v1-4/EnclosureDesignMaterials/) show the recycled-container approach.
 
 ## Use and Care
 
