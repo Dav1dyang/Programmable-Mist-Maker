@@ -1,0 +1,61 @@
+site_name: Programmable Mist Maker
+site_description: >-
+  Open-source, programmable ultrasonic mist maker kits — hardware, firmware,
+  and the MistMaker Arduino library. OSHWA certified US002742.
+site_url: https://dav1dyang.github.io/Programmable-Mist-Maker/
+repo_url: https://github.com/Dav1dyang/Programmable-Mist-Maker
+repo_name: Programmable-Mist-Maker
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    primary: custom
+    accent: custom
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Dav1dyang/Programmable-Mist-Maker
+    - icon: fontawesome/brands/instagram
+      link: https://www.instagram.com/dav1dyang/
+    - icon: fontawesome/solid/cart-shopping
+      link: https://shop.byproductlab.com
+
+nav:
+  - Home: index.md
+  - How It Works: how-it-works.md
+  - Boards:
+      - boards/extension-kit.md
+      - boards/battery-kit.md
+      - boards/block-kit.md
+      - boards/i2c-multipack.md
+      - boards/legacy-v1-4.md
+  - MistMaker Library: library.md
+  - Buy a Kit: https://shop.byproductlab.com
+  - Contact: contact.md
