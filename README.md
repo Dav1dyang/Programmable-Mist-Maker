@@ -110,15 +110,11 @@ More details: [Documentation Site](https://dav1dyang.github.io/Programmable-Mist
 
 ## Programming Notes
 
-### Important Note on Power Sequence and Serial Connectivity
+### Power sequence (legacy V1.4 only)
 
-When connecting the board for development or testing:
+On the **legacy V1.4 board**, always connect USB before applying battery power — if battery comes first, the serial port won't enumerate in the Arduino IDE. Standalone (no computer), either power source works alone.
 
-* Always connect the USB cable first before applying battery power
-* If battery power is connected before USB, the serial port will not be detected in the Arduino IDE
-* The proper sequence is: connect USB → establish serial connection → apply battery power (if needed)
-* Once the USB connection is established, battery power can be applied without disrupting the serial connection
-* When operating in standalone mode without a computer, either power source can be used independently
+The current kits don't have this quirk: the Battery Kit's TPS2116 power mux always prefers USB when present, so uploads work with or without a battery connected.
 
 ## Code & Firmware
 
