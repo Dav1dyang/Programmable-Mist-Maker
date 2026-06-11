@@ -1,0 +1,11 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "TPS61023DRLR") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/TPS61023DRLR") (options "") (descr ""))
+	(lib (name "XEL4030-102MEC") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/XEL4030-102MEC") (options "") (descr ""))
+	(lib (name "PH-2PWB") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/PH-2PWB") (options "") (descr ""))
+	(lib (name "FG24X7R1A106KRT06") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/FG24X7R1A106KRT06") (options "") (descr ""))
+	(lib (name "FG28X5R1E106MRT06") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/FG28X5R1E106MRT06") (options "") (descr ""))
+	(lib (name "Mist_Library") (type "KiCad") (uri "${KIPRJMOD}/Mist_Library.pretty") (options "") (descr ""))
+	(lib (name "B3F-4055") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/B3F-4055") (options "") (descr ""))
+	(lib (name "TL1105DF160Q") (type "KiCad") (uri "/Users/davidyang/Library/CloudStorage/GoogleDrive-davidyangemail@gmail.com/My Drive/5. Projects (Main)/00 Active/2024 Mist Maker/02 PCB Board Design/02 Imported Components/TL1105DF160Q") (options "") (descr ""))
+)

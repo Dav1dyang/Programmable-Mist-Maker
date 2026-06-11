@@ -1,0 +1,135 @@
+# Programmable Mist Maker — ESPHome config for Home Assistant (no code!)
+#
+# Target: Battery Kit V0.3 (XIAO ESP32-C6). For the Extension (BFF) V0.2,
+# delete the boost switch, battery sensors, and button sections.
+#
+# What you get in HA automatically (via the native API):
+#   * "Mist" — dimmable light entity (on/off + level slider)
+#   * Battery voltage + percent sensors, with graceful low-battery shutdown:
+#     below 3.2 V the mist and boost rail switch off before the pack browns out
+#   * Piezo current sensor (mA) — automate on it for water detection
+#   * On-board button toggles the mist locally
+#
+# Flash: ESPHome Builder add-on > New Device > paste this file.
+# XIAO ESP32-C6 silkscreen -> GPIO: D0=0 D1=1 D2=2 D3=21 D6=16 D7=17
+
+substitutions:
+  name: mistmaker
+  friendly_name: Mist Maker
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+api:            # Home Assistant native integration
+ota:
+  platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:           # fallback hotspot if WiFi is unreachable
+    ssid: "MistMaker Fallback"
+    password: "mistmist"
+
+captive_portal:
+
+# ---------------------------------------------------------------- mist drive
+output:
+  - platform: ledc
+    id: mist_pwm
+    pin: GPIO0            # D0 — MOSFET gate
+    frequency: 108700 Hz  # piezo disc resonance
+    max_power: 0.5        # cap at 50% duty — the disc's resonant sweet spot
+
+light:
+  - platform: monochromatic
+    id: mist
+    name: "Mist"
+    output: mist_pwm
+    default_transition_length: 500ms
+    on_turn_on:
+      - switch.turn_on: boost_rail
+    on_turn_off:
+      - switch.turn_off: boost_rail
+
+switch:
+  - platform: gpio
+    id: boost_rail
+    name: "5V Boost Rail"
+    pin: GPIO21           # D3 — TPS61023 EN
+    restore_mode: ALWAYS_OFF
+    entity_category: config
+
+# ---------------------------------------------------------------- sensing
+sensor:
+  # Piezo current via INA180A3 (100 V/V) x 30 mOhm shunt -> 3.0 V per A.
+  # Automate water alerts on this: a disc in water draws noticeably more
+  # current than a dry disc at the same mist level.
+  - platform: adc
+    pin: GPIO2            # D2 — current sense
+    id: piezo_current
+    name: "Piezo Current"
+    unit_of_measurement: "mA"
+    accuracy_decimals: 0
+    update_interval: 5s
+    attenuation: 12db
+    filters:
+      - multiply: 333.3   # V -> mA (1000 / 3.0)
+      - sliding_window_moving_average:
+          window_size: 4
+
+  # Battery voltage through the on-board divider (V0.3+): pin sees Vbatt/2.
+  - platform: adc
+    pin: GPIO1            # D1 — battery divider
+    id: batt_v
+    name: "Battery Voltage"
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    update_interval: 15s
+    attenuation: 12db
+    filters:
+      - multiply: 2.0     # divider ratio
+      - sliding_window_moving_average:
+          window_size: 4
+    on_value_range:
+      # Graceful low-battery shutdown: stop mist + boost rail BEFORE the
+      # pack sags into brown-out territory. HA shows the device going
+      # unavailable cleanly instead of crash-looping.
+      - below: 3.2
+        then:
+          - light.turn_off: mist
+          - switch.turn_off: boost_rail
+          - logger.log: "Battery critical - mist disabled"
+
+  - platform: template
+    name: "Battery"
+    unit_of_measurement: "%"
+    device_class: battery
+    update_interval: 30s
+    lambda: |-
+      float v = id(batt_v).state;
+      float pct = (v - 3.30) / (4.20 - 3.30) * 100.0;
+      return clamp(pct, 0.0f, 100.0f);
+
+# ---------------------------------------------------------------- button
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO16      # D6 — active HIGH, PCB pull-down
+      mode: INPUT
+    name: "Button"
+    filters:
+      - delayed_on: 50ms
+    on_press:
+      - light.toggle: mist
+
+status_led:
+  pin: GPIO17             # D7 — status LED

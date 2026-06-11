@@ -1,0 +1,27 @@
+name: Compile Firmware
+
+on:
+  push:
+    paths: ["variants/**/firmware/**", ".github/workflows/compile-firmware.yml"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  bringup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile BringUp sketches (XIAO ESP32-C6)
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:XIAO_ESP32C6
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          sketch-paths: |
+            - variants/xiao-extension-kit/firmware/ExtensionKit_BringUp
+            - variants/battery-kit/firmware/BatteryKit_BringUp
+            - variants/block-kit/firmware/BlockKit_BringUp
+          libraries: |
+            - name: Adafruit IS31FL3731 Library   # BlockKit_BringUp
+          enable-warnings-report: true
