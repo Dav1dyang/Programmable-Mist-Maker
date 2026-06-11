@@ -7,7 +7,7 @@
 
 This [Open Source Hardware Certified](https://certification.oshwa.org/us002742.html) ultrasonic mist maker project transforms recycled containers and a custom PCB into a small-form-factor mist device. It is a fully documented, low-cost circuit with accessible explanations of misting mechanics, design challenges, and power needs.
 
-[Full Documentation on Notion](https://dav1dyang.notion.site/programmable-mist-maker)
+[Full Documentation Site](https://dav1dyang.github.io/Programmable-Mist-Maker/)
 
 [Full Documentation on Hackster.io](https://www.hackster.io/dav1dyang/waste-into-wonder-making-programmable-mist-makers-fe3ae7)
 
@@ -56,7 +56,7 @@ Mist generation involves:
 * **PWM Switching**: An ESP32-C6 sends a 108.7 kHz PWM signal to a MOSFET.
 * **Power Supply**: TPS61023 provides stable 5V from LiPo or USB input.
 
-More details: [Notion Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
+More details: [Documentation Site](https://dav1dyang.github.io/Programmable-Mist-Maker/)
 
 ## Key Components
 ![PCB Board Components](assets/2025-05-22_V1-4_Board_Only.jpg)
@@ -173,7 +173,7 @@ Please make sure to use distilled or clean tap water in the reservoir, fully cle
 * GreatScott! Ultrasonic Mist Explanation (YouTube)
 * BigCliveDotCom Mist Maker Teardown (YouTube)
 
-Full reference list in: [Notion Documentation](https://dav1dyang.notion.site/programmable-mist-maker)
+Full reference list in: [Documentation Site](https://dav1dyang.github.io/Programmable-Mist-Maker/)
 
 ## Documentation Notes
 

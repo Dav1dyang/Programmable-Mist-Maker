@@ -105,5 +105,6 @@ MistMaker mist(MistMakerBatteryKitV03());
     the water container. For workshops in venues that restrict lithium batteries, run
     this board from USB-C only — it works fine without a cell.
 
-- Always connect USB **before** battery when developing, or the serial port may not
-  enumerate (see [programming notes](../how-it-works.md#programming-notes)).
+- Develop with the battery connected or not — the TPS2116 power mux always prefers
+  USB when it's present, so serial enumeration and uploads just work (this fixes the
+  power-sequence quirk of the [legacy V1.4 board](legacy-v1-4.md#known-quirks-fixes)).
