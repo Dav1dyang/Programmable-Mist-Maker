@@ -60,7 +60,7 @@ VBAT ─► ½ divider ─► D1 (analog)
 | AP7361C-3.3 | 3V3 LDO |
 | TPS61023 | 3V→5.5V boost for the piezo rail |
 | UCC27511A + DMT10H009LCG | Gate driver + MOSFET, 108.7 kHz switching |
-| 3-legged tapped inductor (CD75) | LC voltage boost to ~30–40 Vpp |
+| 3-legged tapped inductor (CD75) | LC voltage boost to ~80 Vpp |
 | INA180A3 + 30 mΩ shunt | Analog current sense (3.0 V/A) |
 | TS-1088 tactile switch, white LED | User button + status |
 | Qwiic / JST-SH 4-pin | I2C expansion |

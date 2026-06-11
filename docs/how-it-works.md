@@ -21,7 +21,7 @@ behavior, droplet formation, and hole geometry are beautifully illustrated in th
 [MDPI ultrasonic atomization study](https://www.mdpi.com/2076-3417/11/18/8350) that
 informed this design.
 
-## The resonant drive: 5 V in, ~30–40 Vpp out
+## The resonant drive: 5 V in, ~80 Vpp out
 
 A piezo disc is electrically a capacitor, and it wants far more voltage than a USB
 port offers. Commercial humidifiers solve this with a clever resonant circuit, which
@@ -38,7 +38,7 @@ these boards adapt:
    capacitance, forming an **LC tank** that rings at the drive frequency.
 3. The inductor is *tapped* — three legs, roughly a **28 µH : 800 µH** winding ratio —
    so it doubles as an **autotransformer**, stepping the ringing voltage up to the
-   ~30–40 Vpp the disc needs (V1.4-era boards measured as high as ~80 Vpp).
+   ~80 Vpp the disc needs (measured on the V1.4 circuit — the V0.x boards use the same drive topology).
 4. Mist strength tracks how well the drive frequency matches the disc + inductor
    resonance — which is exactly why `setLevel()` (PWM duty) modulates mist like a
    dimmer.

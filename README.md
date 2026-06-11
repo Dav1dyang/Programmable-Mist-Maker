@@ -47,7 +47,7 @@ schematics** live on the [documentation site](https://docs.byproductlab.com/).
 
 An ESP32 drives a piezo disc at its **108.7 kHz** resonance through a MOSFET and a
 3-legged tapped inductor — an autotransformer + LC tank that steps 5 V up to the
-~30–40 Vpp the disc needs, while a current-sense amp lets the firmware detect the
+~80 Vpp the disc needs, while a current-sense amp lets the firmware detect the
 disc and the water level on one ADC pin. The full story — atomization science, why
 that strange inductor is everywhere in Shenzhen and nowhere at DigiKey, and a
 verified alternative circuit — is at
