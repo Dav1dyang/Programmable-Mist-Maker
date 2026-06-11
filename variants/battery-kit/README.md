@@ -86,5 +86,5 @@ MistMaker mist(MistMakerBatteryKitV03());
 > [!WARNING]
 > Li-Po safety: only use protected 1S cells, never charge unattended, and keep the cell away from the water container. For workshops in venues that restrict lithium batteries, run this board from USB-C only — it works fine without a cell.
 
-- Always connect USB **before** battery when developing, or the serial port may not enumerate (see root README programming notes).
+- Develop with the battery connected or not — the TPS2116 power mux always prefers USB when present, so serial enumeration and uploads just work (this fixes the legacy V1.4 power-sequence quirk).
 - Safety, cleaning, and known-issues notes live in the [root README](../../README.md).
