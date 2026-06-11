@@ -26,12 +26,12 @@ Explore the actual KiCad schematic right here — scroll to zoom, drag to pan:
 ```
 XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─► 3-leg inductor ─► piezo disc
                 │         ▲ D0: 108.7 kHz PWM                     (LC resonance boosts
-                └─► 30 mΩ shunt ─► INA180A3 ─► D2 (analog)          5 V to ~30–40 Vpp)
+                └─► 30 mΩ shunt ─► INA180A3 ─► D2 (analog)          5 V to ~80 Vpp)
 ```
 
 - The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at up to 50% duty.
 - The MOSFET switches the tapped-inductor + piezo loop; LC resonance boosts the 5 V
-  rail to the ~30–40 Vpp the disc needs.
+  rail to the ~80 Vpp the disc needs (measured on the V1.4 circuit; same topology here).
 - The **INA180A3** (100 V/V) reads the voltage across a 30 mΩ shunt — 3.0 V per amp
   into D2. A dry disc draws visibly less than a wet one, which is how disc-presence
   and water-level detection work.
@@ -52,7 +52,7 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
 |---|---|
 | UCC27511A gate driver | Clean, fast MOSFET gate edges at 108.7 kHz |
 | DMT10H009LCG MOSFET | Switches the resonant loop |
-| 3-legged tapped inductor (CD75) | LC voltage boost to ~30–40 Vpp |
+| 3-legged tapped inductor (CD75) | LC voltage boost to ~80 Vpp |
 | INA180A3 + 30 mΩ shunt | Analog current sense (3.0 V/A) |
 | PH-2.0 connector | Piezo disc |
 
