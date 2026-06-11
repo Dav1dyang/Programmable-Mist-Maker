@@ -26,3 +26,7 @@ build/
 
 # Platform-specific
 Thumbs.db
+
+# MkDocs build output + CI-copied KiCanvas sources
+site/
+docs/assets/hardware/

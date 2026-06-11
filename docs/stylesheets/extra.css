@@ -1,0 +1,21 @@
+/* ByProduct Lab brand — mist blue + poster yellow (matches shop.byproductlab.com) */
+:root {
+  --md-primary-fg-color: #2596be;
+  --md-primary-fg-color--light: #3fb5d8;
+  --md-primary-fg-color--dark: #16718f;
+  --md-accent-fg-color: #c79000;
+}
+
+[data-md-color-scheme='slate'] {
+  --md-accent-fg-color: #ffc831;
+}
+
+/* KiCanvas embeds fill their card */
+kicanvas-embed {
+  display: block;
+  width: 100%;
+  height: 480px;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  margin: 1em 0;
+}

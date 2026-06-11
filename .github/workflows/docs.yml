@@ -1,0 +1,53 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+      - 'variants/**/hardware/kicad/*.kicad_sch'
+      - 'legacy/v1-4/hardware/*.kicad_sch'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install mkdocs-material
+      # KiCad sources stay single-source-of-truth in the repo; copy them into the
+      # site so KiCanvas embeds always match the docs version.
+      - name: Copy KiCad files for KiCanvas embeds
+        run: |
+          mkdir -p docs/assets/hardware
+          cp variants/xiao-extension-kit/hardware/kicad/MistMaker-Seeed-Expansion-V0.1.kicad_sch docs/assets/hardware/
+          cp variants/battery-kit/hardware/kicad/MistMaker-Battery-Kit-V0-3.kicad_sch docs/assets/hardware/
+          cp legacy/v1-4/hardware/MistMakerV1-4.kicad_sch docs/assets/hardware/
+      - run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
