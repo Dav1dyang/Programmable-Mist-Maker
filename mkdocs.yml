@@ -2,7 +2,7 @@ site_name: Programmable Mist Maker
 site_description: >-
   Open-source, programmable ultrasonic mist maker kits — hardware, firmware,
   and the MistMaker Arduino library. OSHWA certified US002742.
-site_url: https://dav1dyang.github.io/Programmable-Mist-Maker/
+site_url: https://docs.byproductlab.com/
 repo_url: https://github.com/Dav1dyang/Programmable-Mist-Maker
 repo_name: Programmable-Mist-Maker
 edit_uri: edit/main/docs/

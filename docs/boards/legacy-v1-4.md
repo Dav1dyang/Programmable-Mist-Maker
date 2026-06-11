@@ -32,6 +32,25 @@ for new builds, start with the [Extension Kit](extension-kit.md) or
 V1.4 pioneered the recycled-container approach — duck and UFO enclosure STLs live in
 [`legacy/v1-4/EnclosureDesignMaterials/`](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/legacy/v1-4/EnclosureDesignMaterials).
 
+## Known quirks & fixes
+
+These issues are specific to V1.4 and were designed away in the V0.x boards (power
+mux, dedicated boost rail, gate driver, no OTA-on-boot). If you're reproducing this
+board, the original workarounds:
+
+| Issue | Fix |
+|---|---|
+| Mist fails on battery | Bypass the XIAO's 3.3 V regulator with an external boost converter — the onboard regulator handles USB fine but not battery |
+| Uploading code fails while misting | Add a pull-down to the MOSFET gate; disable the boost converter during uploads |
+| Startup delay | Disable OTA; add a delay between enabling the TPS61023 and activating the mist PWM |
+
+!!! note "Power sequence matters (V1.4 only)"
+    When developing on this board, always connect **USB first, then battery** — if
+    battery power is applied before USB, the serial port may not enumerate in the
+    Arduino IDE. Once serial is up, battery can be connected freely. Standalone,
+    either power source works alone. (The V0.x Battery Kit's TPS2116 power mux
+    eliminates this entirely.)
+
 ## Firmware
 
 Legacy example sketches:
