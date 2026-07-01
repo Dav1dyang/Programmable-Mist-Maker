@@ -6,15 +6,21 @@
 //   1. "does the button work?"            -> press it: mist + LED toggle
 //   2. "does the boost rail come up?"     -> `t`, scope the 5 V rail or watch mist
 //   3. "is the INA180 reading anything?"  -> `c` prints one current reading
-//   4. "which source is the mux on?"      -> `u`: plug/unplug USB, watch it flip
+//   4. "is the mux ST sense alive?"       -> `u` reads USB present (D8 HIGH);
+//                                            meter TP3 for the cell/LOW case
 //   5. "does the battery divider read?"   -> `b` prints volts + validity
 //   6. "dry vs wet separation?"           -> `s` streams CSV for the Plotter
 //   7. "does dimming work?"               -> `0`..`9` sets duty
 //
 // The TPS2116 power mux (V0.4) runs the board off USB whenever it's plugged
-// in, so Vbatt only reflects true state-of-charge when on the cell. D8 (the
-// mux ST pin) tells us which: HIGH = USB, LOW = battery — so `b` and the
-// status line only classify OK/LOW/CRITICAL when actually on the cell.
+// in, so Vbatt reflects true state-of-charge only on the cell. D8 (mux ST)
+// tells us which: HIGH = USB, LOW = battery. `b`/`[STAT]` always print the
+// voltage + OK/LOW/CRITICAL tag and add "[USB - charging]" on USB (where the
+// number tracks the charger, not SoC).
+//
+// NOTE: on this board USB is the only serial link, so over the console D8
+// almost always reads HIGH (USB). To confirm the LOW/cell state, meter TP3
+// (or D8) with the cell in and USB out — you can't watch it flip over serial.
 //
 // Expected (XIAO C6, INA180A3, 30 mOhm shunt, duty 64):
 //   no disc ~0 mA · disc dry ~70-100 mA · disc in water ~130-200 mA
@@ -123,14 +129,12 @@ void loop() {
     else if (ch == 'c') { Serial.printf("[CUR] %.1f mA\n", readMa()); }
     else if (ch == 'b') {
       const float v = readBatteryVolts();
-      if (onUsbPower()) {
-        // On USB the cell is charging — the number is not a state-of-charge.
-        Serial.printf("[BATT] %.2f V (USB - charging, not SoC)\n", v);
-      } else {
-        const char* tag = v < BATT_CRITICAL_V ? "CRITICAL"
-                         : v < BATT_LOW_V     ? "LOW" : "OK";
-        Serial.printf("[BATT] %.2f V (%s)\n", v, tag);
-      }
+      const char* tag = v < BATT_CRITICAL_V ? "CRITICAL"
+                       : v < BATT_LOW_V     ? "LOW" : "OK";
+      // Always show the tag — USB is the serial link, so the bench is always on
+      // USB — and flag it: on USB the divider reads the charger, not SoC.
+      Serial.printf("[BATT] %.2f V (%s)%s\n", v, tag,
+                    onUsbPower() ? "  [USB - charging, SoC N/A]" : "");
     }
     else if (ch == 'u') {
       const bool usb = onUsbPower();
@@ -162,8 +166,7 @@ void loop() {
     g_lastStatMs = millis();
     const bool usb = onUsbPower();
     const float v  = readBatteryVolts();
-    const char* batt = usb ? "chg" : (v < BATT_CRITICAL_V ? "CRIT"
-                                     : v < BATT_LOW_V      ? "low" : "ok");
+    const char* batt = v < BATT_CRITICAL_V ? "CRIT" : v < BATT_LOW_V ? "low" : "ok";
     Serial.printf("[STAT] mist=%s duty=%u current=%.1f mA src=%s batt=%.2f V (%s)\n",
                   g_on ? "ON" : "off", g_on ? g_duty : 0,
                   readMa(20), usb ? "USB" : "BATT", v, batt);
