@@ -11,6 +11,10 @@
 //   5. "does the battery divider read?"   -> `b` prints volts + validity
 //   6. "dry vs wet separation?"           -> `s` streams CSV for the Plotter
 //   7. "does dimming work?"               -> `0`..`9` sets duty
+//   8. "does the mux hand over cleanly?"  -> cell in, mist on, unplug USB,
+//      replug, press `u`: the flip counter shows the USB->BATT->USB handoff
+//      happened, and a boot reason still reading "power-on" proves the
+//      TPS2116's ~1.3 ms break-before-make gap didn't brown out the MCU.
 //
 // The TPS2116 power mux (V0.4) runs the board off USB whenever it's plugged
 // in, so Vbatt reflects true state-of-charge only on the cell. D8 (mux ST)
@@ -31,6 +35,7 @@
 // https://github.com/owochel/MistMaker
 
 #include "pins.h"
+#include <esp_system.h>   // esp_reset_reason(): brownout vs power-on at boot
 
 static bool     g_on        = false;
 static uint8_t  g_duty      = MIST_DUTY_FULL;
@@ -40,6 +45,26 @@ static bool     g_btnRaw    = false;
 static uint32_t g_btnEdgeMs = 0;
 static uint32_t g_lastStatMs  = 0;
 static uint32_t g_lastScopeMs = 0;
+
+// Power-source handoff bookkeeping (survives USB unplug, unlike serial output):
+// the mux switches USB<->cell in ~1.3 ms with the serial link down, so we count
+// flips here and let `u` report them after the fact.
+static bool     g_lastUsb    = false;
+static uint16_t g_usbFlips   = 0;
+static uint32_t g_lastFlipMs = 0;
+
+static const char* resetReasonStr() {
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON:   return "power-on";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";   // mux handoff gap too deep
+    case ESP_RST_SW:        return "software";
+    case ESP_RST_PANIC:     return "panic";
+    case ESP_RST_DEEPSLEEP: return "deep-sleep wake";
+    case ESP_RST_WDT: case ESP_RST_INT_WDT: case ESP_RST_TASK_WDT:
+                            return "watchdog";
+    default:                return "other";
+  }
+}
 
 static inline float adcToMa(uint16_t raw) {
   const float volts = (float(raw) * 3.3f) / 4095.0f;
@@ -86,6 +111,7 @@ static void applyOutput() {
 static void printHelp() {
   Serial.println("[HELP] button or t=toggle  c=current  b=battery  u=usb/mux  s=scope");
   Serial.println("[HELP] 0..9 = duty 0..90%  h=help");
+  Serial.println("[HELP] handoff test: cell in -> unplug USB -> replug -> u");
 }
 
 void setup() {
@@ -99,6 +125,9 @@ void setup() {
   pinMode(PIN_USB_SENSE, INPUT);     // mux ST via external divider — no pull!
   pinMode(PIN_BOOST_EN, OUTPUT);
   pinMode(PIN_STATUS_LED, OUTPUT);
+  // R8 pulls EN up to the mux rail, so the ~5 V boost rail is LIVE from
+  // power-on until this line runs (the piezo stays off — R11 holds Q4's gate
+  // down). Expected if you're scoping the rail; not a fault.
   digitalWrite(PIN_BOOST_EN, LOW);
 
   ledcAttach(PIN_MIST_PWM, MIST_FREQ_HZ, MIST_PWM_RES);
@@ -107,8 +136,10 @@ void setup() {
   Serial.println("==============================================");
   Serial.println(" Battery Kit V0.4 - BringUp");
   Serial.println("==============================================");
+  Serial.printf("[BOOT] reset: %s\n", resetReasonStr());
+  g_lastUsb = onUsbPower();
   Serial.printf("[USB] boot source: %s\n",
-                onUsbPower() ? "USB (VIN1)" : "battery (VIN2)");
+                g_lastUsb ? "USB (VIN1)" : "battery (VIN2)");
   Serial.printf("[BATT] %.2f V at boot\n", readBatteryVolts());
   printHelp();
 }
@@ -120,6 +151,17 @@ void loop() {
   if (millis() - g_btnEdgeMs > BUTTON_DEBOUNCE_MS && g_btnDeb != g_btnRaw) {
     g_btnDeb = g_btnRaw;
     if (g_btnDeb) { g_on = !g_on; applyOutput(); }   // rising edge = toggle
+  }
+
+  // ---- power-source handoff counter (ST settles in us; 50 ms rate-limit) ----
+  const bool usbNow = onUsbPower();
+  if (usbNow != g_lastUsb && millis() - g_lastFlipMs > 50) {
+    g_lastUsb = usbNow;
+    g_usbFlips++;
+    g_lastFlipMs = millis();
+    // Often unseen live (unplugging USB drops serial) — `u` replays it.
+    Serial.printf("[USB] source now %s (handoff #%u)\n",
+                  usbNow ? "USB" : "BATTERY", g_usbFlips);
   }
 
   // ---- serial commands ----
@@ -142,6 +184,17 @@ void loop() {
                     usb ? "present : mux on VIN1 (USB)"
                         : "absent  : mux on VIN2 (battery)",
                     usb ? "charging / not SoC" : "a valid SoC");
+      if (g_usbFlips) {
+        Serial.printf("[USB] handoffs since boot: %u (last at %lu ms); "
+                      "boot reset was \"%s\" -> %s\n",
+                      g_usbFlips, (unsigned long)g_lastFlipMs, resetReasonStr(),
+                      esp_reset_reason() == ESP_RST_BROWNOUT
+                          ? "handoff BROWNED OUT the MCU"
+                          : "handoff survived, no reset");
+      } else {
+        Serial.println("[USB] no handoffs seen yet - with the cell in, unplug "
+                       "and replug USB, then press u again");
+      }
     }
     else if (ch == 's') { g_scope = !g_scope;
                           Serial.printf("[CUR] scope %s\n", g_scope ? "ON" : "OFF"); }
