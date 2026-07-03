@@ -33,7 +33,7 @@ these boards adapt:
 5V current ──► 30 mΩ shunt ──► INA180A3 ──► ADC pin
 ```
 
-1. The ESP32 outputs a **108.7 kHz PWM** (up to 50% duty) into a gate driver + MOSFET.
+1. The ESP32 outputs a **108.7 kHz PWM** (50% duty by default) into a gate driver + MOSFET.
 2. The MOSFET rapidly switches the tapped inductor in a loop with the disc's own
    capacitance, forming an **LC tank** that rings at the drive frequency.
 3. The inductor is *tapped* — three legs, roughly a **28 µH : 800 µH** winding ratio —
@@ -42,6 +42,15 @@ these boards adapt:
 4. Mist strength tracks how well the drive frequency matches the disc + inductor
    resonance — which is exactly why `setLevel()` (PWM duty) modulates mist like a
    dimmer.
+
+    !!! info "Why 50% duty, and where the real maximum is (measured 2026-07)"
+        Longer on-time stores more energy in the inductor, but the resonant
+        "ring-back" needs about half of each 9.2 µs cycle to swing — so past 50%
+        duty the ring gets clipped and efficiency collapses. A full 0→90% duty
+        sweep on V0.4 hardware found mist output actually **peaks near 70% duty**
+        at ~4× the input power of the 50% point, then declines and turns unstable.
+        The library defaults to the efficient 50% cap and exposes the measured
+        peak as `DUTY_TURBO` — see the [library page](library.md).
 5. As a bonus, the current flowing through a 30 mΩ shunt (read by an INA180A3,
    3.0 V/A) differs measurably between *no disc*, *dry disc*, and *disc in water* —
    one ADC pin gives disc detection and a water sensor for free.

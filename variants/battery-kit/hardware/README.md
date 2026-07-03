@@ -9,7 +9,19 @@
 
 Schematic PDF export: pending (plot from KiCad: File > Plot > PDF).
 
-## V0.3 changes
+## Version changes
+
+**V0.4** (assembled 2026-06; KiCad files pending import — this folder holds V0.3):
+
+- **TPS2116 ST (mux status) routed to XIAO D8** via an R15 pull-up + R21/R22
+  (100k/150k) divider — HIGH = on USB, LOW = on the cell. The same node drives
+  Q1 to disable the 3V3 LDO whenever USB is present, so the board LDO and the
+  XIAO's own regulator never fight. This is the hardware fix for V0.3's
+  false low-battery shutdowns on USB.
+- **Charge current 500 mA → ~200 mA** (R6 2 kΩ → 5.1 kΩ) — keeps the SOT-23-5
+  charger comfortably inside its thermal budget.
+
+**V0.3:**
 
 - **Battery voltage divider on D1** (`D1_BATT_VOLTAGE`, ratio 2.0) — enables the fuel gauge + graceful low-battery shutdown in firmware.
 

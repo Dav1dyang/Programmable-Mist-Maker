@@ -11,11 +11,18 @@
 *.swp
 *.tmp
 *.bak
+*.bak-*
 *.log
 .DS_Store
 .vscode/
 *.code-workspace
 __MACOSX/
+
+# KiCad per-user state (view settings, selection filters — no design data)
+*.kicad_prl
+
+# Claude Code worktrees (parallel checkouts — never commit)
+.claude/worktrees/
 
 # Arduino cache and temp folders
 sketchbook/
