@@ -110,7 +110,7 @@ static void applyOutput() {
 
 static void printHelp() {
   Serial.println("[HELP] button or t=toggle  c=current  b=battery  u=usb/mux  s=scope");
-  Serial.println("[HELP] 0..9 = duty 0..90%  h=help");
+  Serial.println("[HELP] 0..9 = output 0..90% of full drive (full = the 50%-duty sweet spot)");
   Serial.println("[HELP] handoff test: cell in -> unplug USB -> replug -> u");
 }
 

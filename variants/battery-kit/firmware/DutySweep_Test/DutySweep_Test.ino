@@ -46,6 +46,10 @@
   #error "Select a XIAO ESP32 board in Tools > Board."
 #endif
 
+#if defined(BOARD_BATTERY_KIT_V04) && defined(BOARD_EXTENSION_KIT_V01)
+  #error "Define exactly ONE board above (comment the other out)."
+#endif
+
 #if defined(BOARD_BATTERY_KIT_V04)
   constexpr uint8_t PIN_MIST_PWM    = D0;
   constexpr uint8_t PIN_BATT_ADC    = D1;    // cell via 10k/10k divider
@@ -104,16 +108,34 @@ static bool     g_armUPending = false;
 static bool     g_sawUsbDrop  = false;
 Preferences prefs;
 
+constexpr uint32_t SWEEP_LOG_MAGIC = 0x4D535732;  // 'MSW2' — bump on layout change
+
 struct SweepLog {                  // black box, one NVS blob
+  uint32_t magic;                  // SWEEP_LOG_MAGIC, guards stale/foreign blobs
   uint8_t  count;
-  uint8_t  done;                   // 1 = finished cleanly
+  uint8_t  done;                   // 1 = terminal state saved (completed OR controlled abort)
   uint8_t  unread;                 // 1 = not yet replayed over serial
-  uint8_t  abortReason;            // 0 ok, 1 overcurrent, 2 vbatt, 3 usb-replug
+  uint8_t  abortReason;            // 0 ok, 1 overcurrent, 2 vbatt, 3 usb-replug, 4 sensor-saturated
   uint8_t  duty[USWEEP_MAX_STEPS];
   float    ma[USWEEP_MAX_STEPS];
   float    vb[USWEEP_MAX_STEPS];
 };
 static SweepLog g_log;
+
+// Load the stored blob only if it is exactly our layout and sane — a blob from
+// an older sketch version must not partially populate g_log (count drives
+// array reads in printLogTable).
+static bool loadLog() {
+  SweepLog tmp;
+  if (prefs.getBytes("blog", &tmp, sizeof(tmp)) == sizeof(tmp) &&
+      tmp.magic == SWEEP_LOG_MAGIC && tmp.count <= USWEEP_MAX_STEPS) {
+    g_log = tmp;
+    return true;
+  }
+  memset(&g_log, 0, sizeof(g_log));
+  g_log.magic = SWEEP_LOG_MAGIC;
+  return false;
+}
 
 static float limitMa() { return LIMIT_STEPS_MA[g_limitIdx]; }
 static bool  onUsb() {                       // no mux ST pin -> assume USB
@@ -169,6 +191,7 @@ static void printLogTable(const char* header) {
   const char* why = g_log.abortReason == 1 ? "current limit (D1 rating)"
                   : g_log.abortReason == 2 ? "cell sagged (LDO dropout guard)"
                   : g_log.abortReason == 3 ? "USB replugged mid-sweep"
+                  : g_log.abortReason == 4 ? "sensor saturated (current unmeasurable = uncontrollable)"
                   : g_log.done             ? "completed full range"
                                            : "DID NOT FINISH (reset mid-sweep?)";
   Serial.printf("[LOG] end: %s\n", why);
@@ -195,6 +218,11 @@ static void sweep() {
     ran = i + 1;
     Serial.printf("[SWEEP]  %2u/%u   %3u   %5.1f%%   %6.1f mA%s\n",
                   i, SWEEP_STEPS, d, d * 100.0f / 255.0f, ma[i], satFlag(ma[i]));
+    if (ma[i] >= SENSE_SAT_MA) {
+      Serial.println("[SWEEP] current sensor SATURATED — real current is higher than");
+      Serial.println("[SWEEP] the board can measure or limit. Stopping for safety.");
+      break;
+    }
     if (ma[i] > limitMa()) {
       Serial.printf("[SWEEP] %.0f mA > %.0f mA limit — stopping. 'L' raises the limit\n"
                     "[SWEEP] (max 1200 mA = D1's rating). 'U' arms an unattended sweep\n"
@@ -222,6 +250,7 @@ static void sweep() {
 // guard picks up from that step (a V0.4 sweep can change sources mid-run).
 static void unattendedSweep(bool startedOnBattery) {
   memset(&g_log, 0, sizeof(g_log));
+  g_log.magic  = SWEEP_LOG_MAGIC;
   g_log.unread = 1;
 
   // Row 0: duty-0 baseline (resting-ish Vbatt; the sag in later rows vs this
@@ -247,7 +276,8 @@ static void unattendedSweep(bool startedOnBattery) {
     g_log.count = i + 1;
 
     const bool onCellNow = PIN_BATT_ADC >= 0 && !onUsb();
-    if      (ma > limitMa())                          g_log.abortReason = 1;
+    if      (ma >= SENSE_SAT_MA)                      g_log.abortReason = 4;
+    else if (ma > limitMa())                          g_log.abortReason = 1;
     else if (onCellNow && vb < USWEEP_MIN_VBATT)      g_log.abortReason = 2;
     else if (startedOnBattery && onUsb())             g_log.abortReason = 3;
     saveLog();                                   // step is safe in flash NOW
@@ -300,7 +330,14 @@ void setup() {
                 : rr == ESP_RST_SW      ? "software" : "other");
 
   // Armed for a sweep-on-boot ('U')? Run it now — even with no serial there.
-  if (prefs.getUChar("armU", 0)) {
+  // Exception: booting on BATTERY (a reset mid-transfer) is not the intended
+  // supply — convert to "wait for USB to arrive" instead of sweeping a
+  // surprise source.
+  if (prefs.getUChar("armU", 0) && !onUsb()) {
+    prefs.putUChar("armU", 0);
+    g_armUPending = true; g_sawUsbDrop = true;   // sweep when USB (brick) shows up
+    Serial.println("[U] armed, booted on battery — will sweep when USB power arrives.");
+  } else if (prefs.getUChar("armU", 0)) {
     prefs.putUChar("armU", 0);                   // one shot, even if we crash
     Serial.printf("[U] armed sweep: starting in %lu s (x to cancel)...\n",
                   (unsigned long)(USWEEP_BOOT_DELAY_MS / 1000));
@@ -364,7 +401,7 @@ void loop() {
       printLogTable("[LOG] ==== sweep results ====");
       if (!g_log.done)
         Serial.println("[LOG] sweep did not finish — power was lost or the board "
-                       "reset mid-sweep; the last row is the wall.");
+                       "reset mid-sweep; the wall is at or just past the last saved row.");
       g_log.unread = 0;
       saveLog();
     }
@@ -377,6 +414,7 @@ void loop() {
     else if (ch == 'B') {
       if (!onUsb()) { Serial.println("[BATT] already on battery — plug USB in, then arm."); }
       else {
+        g_armUPending = false; g_sawUsbDrop = false; prefs.putUChar("armU", 0);
         g_armedBatt = true; g_armedAtMs = millis();
         Serial.printf("[BATT] ARMED (limit %.0f mA, floor %.2f V, duty 50->90%%).\n",
                       limitMa(), USWEEP_MIN_VBATT);
@@ -386,6 +424,7 @@ void loop() {
     }
 #endif
     else if (ch == 'U') {
+      g_armedBatt = false;                       // one arm mode at a time
       prefs.putUChar("armU", 1);
       g_armUPending = true; g_sawUsbDrop = false;
       Serial.printf("[U] ARMED (limit %.0f mA, duty 50->90%%).\n", limitMa());
@@ -401,9 +440,9 @@ void loop() {
                     g_limitIdx == 2 ? "  (D1's 1 A rating — short steps only, watch L1!)" : "");
     }
     else if (ch == 'r') {                        // reprint stored table, any state
-      if (prefs.getBytes("blog", &g_log, sizeof(g_log)) == sizeof(g_log) && g_log.count)
+      if (loadLog() && g_log.count)
         printLogTable("[LOG] ==== last sweep stored in flash ====");
-      else Serial.println("[LOG] no sweep stored yet.");
+      else Serial.println("[LOG] no sweep stored yet (or stored by an older sketch version).");
     }
     else if (ch == 'x') { g_armedBatt = false; g_armUPending = false;
                           g_sawUsbDrop = false; prefs.putUChar("armU", 0); setDuty(0); }
