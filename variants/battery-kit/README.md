@@ -51,7 +51,7 @@ VBAT ─► ½ divider ─► D1 (analog)
 | AP7361C-3.3 | 3V3 LDO |
 | TPS61023 | 3V→5.5V boost for the piezo rail |
 | UCC27511A + DMT10H009LCG | Gate driver + MOSFET, 108.7 kHz switching |
-| 3-legged tapped inductor (CD75) | LC voltage boost to ~30–40 Vpp |
+| 3-legged tapped inductor (CD75) | LC voltage boost to ~80 Vpp |
 | INA180A3 + 30 mΩ shunt | Analog current sense (3.0 V/A) |
 | TS-1088 tactile switch, white LED | User button + status |
 | Qwiic / JST-SH 4-pin | I2C expansion |
@@ -86,5 +86,5 @@ MistMaker mist(MistMakerBatteryKitV03());
 > [!WARNING]
 > Li-Po safety: only use protected 1S cells, never charge unattended, and keep the cell away from the water container. For workshops in venues that restrict lithium batteries, run this board from USB-C only — it works fine without a cell.
 
-- Always connect USB **before** battery when developing, or the serial port may not enumerate (see root README programming notes).
+- Develop with the battery connected or not — the TPS2116 power mux always prefers USB when present, so serial enumeration and uploads just work (this fixes the legacy V1.4 power-sequence quirk).
 - Safety, cleaning, and known-issues notes live in the [root README](../../README.md).
