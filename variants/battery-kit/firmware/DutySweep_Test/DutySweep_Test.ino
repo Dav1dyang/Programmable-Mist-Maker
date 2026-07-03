@@ -186,10 +186,18 @@ static void sweep() {
 static void batterySweep() {
   memset(&g_log, 0, sizeof(g_log));
   g_log.unread = 1;
+
+  // Row 0: duty-0 baseline — resting-ish cell voltage. The sag from this row
+  // to the loaded rows is the cell's internal-resistance story.
+  delay(300);
+  g_log.duty[0] = 0;
+  g_log.ma[0]   = readMa(200);
+  g_log.vb[0]   = readVbatt();
+  g_log.count   = 1;
   saveLog();
 
-  for (uint8_t i = 0; i < BSWEEP_MAX_STEPS; i++) {
-    uint16_t d16 = BSWEEP_START + (uint16_t)i * BSWEEP_STEP;
+  for (uint8_t i = 1; i < BSWEEP_MAX_STEPS; i++) {
+    uint16_t d16 = BSWEEP_START + (uint16_t)(i - 1) * BSWEEP_STEP;
     const uint8_t d = d16 > DUTY_HARD_MAX ? DUTY_HARD_MAX : (uint8_t)d16;
 
     digitalWrite(PIN_BOOST_EN, HIGH);
@@ -235,6 +243,10 @@ void setup() {
   ledcWrite(PIN_MIST_PWM, 0);
 
   prefs.begin("dsweep");
+  // The current limit survives reboots — a USB-overcurrent power cycle was
+  // silently resetting it to 600 mA between an 'L L' and the next sweep.
+  g_limitIdx = prefs.getUChar("lim", 0);
+  if (g_limitIdx >= sizeof(LIMIT_STEPS_MA) / sizeof(LIMIT_STEPS_MA[0])) g_limitIdx = 0;
 
   Serial.println("==============================================");
   Serial.println(" Duty Sweep v2 - find the V0.4 board's max");
@@ -297,6 +309,7 @@ void loop() {
     }
     else if (ch == 'L') {
       g_limitIdx = (g_limitIdx + 1) % (sizeof(LIMIT_STEPS_MA) / sizeof(LIMIT_STEPS_MA[0]));
+      prefs.putUChar("lim", g_limitIdx);           // survives reboot/power-cycle
       Serial.printf("[CFG] current limit -> %.0f mA%s\n", limitMa(),
                     g_limitIdx == 2 ? "  (D1's 1 A rating — short steps only, watch L1!)" : "");
     }
