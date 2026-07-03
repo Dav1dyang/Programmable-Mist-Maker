@@ -52,14 +52,14 @@
   constexpr uint8_t PIN_CURRENT_ADC = D2;    // INA180A3 (5 V rail -> ~1.55 A range)
   constexpr int8_t  PIN_BOOST_EN    = D3;    // TPS61023 EN
   constexpr int8_t  PIN_USB_SENSE   = D8;    // TPS2116 ST: HIGH = USB
-  constexpr float   SENSE_SAT_MA    = 1550.0f;
+  constexpr float   SENSE_SAT_MA    = 1050.0f;
 #elif defined(BOARD_EXTENSION_KIT_V01)
   constexpr uint8_t PIN_MIST_PWM    = D0;
   constexpr int8_t  PIN_BATT_ADC    = -1;    // no cell
   constexpr uint8_t PIN_CURRENT_ADC = D2;    // INA180A3 (3V3 rail -> saturates ~1.05 A)
   constexpr int8_t  PIN_BOOST_EN    = -1;    // piezo rail = VBUS, always on
   constexpr int8_t  PIN_USB_SENSE   = -1;    // no mux
-  constexpr float   SENSE_SAT_MA    = 1000.0f;
+  constexpr float   SENSE_SAT_MA    = 1050.0f;
 #else
   #error "Uncomment one BOARD_* define above."
 #endif
@@ -124,7 +124,10 @@ static float readMa(uint16_t sampleMs) {
   while (millis() - t0 < sampleMs) { sum_mV += analogReadMilliVolts(PIN_CURRENT_ADC); n++; }
   return n ? (float(sum_mV) / n) / SENSE_V_PER_A : 0.0f;   // mV / (V/A) = mA
 }
-// "sat!" = at/above the sense amp's output ceiling — real current is HIGHER.
+// "sat!" = at/above the measurement ceiling — real current is HIGHER. On BOTH
+// boards the ESP32 ADC pin (~3.3 V full scale = ~1.1 A at 3.0 V/A) pins before
+// the INA180 does; bench-confirmed readings plateau at ~1100 mA while an
+// inline USB meter showed ~1.9 A of real drive current at 80-85% duty.
 static const char* satFlag(float ma) { return ma >= SENSE_SAT_MA * 0.97f ? " sat!" : ""; }
 
 static float readVbatt() {
