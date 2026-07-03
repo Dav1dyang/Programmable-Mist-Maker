@@ -1,6 +1,8 @@
-# Battery Kit — V0.3
+# Battery Kit — V0.4
 
-The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C charging, full power path, piezo drive, current sensing, a button, a status LED — and (new in V0.3) **battery voltage monitoring** so the firmware can warn you when the pack is low and power down gracefully instead of browning out mid-mist.
+The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C charging, full power path, piezo drive, current sensing, a button, a status LED — and **trustworthy battery monitoring**: V0.4 routes the power mux's status pin to the XIAO (D8), so firmware knows whether it is running from USB or the cell and low-battery logic can never false-trigger while plugged in.
+
+> The KiCad/production files in this folder are **V0.3**; V0.4 adds the ST→D8 divider (R21/R22), drops the charge current to ~200 mA (R6 = 5.1 kΩ), and is otherwise identical on D0–D7. V0.4 design files live in the project drive and are pending import here.
 
 Great for: installations, performances, kits, and anywhere without a USB cable.
 
@@ -40,7 +42,8 @@ VBAT ─► ½ divider ─► D1 (analog)
 | D4 / D5 | `D4_SDA` / `D5_SCL` | I2C + Qwiic connector |
 | D6 | `D6_BUTTON` | Button, active HIGH (10k pull-down on PCB) |
 | D7 | `D7_LED` | Status LED |
-| D8–D10 | — | Spare breakout |
+| D8 | `D8_ST` | **Power-mux status (V0.4+):** HIGH = on USB, LOW = on the cell — plain `INPUT`, no internal pull |
+| D9–D10 | — | Spare breakout |
 
 ## Key components ([full BOM](hardware/))
 
@@ -56,9 +59,9 @@ VBAT ─► ½ divider ─► D1 (analog)
 | TS-1088 tactile switch, white LED | User button + status |
 | Qwiic / JST-SH 4-pin | I2C expansion |
 
-## Battery monitoring & graceful shutdown (V0.3)
+## Battery monitoring & graceful shutdown
 
-D1 reads the pack through an equal-resistor divider (ratio 2.0). Guidance, measured under load:
+D1 reads the pack through an equal-resistor divider (ratio 2.0). On USB the node tracks the *charger*, not state-of-charge — which is why V0.4 added the D8 source sense, and why on a V0.3 board you should call `disableBattery()`. Guidance, measured under load (valid on the cell):
 
 | Voltage | Meaning | Firmware should |
 |---|---|---|
@@ -67,7 +70,7 @@ D1 reads the pack through an equal-resistor divider (ratio 2.0). Guidance, measu
 | < 3.45 V | Low | Warn (LED blink / UI banner) |
 | < 3.20 V | Critical | Mist off → boost off → deep sleep |
 
-The [MistMaker library](https://github.com/owochel/MistMaker) (v1.1+) wraps this: `batteryState()`, `batteryPercent()`, `shutdown()`. The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full graceful power-off.
+The [MistMaker library](https://github.com/owochel/MistMaker) (v2.0+) wraps this and gates it on the D8 source sense — `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` on the cell: `batteryState()`, `batteryPercent()`, `usbPresent()`, `shutdown()`. The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full graceful power-off.
 
 ## Build your own
 

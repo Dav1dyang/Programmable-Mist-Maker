@@ -1,13 +1,16 @@
 # MistMaker Library
 
 **[MistMaker](https://github.com/owochel/MistMaker)** is the Arduino library for every
-board in this project — PWM mist control, current sensing, and battery monitoring
-behind one friendly API. Treat mist like an LED.
+board in this project — PWM mist control, current sensing, battery monitoring, and
+power-source awareness behind one friendly API. Treat mist like an LED.
 
 ## Install
 
-Arduino IDE → **Library Manager** → search "MistMaker" (v1.1+), or clone
+Arduino IDE → **Library Manager** → search "MistMaker" (v2.0+), or clone
 [owochel/MistMaker](https://github.com/owochel/MistMaker) into your libraries folder.
+
+Every tuning value the library assumes lives in one documented place:
+`namespace MistMakerDefaults` at the top of `MistMaker.h`.
 
 ## Quick start
 
@@ -15,7 +18,8 @@ Arduino IDE → **Library Manager** → search "MistMaker" (v1.1+), or clone
 #include <MistMaker.h>
 
 // One line per board — pick yours:
-MistMaker mist(MistMakerBatteryKitV03());
+MistMaker mist(MistMakerBatteryKitV04());   // ST on D8 gates battery vs USB
+// MistMaker mist(MistMakerBatteryKitV03()); // V0.3: also call mist.disableBattery()
 // MistMaker mist(MistMakerExtensionV01());
 // MistMaker mist(MistMakerBlockKitV01());
 // MistMaker mist(MistMakerLegacyV1());
@@ -57,13 +61,28 @@ mist.setSenseThresholds(10.0, 110.0, 70.0);  // or hard-code (mA)
 mist.setCurrentSenseFactor(3.0);        // different shunt/amp? gain × shunt
 ```
 
+## USB or battery? (Battery Kit V0.4)
+
+The V0.4 board routes the power mux's status pin to D8, so firmware always knows
+the real power source:
+
+```cpp
+if (mist.onBattery()) { /* battery reading is a true state-of-charge */ }
+if (mist.usbPresent()) { /* cell is charging; its voltage tracks the charger */ }
+```
+
+Battery monitoring **gates itself** on this: on USB, `batteryState()` returns
+`MIST_BATT_CHARGING` and never `LOW`/`CRITICAL` — the hardware fix for V0.3's
+false low-battery shutdowns. (Without an ST pin, `usbPresent()` is always true —
+fail-safe: a board that can't sense its source will never blind-shut-down.)
+
 ## Battery monitoring (Battery Kit)
 
 ```cpp
-float v   = mist.readBatteryVolts();   // via on-board divider
+float v   = mist.readBatteryVolts();   // calibrated, via on-board divider
 uint8_t p = mist.batteryPercent();     // rough LiPo gauge for UIs
 
-if (mist.batteryCritical()) {          // hysteresis built in
+if (mist.batteryCritical()) {          // hysteresis built in; never fires on USB (V0.4)
   mist.shutdown();                     // mist off + boost rail off
   esp_deep_sleep_start();              // sleep instead of brown-out
 }
@@ -71,6 +90,19 @@ if (mist.batteryCritical()) {          // hysteresis built in
 
 Defaults: divider ratio 2.0, low = 3.45 V, critical = 3.20 V. Override with
 `setBatteryDivider()` / `setBatteryThresholds()`.
+
+## How hard can it drive? (measured)
+
+The duty cap was bench-characterized on real V0.4 hardware (2026-07 sweep, 0→90% duty):
+
+| Cap | What you get |
+|---|---|
+| **default (50% duty)** | ~90% of practical mist at ~¼ of peak power; cool components; battery-sustainable. |
+| `mist.setMaxDuty(MistMakerDefaults::DUTY_TURBO)` (**~70%**) | The measured **true mist maximum** — ~4× the input power; wall adapter (≥ 2 A) territory. |
+| above ~75% | Mist *declines* and turns unstable while current climbs — the library hard-limits at 90% of full scale. |
+
+Your sketch's `setLevel(0..255)` scale is unaffected by the cap — 255 always means
+"my current maximum."
 
 ## Examples
 
@@ -83,6 +115,7 @@ Defaults: divider ratio 2.0, low = 3.45 V, critical = 3.20 V. Override with
 | `WaterDetect` | Disc + water detection, auto-calibration, auto-recovery |
 | `WiFiPhoneControl` | Phone control via WiFi AP + web UI, graceful low-battery shutdown |
 | `HomeAssistant_MQTT` | Native Home Assistant device via MQTT Discovery |
+| `PhoneSensors` | Phone mic / light / motion / face / **music** drive the mist over the internet ([relay + web app included](https://github.com/owochel/MistMaker/tree/main/extras/phone-app)) |
 
 ## Home Assistant without code
 
