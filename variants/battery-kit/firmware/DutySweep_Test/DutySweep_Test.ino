@@ -12,6 +12,14 @@
 //   * If mist keeps clearly increasing past 60-70% duty, the cap is wrong
 //     for this board and we should raise the library default.
 //
+// BENCH RESULT (V0.4 board, 2026-07-03): mist kept INCREASING past 50% —
+// but current went superlinear (224 mA @50% -> 1.1 A @75%, ~5x power for
+// the gain: inductor saturation territory), and at ~75% total USB draw hit
+// ~1.5 A, VBUS sagged, and the board BROWNED OUT mid-sweep (the banner
+// reprinting = reboot; the TPS2116 drops USB when VBUS < 4.0 V). So 50%
+// is the efficiency/stability knee, not a mist maximum. The sweep now
+// aborts above SWEEP_ABORT_MA to fail gracefully instead of rebooting.
+//
 // Setup: Battery Kit V0.4 (or V0.3 — same D0/D2/D3), disc IN WATER (never
 // sweep a dry disc), USB serial @ 115200. Best in still air, good light.
 //
@@ -28,6 +36,7 @@
 // high duty for minutes. If anything smells hot, hit 'x'.
 
 #include <Arduino.h>
+#include <esp_system.h>   // esp_reset_reason(): names a brownout after the fact
 
 #if defined(ARDUINO_XIAO_ESP32C6) || defined(ARDUINO_XIAO_ESP32S3) || \
     defined(ARDUINO_XIAO_ESP32S3_PLUS) || defined(ARDUINO_XIAO_ESP32C3)
@@ -45,6 +54,12 @@ constexpr float    SENSE_V_PER_A = 3.0f;          // INA180A3 (100 V/V) x 30 mOh
 constexpr uint8_t  SWEEP_STEPS    = 16;           // 0..255 in 17 points
 constexpr uint16_t SWEEP_DWELL_MS = 3000;         // per step
 constexpr uint16_t SWEEP_SETTLE_MS = 1500;        // dwell before sampling starts
+// Abort the sweep above this drive current. Bench (2026-07-03): L1 (the 3-leg
+// autotransformer) is already hot to touch at ~485 mA / 62% duty, and ~1.1 A
+// / 75% duty sagged USB VBUS into a brownout reset. 600 mA keeps the sweep in
+// "informative but not self-destructive" territory; raise it deliberately if
+// you're on a beefy supply and watching L1's temperature.
+constexpr float SWEEP_ABORT_MA = 600.0f;
 
 static uint8_t  g_duty  = 0;
 static bool     g_stream = false;
@@ -74,6 +89,7 @@ static void sweep() {
 
   float ma[SWEEP_STEPS + 1];
   uint8_t duties[SWEEP_STEPS + 1];
+  uint8_t ran = 0;                                 // steps actually measured
 
   for (uint8_t i = 0; i <= SWEEP_STEPS; i++) {
     const uint8_t d = (uint8_t)((uint16_t)i * 255 / SWEEP_STEPS);
@@ -82,8 +98,16 @@ static void sweep() {
     ledcWrite(PIN_MIST_PWM, d);
     delay(SWEEP_SETTLE_MS);                        // let drive + water column respond
     ma[i] = readMa(SWEEP_DWELL_MS - SWEEP_SETTLE_MS);
+    ran = i + 1;
     Serial.printf("[SWEEP]  %2u/%u   %3u   %5.1f%%   %6.1f mA\n",
                   i, SWEEP_STEPS, d, d * 100.0f / 255.0f, ma[i]);
+    if (ma[i] > SWEEP_ABORT_MA) {
+      Serial.printf("[SWEEP] %.0f mA > %.0f mA limit — stopping here. Past this\n"
+                    "[SWEEP] point L1 saturates (runs hot) and USB VBUS sag can\n"
+                    "[SWEEP] brown-out the board. Raise SWEEP_ABORT_MA to explore.\n",
+                    ma[i], SWEEP_ABORT_MA);
+      break;
+    }
     if (Serial.available() && Serial.read() == 'x') { Serial.println("[SWEEP] aborted"); break; }
   }
   setDuty(0);
@@ -92,7 +116,7 @@ static void sweep() {
   // it) — so print the table for pairing with what you SAW.
   Serial.println();
   Serial.println("[RESULT] duty%, mA   (paste next to your mist notes)");
-  for (uint8_t i = 0; i <= SWEEP_STEPS; i++)
+  for (uint8_t i = 0; i < ran; i++)
     Serial.printf("%5.1f, %.1f\n", duties[i] * 100.0f / 255.0f, ma[i]);
   Serial.println();
   Serial.println("[RESULT] Reading it: if current rose monotonically but mist");
@@ -117,6 +141,13 @@ void setup() {
   Serial.println("==============================================");
   Serial.println(" Duty Sweep - does mist peak at 50% duty?");
   Serial.println("==============================================");
+  // If the previous run ended in a mid-sweep reboot, this line names it:
+  // "brownout" = the supply sagged under the high-duty load.
+  const esp_reset_reason_t rr = esp_reset_reason();
+  Serial.printf("[BOOT] reset: %s\n",
+                rr == ESP_RST_BROWNOUT ? "BROWNOUT (supply sagged under load!)"
+                : rr == ESP_RST_POWERON ? "power-on"
+                : rr == ESP_RST_SW      ? "software" : "other");
   Serial.println("[!] Disc must be IN WATER before you start.");
   printHelp();
 }
