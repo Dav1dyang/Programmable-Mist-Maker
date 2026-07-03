@@ -97,6 +97,11 @@ static uint32_t g_lastStreamMs = 0;
 static uint8_t  g_limitIdx = 0;
 static bool     g_armedBatt = false;
 static uint32_t g_armedAtMs = 0;
+// 'U' with a cell attached: the board never reboots on unplug (the mux hands
+// off to the cell), so "next boot" never comes. Instead we watch for USB to
+// LEAVE and COME BACK — that's the move to the wall brick.
+static bool     g_armUPending = false;
+static bool     g_sawUsbDrop  = false;
 Preferences prefs;
 
 struct SweepLog {                  // black box, one NVS blob
@@ -208,11 +213,14 @@ static void sweep() {
     Serial.printf("%5.1f, %.1f%s\n", duties[i] * 100.0f / 255.0f, ma[i], satFlag(ma[i]));
 }
 
-// ---------------- unattended sweep (battery 'B' / on-boot 'U') ----------------
+// ---------------- unattended sweep (battery 'B' / 'U') ----------------
 // Runs with serial dead. Every step lands in NVS before the next begins, so
 // the table survives a brownout, a power cut, or a cell collapse.
-// guardVbatt: enforce the cell floor (true when actually running from a cell).
-static void unattendedSweep(bool guardVbatt) {
+// startedOnBattery: a 'B' sweep aborts if USB returns mid-run (its data mixes
+// sources otherwise). The cell-voltage floor is checked DYNAMICALLY — if a
+// brick folds mid-'U'-sweep and the mux hands off to the cell, the floor
+// guard picks up from that step (a V0.4 sweep can change sources mid-run).
+static void unattendedSweep(bool startedOnBattery) {
   memset(&g_log, 0, sizeof(g_log));
   g_log.unread = 1;
 
@@ -238,9 +246,10 @@ static void unattendedSweep(bool guardVbatt) {
     g_log.duty[i] = d; g_log.ma[i] = ma; g_log.vb[i] = vb;
     g_log.count = i + 1;
 
+    const bool onCellNow = PIN_BATT_ADC >= 0 && !onUsb();
     if      (ma > limitMa())                          g_log.abortReason = 1;
-    else if (guardVbatt && vb < USWEEP_MIN_VBATT)     g_log.abortReason = 2;
-    else if (guardVbatt && onUsb())                   g_log.abortReason = 3;
+    else if (onCellNow && vb < USWEEP_MIN_VBATT)      g_log.abortReason = 2;
+    else if (startedOnBattery && onUsb())             g_log.abortReason = 3;
     saveLog();                                   // step is safe in flash NOW
 
     ledcWrite(PIN_MIST_PWM, 0);                  // off-cooldown for L1
@@ -255,7 +264,7 @@ static void unattendedSweep(bool guardVbatt) {
 }
 
 static void printHelp() {
-  Serial.printf("[HELP] w=serial sweep  U=arm sweep-on-next-boot  L=limit (now %.0f mA)\n", limitMa());
+  Serial.printf("[HELP] w=serial sweep  U=arm unattended sweep  L=limit (now %.0f mA)\n", limitMa());
 #if defined(BOARD_BATTERY_KIT_V04)
   Serial.println("[HELP] B=arm battery sweep (unplug USB after arming)");
 #endif
@@ -300,7 +309,7 @@ void setup() {
     while (millis() - t0 < USWEEP_BOOT_DELAY_MS)
       if (Serial.available() && Serial.read() == 'x') { cancelled = true; break; }
     if (!cancelled) {
-      unattendedSweep(!onUsb());                 // guard the cell only if on it
+      unattendedSweep(!onUsb());                 // startedOnBattery if no USB now
       // On a wall brick nobody sees this print — the table stays flagged
       // unread in flash and replays when the board is back on the computer.
       printLogTable("[LOG] ==== unattended sweep results ====");
@@ -319,6 +328,18 @@ void setup() {
 }
 
 void loop() {
+  // 'U' armed while a cell keeps the board alive: no reboot will come, so
+  // trigger when USB drops (unplug from computer) and returns (wall brick).
+  if (g_armUPending && PIN_USB_SENSE >= 0) {
+    if (!onUsb()) g_sawUsbDrop = true;
+    else if (g_sawUsbDrop) {
+      g_armUPending = false; g_sawUsbDrop = false;
+      prefs.putUChar("armU", 0);
+      delay(USWEEP_BOOT_DELAY_MS);               // settle on the new supply
+      unattendedSweep(false);                    // started on USB (brick)
+    }
+  }
+
 #if defined(BOARD_BATTERY_KIT_V04)
   // Armed battery sweep: wait for the unplug, then run unattended.
   if (g_armedBatt) {
@@ -366,10 +387,12 @@ void loop() {
 #endif
     else if (ch == 'U') {
       prefs.putUChar("armU", 1);
-      Serial.printf("[U] ARMED for next boot (limit %.0f mA, duty 50->90%%).\n", limitMa());
-      Serial.println("[U] Unplug and move the board to your power source (wall charger");
-      Serial.println("[U] is ideal). It boots, waits 8 s, sweeps, and logs to flash.");
-      Serial.println("[U] Plug back into the computer afterwards to read the table.");
+      g_armUPending = true; g_sawUsbDrop = false;
+      Serial.printf("[U] ARMED (limit %.0f mA, duty 50->90%%).\n", limitMa());
+      Serial.println("[U] Unplug and move the board to the wall charger. No cell: it");
+      Serial.println("[U] boots there, waits 8 s, sweeps. Cell attached: it stays alive");
+      Serial.println("[U] and starts 8 s after USB power returns. Either way the table");
+      Serial.println("[U] logs to flash — plug back into the computer to read it.");
     }
     else if (ch == 'L') {
       g_limitIdx = (g_limitIdx + 1) % (sizeof(LIMIT_STEPS_MA) / sizeof(LIMIT_STEPS_MA[0]));
@@ -382,7 +405,8 @@ void loop() {
         printLogTable("[LOG] ==== last sweep stored in flash ====");
       else Serial.println("[LOG] no sweep stored yet.");
     }
-    else if (ch == 'x') { g_armedBatt = false; prefs.putUChar("armU", 0); setDuty(0); }
+    else if (ch == 'x') { g_armedBatt = false; g_armUPending = false;
+                          g_sawUsbDrop = false; prefs.putUChar("armU", 0); setDuty(0); }
     else if (ch == 's') { g_stream = !g_stream;
                           Serial.printf("[CFG] stream %s\n", g_stream ? "ON" : "OFF"); }
     else if (ch == '+') setDuty(g_duty + 4 > DUTY_HARD_MAX ? DUTY_HARD_MAX : g_duty + 4);
