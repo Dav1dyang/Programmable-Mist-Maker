@@ -256,6 +256,7 @@ static void printHelp() {
 #if defined(BOARD_BATTERY_KIT_V04)
   Serial.println("[HELP] B=arm battery sweep (unplug USB after arming)");
 #endif
+  Serial.println("[HELP] r=reprint last stored sweep table");
   Serial.println("[HELP] 0..9=duty n*10%  +/-=nudge  s=stream  x=off  h=help");
 }
 
@@ -303,16 +304,12 @@ void setup() {
     } else Serial.println("[U] cancelled.");
   }
 
-  // Black box from a previous unattended sweep? Replay it.
-  if (prefs.getBytes("blog", &g_log, sizeof(g_log)) == sizeof(g_log) && g_log.unread && g_log.count) {
-    printLogTable("[LOG] ==== sweep results (from flash) ====");
-    if (!g_log.done && rr == ESP_RST_BROWNOUT)
-      Serial.println("[LOG] the sweep itself browned the board out — that step is the wall.");
-    if (!g_log.done && rr == ESP_RST_POWERON)
-      Serial.println("[LOG] power was CUT mid-sweep (USB port breaker?) — that step is the wall.");
-    g_log.unread = 0;
-    saveLog();
-  }
+  // Load the black box but do NOT print-and-mark-read at boot: on native-USB
+  // boards setup() runs before any serial monitor attaches, so a boot-time
+  // replay prints into the void and flags the table read unseen (that also
+  // happened right after a 'U' sweep on a wall brick — same boot, same bug).
+  // loop() replays once a monitor is actually connected; 'r' reprints anytime.
+  prefs.getBytes("blog", &g_log, sizeof(g_log));
 
   Serial.println("[!] Disc must be IN WATER before you start.");
   printHelp();
@@ -333,12 +330,17 @@ void loop() {
   }
 #endif
 
-  // Replay results the moment serial + USB are back and a table is unread.
+  // Replay results once a serial MONITOR is attached (bool(Serial) = host
+  // opened the port on native-USB boards) and a table is unread. This is the
+  // only place unread gets cleared — a print nobody could see doesn't count.
   static uint32_t lastReplayCheck = 0;
-  if (onUsb() && millis() - lastReplayCheck > 1000) {
+  if (millis() - lastReplayCheck > 1000) {
     lastReplayCheck = millis();
-    if (g_log.unread && g_log.count && g_log.done) {
+    if (g_log.unread && g_log.count && (bool)Serial) {
       printLogTable("[LOG] ==== sweep results ====");
+      if (!g_log.done)
+        Serial.println("[LOG] sweep did not finish — power was lost or the board "
+                       "reset mid-sweep; the last row is the wall.");
       g_log.unread = 0;
       saveLog();
     }
@@ -371,6 +373,11 @@ void loop() {
       prefs.putUChar("lim", g_limitIdx);         // survives reboot/power-cycle
       Serial.printf("[CFG] current limit -> %.0f mA%s\n", limitMa(),
                     g_limitIdx == 2 ? "  (D1's 1 A rating — short steps only, watch L1!)" : "");
+    }
+    else if (ch == 'r') {                        // reprint stored table, any state
+      if (prefs.getBytes("blog", &g_log, sizeof(g_log)) == sizeof(g_log) && g_log.count)
+        printLogTable("[LOG] ==== last sweep stored in flash ====");
+      else Serial.println("[LOG] no sweep stored yet.");
     }
     else if (ch == 'x') { g_armedBatt = false; prefs.putUChar("armU", 0); setDuty(0); }
     else if (ch == 's') { g_stream = !g_stream;
