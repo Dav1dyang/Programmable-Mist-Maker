@@ -17,7 +17,7 @@ converter — just the piezo drive stage and an INA180 current-sense amp so your
 Explore the actual KiCad schematic right here — scroll to zoom, drag to pan:
 
 <script type="module" src="../../assets/vendor/kicanvas.js"></script>
-<kicanvas-embed src="../../assets/hardware/MistMaker-Seeed-Expansion-V0.1.kicad_sch" controls="basic"></kicanvas-embed>
+<kicanvas-embed src="../../assets/hardware/MistMaker-Seeed-Extension-V0.1.kicad_sch" controls="basic"></kicanvas-embed>
 
 [KiCad project & production files on GitHub →](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/xiao-extension-kit/hardware)
 
