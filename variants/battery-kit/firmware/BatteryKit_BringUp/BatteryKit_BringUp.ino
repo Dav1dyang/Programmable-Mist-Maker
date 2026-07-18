@@ -194,11 +194,22 @@ static void runSelfTest(bool startedByButton) {
          "D8 unstable — check R21/R22 divider");
 
   // 3. VBAT — window covers a real cell and the no-cell-on-USB case (divider
-  //    then tracks the charger, ~4.1-4.2 V). Near 0 = divider open/ADC dead.
+  //    then tracks the charger, ~4.1-4.2 V). Only unambiguous BOARD faults
+  //    fail: near-0 (divider open / ADC dead) or over-window (ratio wrong).
+  //    Below-window is usually a deeply discharged cell — a battery state,
+  //    not a board defect — so it reports info, not a false reject.
   const float vbat = readBatteryVolts();
-  tRow("VBAT", (vbat >= ST_VBAT_MIN_V && vbat <= ST_VBAT_MAX_V) ? T_PASS : T_FAIL,
-       vbat, "V", ST_VBAT_MIN_V, ST_VBAT_MAX_V,
-       vbat < 0.5f ? "divider open / ADC dead?" : "");
+  if (vbat < 0.5f)
+    tRow("VBAT", T_FAIL, vbat, "V", ST_VBAT_MIN_V, ST_VBAT_MAX_V,
+         "divider open / ADC dead?");
+  else if (vbat > ST_VBAT_MAX_V)
+    tRow("VBAT", T_FAIL, vbat, "V", ST_VBAT_MIN_V, ST_VBAT_MAX_V,
+         "over window — check divider ratio (R18/R19)");
+  else if (vbat < ST_VBAT_MIN_V)
+    tRow("VBAT", T_INFO, vbat, "V", ST_VBAT_MIN_V, ST_VBAT_MAX_V,
+         "below window: deeply discharged cell? charge and re-run");
+  else
+    tRow("VBAT", T_PASS, vbat, "V", ST_VBAT_MIN_V, ST_VBAT_MAX_V, "");
 
   // 4. IDLE — rail off, PWM off: the INA180 zero. Anything above the limit is
   //    offset drift or a sneak path into the sense node.

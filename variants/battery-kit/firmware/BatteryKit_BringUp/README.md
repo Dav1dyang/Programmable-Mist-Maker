@@ -12,7 +12,7 @@ Per-feature hardware verification for the **Battery Kit V0.4 / V0.4.1** (pins D0
 |---|---|---|
 | `RESET` | Last reset reason | anything but `BROWNOUT` |
 | `PWR_SRC` | D8 mux status, 40 reads must agree | stable HIGH (USB) or LOW (cell) |
-| `VBAT` | Battery divider on D1 | 2.80–4.40 V |
+| `VBAT` | Battery divider on D1 | 2.80–4.40 V pass · ≤ 0.5 V / > 4.40 V fail (board fault) · in between = info (discharged cell — charge & re-run) |
 | `IDLE_MA` | INA180 zero, rail off | ≤ 10 mA |
 | `GATE_OFF` | Full PWM with boost **disabled** | ≤ 10 mA — proves D3 gates the rail |
 | `LOAD_MA` | 50% duty burst ≈ 1 s | 60–115 mA dry · 115–280 mA in water · < 10 mA = no disc (skip) |
