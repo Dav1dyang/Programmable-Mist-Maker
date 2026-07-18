@@ -6,8 +6,8 @@
 	(paper "A3")
 	(title_block
 		(title "MistMaker-Battery-kit")
-		(date "2026-06-08")
-		(rev "0-3")
+		(date "2026-07-04")
+		(rev "0-4-1")
 		(company "Power Plane LLC")
 		(comment 1 "Byproduct Lab")
 		(comment 2 "By David Yang & shuang cai")
@@ -6722,6 +6722,16 @@
 		)
 		(uuid "a1b161b7-98d3-4be2-98ce-efdaf506108a")
 	)
+	(text "EN pin changed to default pull down.\nPrevious version is pull up due to assumption of this could jam\nprogramming when D3 pin floating. The real issue is voltage rail\nbetween batt & USB. Which TPS2116A solved."
+		(exclude_from_sim no)
+		(at 281.94 95.25 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "b3120f4e-d0da-4dba-991b-08572799216a")
+	)
 	(text "LOGIC VOLTAGE LEVEL SHIFTER"
 		(exclude_from_sim no)
 		(at 46.736 177.546 0)
@@ -6957,6 +6967,12 @@
 		(uuid "4b12f9f6-247e-4f87-b1b9-883053f3d0e0")
 	)
 	(junction
+		(at 308.61 158.75)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5291a21c-63fb-43de-b21e-1a24134dfb41")
+	)
+	(junction
 		(at 240.03 226.06)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6981,10 +6997,16 @@
 		(uuid "6fe81ae0-e069-4900-9c25-1396f9dae993")
 	)
 	(junction
-		(at 256.54 52.07)
+		(at 280.67 158.75)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "7623c2a4-6b51-417f-aaf1-f2398d0d3d6e")
+		(uuid "7333e88a-5116-4698-801b-37c9aef9a297")
+	)
+	(junction
+		(at 386.08 52.07)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "75ee1bdd-dec5-40b7-b4d1-c0f681940cd3")
 	)
 	(junction
 		(at 31.75 44.45)
@@ -7017,10 +7039,10 @@
 		(uuid "982717db-a5f2-41c8-90d7-5a8fe1966706")
 	)
 	(junction
-		(at 386.08 52.07)
+		(at 64.77 139.7)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "a1725256-3fed-4ab1-9989-85778a6fd8c9")
+		(uuid "b0a637a3-4799-4f53-a614-311592a52f1e")
 	)
 	(junction
 		(at 360.68 40.64)
@@ -7041,16 +7063,16 @@
 		(uuid "b789ed2a-15df-4d33-8906-623b068debd3")
 	)
 	(junction
-		(at 63.5 139.7)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "b9bec71f-3c4f-4b7f-9281-05b7d770c2a5")
-	)
-	(junction
 		(at 229.87 44.45)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "bcab9f6b-750e-4275-8dc7-994c057a89e2")
+	)
+	(junction
+		(at 256.54 52.07)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c18560de-fb73-4b5f-a603-86fad8f16b92")
 	)
 	(junction
 		(at 102.87 46.99)
@@ -7063,12 +7085,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e1c6115d-3e81-4a65-81a5-190956608b12")
-	)
-	(junction
-		(at 307.34 158.75)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "f0f7471a-f445-4354-8039-3262c5351752")
 	)
 	(junction
 		(at 270.51 44.45)
@@ -7121,7 +7137,7 @@
 	)
 	(wire
 		(pts
-			(xy 63.5 139.7) (xy 64.77 139.7)
+			(xy 64.77 139.7) (xy 67.31 139.7)
 		)
 		(stroke
 			(width 0)
@@ -7171,7 +7187,7 @@
 	)
 	(wire
 		(pts
-			(xy 307.34 160.02) (xy 307.34 158.75)
+			(xy 280.67 160.02) (xy 280.67 158.75)
 		)
 		(stroke
 			(width 0)
@@ -7241,7 +7257,7 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 137.16) (xy 31.75 137.16)
+			(xy 29.21 137.16) (xy 33.02 137.16)
 		)
 		(stroke
 			(width 0)
@@ -7341,7 +7357,7 @@
 	)
 	(wire
 		(pts
-			(xy 307.34 170.18) (xy 307.34 167.64)
+			(xy 280.67 170.18) (xy 280.67 167.64)
 		)
 		(stroke
 			(width 0)
@@ -7381,7 +7397,7 @@
 	)
 	(wire
 		(pts
-			(xy 386.08 60.96) (xy 386.08 69.85)
+			(xy 386.08 64.77) (xy 386.08 69.85)
 		)
 		(stroke
 			(width 0)
@@ -7571,7 +7587,7 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 142.24) (xy 63.5 142.24)
+			(xy 62.23 142.24) (xy 64.77 142.24)
 		)
 		(stroke
 			(width 0)
@@ -7671,7 +7687,7 @@
 	)
 	(wire
 		(pts
-			(xy 386.08 52.07) (xy 386.08 53.34)
+			(xy 386.08 52.07) (xy 386.08 57.15)
 		)
 		(stroke
 			(width 0)
@@ -7771,6 +7787,16 @@
 	)
 	(wire
 		(pts
+			(xy 308.61 160.02) (xy 308.61 158.75)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "48316134-ea59-464d-a573-a76b15090c3c")
+	)
+	(wire
+		(pts
 			(xy 247.65 226.06) (xy 247.65 220.98)
 		)
 		(stroke
@@ -7848,6 +7874,16 @@
 			(type default)
 		)
 		(uuid "521d8614-4d86-4927-87f6-c24209312fcd")
+	)
+	(wire
+		(pts
+			(xy 256.54 57.15) (xy 256.54 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "54713f22-c90a-4d11-b943-db332197e095")
 	)
 	(wire
 		(pts
@@ -7951,7 +7987,7 @@
 	)
 	(wire
 		(pts
-			(xy 53.34 137.16) (xy 52.07 137.16)
+			(xy 54.61 137.16) (xy 53.34 137.16)
 		)
 		(stroke
 			(width 0)
@@ -7981,7 +8017,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 44.45) (xy 74.93 48.26)
+			(xy 77.47 44.45) (xy 77.47 48.26)
 		)
 		(stroke
 			(width 0)
@@ -8051,7 +8087,7 @@
 	)
 	(wire
 		(pts
-			(xy 63.5 137.16) (xy 63.5 139.7)
+			(xy 64.77 137.16) (xy 64.77 139.7)
 		)
 		(stroke
 			(width 0)
@@ -8088,6 +8124,16 @@
 			(type default)
 		)
 		(uuid "6c049b9d-3500-4bed-9b17-009a0e225fb0")
+	)
+	(wire
+		(pts
+			(xy 308.61 147.32) (xy 308.61 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6c16602a-955d-4cfc-aedb-c0095d82bf78")
 	)
 	(wire
 		(pts
@@ -8181,6 +8227,16 @@
 	)
 	(wire
 		(pts
+			(xy 256.54 64.77) (xy 256.54 68.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "78048d30-8f82-4fd2-98a5-4d79ee2fd8fe")
+	)
+	(wire
+		(pts
 			(xy 62.23 52.07) (xy 64.77 52.07)
 		)
 		(stroke
@@ -8271,7 +8327,7 @@
 	)
 	(wire
 		(pts
-			(xy 68.58 44.45) (xy 74.93 44.45)
+			(xy 68.58 44.45) (xy 77.47 44.45)
 		)
 		(stroke
 			(width 0)
@@ -8318,6 +8374,16 @@
 			(type default)
 		)
 		(uuid "8585f5ea-3f98-4ac8-842c-c7ffe6fc34fd")
+	)
+	(wire
+		(pts
+			(xy 308.61 158.75) (xy 308.61 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "85927d75-11a5-4df8-9665-076a4a93675a")
 	)
 	(wire
 		(pts
@@ -8411,7 +8477,7 @@
 	)
 	(wire
 		(pts
-			(xy 307.34 147.32) (xy 307.34 149.86)
+			(xy 280.67 147.32) (xy 280.67 149.86)
 		)
 		(stroke
 			(width 0)
@@ -8471,6 +8537,16 @@
 	)
 	(wire
 		(pts
+			(xy 386.08 52.07) (xy 391.16 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9790979d-d629-43da-90f2-59ea8bd85775")
+	)
+	(wire
+		(pts
 			(xy 355.6 55.88) (xy 347.98 55.88)
 		)
 		(stroke
@@ -8478,16 +8554,6 @@
 			(type default)
 		)
 		(uuid "98685dea-2a44-465e-b943-2b333a8dd929")
-	)
-	(wire
-		(pts
-			(xy 256.54 31.75) (xy 256.54 43.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9910a673-a309-4b15-9b9d-1fbcb676a748")
 	)
 	(wire
 		(pts
@@ -8501,23 +8567,13 @@
 	)
 	(wire
 		(pts
-			(xy 307.34 158.75) (xy 307.34 157.48)
+			(xy 280.67 158.75) (xy 280.67 157.48)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "9b656444-2013-435d-84b9-46397a8b769b")
-	)
-	(wire
-		(pts
-			(xy 386.08 52.07) (xy 389.89 52.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9b66f54a-0495-441c-8557-f973892b3a72")
 	)
 	(wire
 		(pts
@@ -8631,7 +8687,7 @@
 	)
 	(wire
 		(pts
-			(xy 63.5 142.24) (xy 63.5 139.7)
+			(xy 64.77 142.24) (xy 64.77 139.7)
 		)
 		(stroke
 			(width 0)
@@ -8651,7 +8707,7 @@
 	)
 	(wire
 		(pts
-			(xy 41.91 123.19) (xy 41.91 132.08)
+			(xy 43.18 123.19) (xy 43.18 132.08)
 		)
 		(stroke
 			(width 0)
@@ -8701,7 +8757,7 @@
 	)
 	(wire
 		(pts
-			(xy 52.07 142.24) (xy 53.34 142.24)
+			(xy 53.34 142.24) (xy 54.61 142.24)
 		)
 		(stroke
 			(width 0)
@@ -8721,7 +8777,7 @@
 	)
 	(wire
 		(pts
-			(xy 41.91 160.02) (xy 41.91 147.32)
+			(xy 43.18 160.02) (xy 43.18 147.32)
 		)
 		(stroke
 			(width 0)
@@ -8738,16 +8794,6 @@
 			(type default)
 		)
 		(uuid "aea5b7bd-4620-4913-ad7d-62a90b77c79f")
-	)
-	(wire
-		(pts
-			(xy 256.54 52.07) (xy 256.54 57.15)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b016161b-8c5f-436f-aedd-0ebec72956a1")
 	)
 	(wire
 		(pts
@@ -8771,7 +8817,7 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 160.02) (xy 30.48 142.24)
+			(xy 31.75 160.02) (xy 31.75 142.24)
 		)
 		(stroke
 			(width 0)
@@ -8831,6 +8877,16 @@
 	)
 	(wire
 		(pts
+			(xy 308.61 170.18) (xy 308.61 167.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c0175728-ccca-44c3-bdb3-be374842d9e1")
+	)
+	(wire
+		(pts
 			(xy 93.98 140.97) (xy 93.98 148.59)
 		)
 		(stroke
@@ -8861,7 +8917,7 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 137.16) (xy 63.5 137.16)
+			(xy 62.23 137.16) (xy 64.77 137.16)
 		)
 		(stroke
 			(width 0)
@@ -8871,7 +8927,7 @@
 	)
 	(wire
 		(pts
-			(xy 292.1 158.75) (xy 307.34 158.75)
+			(xy 276.86 158.75) (xy 280.67 158.75)
 		)
 		(stroke
 			(width 0)
@@ -9111,7 +9167,17 @@
 	)
 	(wire
 		(pts
-			(xy 256.54 50.8) (xy 256.54 52.07)
+			(xy 304.8 158.75) (xy 308.61 158.75)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e126dd99-4504-4ca3-90cc-629969f9ad6e")
+	)
+	(wire
+		(pts
+			(xy 256.54 38.1) (xy 256.54 52.07)
 		)
 		(stroke
 			(width 0)
@@ -9161,7 +9227,7 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 142.24) (xy 31.75 142.24)
+			(xy 31.75 142.24) (xy 33.02 142.24)
 		)
 		(stroke
 			(width 0)
@@ -9301,7 +9367,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 55.88) (xy 74.93 68.58)
+			(xy 77.47 55.88) (xy 77.47 68.58)
 		)
 		(stroke
 			(width 0)
@@ -9390,6 +9456,16 @@
 		(uuid "09e8eb5a-e0e7-4320-900c-f80abe6dcb53")
 	)
 	(label "ST"
+		(at 308.61 147.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1e7c07cd-59d5-4741-a752-34dab044f882")
+	)
+	(label "ST"
 		(at 194.31 57.15 0)
 		(effects
 			(font
@@ -9458,30 +9534,6 @@
 			(justify right bottom)
 		)
 		(uuid "eb09d1bc-e407-4ad8-a34b-591d1469c2c4")
-	)
-	(global_label "D3_TPS_EN"
-		(shape input)
-		(at 256.54 57.15 270)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "03d8e018-cbfe-4e6f-b878-3d1c6a7e15a1")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 256.54 70.4765 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
 	)
 	(global_label "XIAO3V3"
 		(shape input)
@@ -9699,6 +9751,30 @@
 			)
 		)
 	)
+	(global_label "D3_TPS_EN"
+		(shape input)
+		(at 256.54 38.1 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "223af2fb-bfee-41fe-b982-70aadd6f24b7")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 256.54 24.7735 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
 	(global_label "D10"
 		(shape input)
 		(at 384.81 142.24 0)
@@ -9773,7 +9849,7 @@
 	)
 	(global_label "D2_CS"
 		(shape input)
-		(at 389.89 52.07 0)
+		(at 391.16 52.07 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9783,7 +9859,7 @@
 		)
 		(uuid "336cb0c3-92ca-4e7c-a016-9610ebdc53d6")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 398.8018 52.07 0)
+			(at 400.0718 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9917,7 +9993,7 @@
 	)
 	(global_label "MOSFET_GATE"
 		(shape input)
-		(at 64.77 139.7 0)
+		(at 67.31 139.7 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9927,7 +10003,7 @@
 		)
 		(uuid "49b38129-1811-4a64-b534-00c640751521")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 80.3946 139.7 0)
+			(at 82.9346 139.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10035,30 +10111,6 @@
 			)
 		)
 	)
-	(global_label "PSW_VOUT"
-		(shape input)
-		(at 256.54 31.75 90)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "549320f2-b8b5-4c25-8d8b-3b05fa18476b")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 256.54 19.1491 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-	)
 	(global_label "XIAOVIN"
 		(shape input)
 		(at 151.13 33.02 90)
@@ -10155,7 +10207,7 @@
 			)
 		)
 	)
-	(global_label "D8"
+	(global_label "D8_ST"
 		(shape input)
 		(at 316.23 124.46 180)
 		(fields_autoplaced yes)
@@ -10167,7 +10219,7 @@
 		)
 		(uuid "66652f87-fea5-48d2-b851-afe2f984bfbf")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 310.7653 124.46 0)
+			(at 307.6206 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10685,7 +10737,7 @@
 	)
 	(global_label "BATT+"
 		(shape input)
-		(at 307.34 147.32 0)
+		(at 280.67 147.32 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -10695,7 +10747,7 @@
 		)
 		(uuid "ae7c5fbb-0a86-4228-9733-018f8c521623")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 316.1914 147.32 0)
+			(at 289.5214 147.32 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10731,7 +10783,7 @@
 			)
 		)
 	)
-	(global_label "D8"
+	(global_label "D8_ST"
 		(shape input)
 		(at 384.81 147.32 0)
 		(fields_autoplaced yes)
@@ -10743,7 +10795,7 @@
 		)
 		(uuid "b87871f9-2b12-4381-959e-74e35a80edbb")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 390.2747 147.32 0)
+			(at 393.4194 147.32 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10805,7 +10857,7 @@
 	)
 	(global_label "MIST_PWM_3V3"
 		(shape input)
-		(at 30.48 137.16 180)
+		(at 29.21 137.16 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -10815,7 +10867,7 @@
 		)
 		(uuid "bcafd1e9-1f05-4518-8c5d-cb765afb3268")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 13.6459 137.16 0)
+			(at 12.3759 137.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10947,6 +10999,30 @@
 			)
 		)
 	)
+	(global_label "D8_ST"
+		(shape input)
+		(at 304.8 158.75 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d4cda9f2-8f67-493f-a6e7-18d4bbc6c8ca")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 296.1906 158.75 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+	)
 	(global_label "D4_SDA"
 		(shape input)
 		(at 280.67 127 0)
@@ -10997,7 +11073,7 @@
 	)
 	(global_label "D1_BATT_VOLTAGE"
 		(shape input)
-		(at 292.1 158.75 180)
+		(at 276.86 158.75 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -11007,7 +11083,7 @@
 		)
 		(uuid "dfbd00a4-8113-493c-97c5-38d0a38a119c")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 271.8188 158.75 0)
+			(at 256.5788 158.75 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11390,7 +11466,7 @@
 			(uuid "2f538a6b-42b0-4eb2-a426-9647ee278390")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R11")
 					(unit 1)
@@ -11468,7 +11544,7 @@
 			(uuid "212b1c89-c03b-448b-b358-2e780a660210")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J4")
 					(unit 1)
@@ -11478,7 +11554,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 57.15 137.16 90)
+		(at 58.42 137.16 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -11488,7 +11564,7 @@
 		(dnp no)
 		(uuid "0409261e-7205-4024-87b9-84dde573bf5c")
 		(property "Reference" "R2"
-			(at 60.96 136.144 90)
+			(at 62.23 136.144 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11498,7 +11574,7 @@
 			)
 		)
 		(property "Value" "10Ω"
-			(at 56.896 137.16 90)
+			(at 58.166 137.16 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11508,7 +11584,7 @@
 			)
 		)
 		(property "Footprint" "PCM_JLCPCB:R_0603"
-			(at 57.15 138.938 90)
+			(at 58.42 138.938 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11519,7 +11595,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 57.15 137.16 0)
+			(at 58.42 137.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11530,7 +11606,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 57.15 137.16 0)
+			(at 58.42 137.16 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11541,7 +11617,7 @@
 			)
 		)
 		(property "LCSC" "C22859"
-			(at 57.15 137.16 90)
+			(at 58.42 137.16 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11558,7 +11634,7 @@
 			(uuid "c0c9c720-b040-4256-b5a7-e9d95aa40994")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R2")
 					(unit 1)
@@ -11588,7 +11664,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "2KΩ"
+		(property "Value" "5.1KΩ"
 			(at 68.58 53.34 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11775,7 +11851,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C4109"
+		(property "LCSC" "C25905"
 			(at 67.31 52.07 0)
 			(hide yes)
 			(show_name no)
@@ -11793,7 +11869,7 @@
 			(uuid "26821921-2ac5-4764-bbf8-0b235c1d659d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R6")
 					(unit 1)
@@ -12031,7 +12107,7 @@
 			(uuid "ea2ec03b-fcd4-4842-ac52-82c2f34fad45")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "L1")
 					(unit 1)
@@ -12041,7 +12117,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 74.93 52.07 180)
+		(at 77.47 52.07 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12051,29 +12127,29 @@
 		(dnp no)
 		(uuid "1176c2dc-b915-4bf5-bc81-4d21aea019c8")
 		(property "Reference" "C14"
-			(at 81.28 52.324 0)
+			(at 77.47 47.752 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right)
 			)
 		)
 		(property "Value" "10uF"
-			(at 81.28 49.784 0)
+			(at 77.47 50.292 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right)
 			)
 		)
 		(property "Footprint" "PCM_JLCPCB:C_0402"
-			(at 73.9648 48.26 0)
+			(at 76.5048 48.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12084,7 +12160,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12095,7 +12171,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12106,7 +12182,7 @@
 			)
 		)
 		(property "Availability" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12117,7 +12193,7 @@
 			)
 		)
 		(property "Check_prices" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12128,7 +12204,7 @@
 			)
 		)
 		(property "Description_1" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12139,7 +12215,7 @@
 			)
 		)
 		(property "MANUFACTURER" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12150,7 +12226,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12161,7 +12237,7 @@
 			)
 		)
 		(property "MF" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12172,7 +12248,7 @@
 			)
 		)
 		(property "MP" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12183,7 +12259,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12194,7 +12270,7 @@
 			)
 		)
 		(property "Package" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12205,7 +12281,7 @@
 			)
 		)
 		(property "Price" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12216,7 +12292,7 @@
 			)
 		)
 		(property "SNAPEDA_PN" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12227,7 +12303,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12238,7 +12314,7 @@
 			)
 		)
 		(property "SnapEDA_Link" ""
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12249,7 +12325,7 @@
 			)
 		)
 		(property "LCSC" "C307415"
-			(at 74.93 52.07 0)
+			(at 77.47 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12266,7 +12342,7 @@
 			(uuid "169d6d26-29de-4738-8677-29b10c2a3997")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C14")
 					(unit 1)
@@ -12501,7 +12577,7 @@
 			(uuid "9521f2fe-1d6a-46a6-a163-54d13444acae")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R12")
 					(unit 1)
@@ -12579,9 +12655,87 @@
 			(uuid "e18ea0b7-2435-4551-8d09-b2b685098fd2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR010")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 256.54 68.58 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1ef26d46-0655-4f90-80fa-b973daf481d5")
+		(property "Reference" "#PWR019"
+			(at 256.54 74.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 256.54 73.66 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 256.54 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 256.54 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 256.54 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "754536ed-e142-49d6-99b8-3e75e25fe754")
+		)
+		(instances
+			(project "MistMaker-Battery-Kit-V0-4"
+				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
+					(reference "#PWR019")
 					(unit 1)
 				)
 			)
@@ -12657,7 +12811,7 @@
 			(uuid "65642368-f13a-4047-b8bf-a9f823ef34b2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR047")
 					(unit 1)
@@ -12670,11 +12824,11 @@
 		(at 44.45 217.17 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "22eae7e8-95ff-4676-95ec-56f1d77f1f3d")
 		(property "Reference" "H1"
@@ -12879,7 +13033,7 @@
 			(uuid "ade33222-bb1e-42c5-bd9d-d981af50e4cb")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "H1")
 					(unit 1)
@@ -12892,11 +13046,11 @@
 		(at 44.45 223.52 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "23fdb6dc-40dd-4dfe-99a7-85ff77ea07a6")
 		(property "Reference" "H2"
@@ -13101,7 +13255,7 @@
 			(uuid "fc4d91ee-39cb-4366-a049-bb0f5a6211db")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "H2")
 					(unit 1)
@@ -13114,11 +13268,11 @@
 		(at 134.62 220.98 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "25b804e4-bee4-4a65-8def-efa9d69e6537")
 		(property "Reference" "TP2"
@@ -13180,7 +13334,7 @@
 			(uuid "d22f8e47-0d06-4bc0-b80a-74df151faea3")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "TP2")
 					(unit 1)
@@ -13193,11 +13347,11 @@
 		(at 323.85 129.54 0)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "2713ffbf-4a82-49f2-b4e7-c6e5b8006208")
 		(property "Reference" "J8"
 			(at 315.468 115.57 0)
@@ -13419,7 +13573,7 @@
 			(uuid "1e2fdc29-589a-4488-a5e9-3c88e3e5aadf")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J8")
 					(unit 1)
@@ -13435,8 +13589,8 @@
 		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "2b4563d5-b16a-4868-8768-7e39e01e3a14")
 		(property "Reference" "J13"
 			(at 226.314 129.5399 0)
@@ -13497,7 +13651,7 @@
 			(uuid "437ac725-c941-4dc9-8fbf-7640ea69caac")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J13")
 					(unit 1)
@@ -13596,7 +13750,7 @@
 			(uuid "5256642f-68ac-46f4-9e1b-0ae6317b0c64")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "U3")
 					(unit 1)
@@ -13674,7 +13828,7 @@
 			(uuid "93adaf7d-ce65-4967-8905-578fc71f9fe5")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR028")
 					(unit 1)
@@ -13897,7 +14051,7 @@
 			(uuid "ed486d0b-33c0-4cc5-a430-60d21da99b94")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "JP5V5")
 					(unit 1)
@@ -14143,7 +14297,7 @@
 			(uuid "3bc93ef0-b67e-435f-b561-662e0ef54e85")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "LED3")
 					(unit 1)
@@ -14220,7 +14374,7 @@
 			(uuid "ab3d9127-d125-4bc5-bd90-19d05af54b72")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR016")
 					(unit 1)
@@ -14467,7 +14621,7 @@
 			(uuid "012b36f5-288e-4906-882a-7adc9161b033")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "LED1")
 					(unit 1)
@@ -14559,7 +14713,7 @@
 			(uuid "a0c241c2-61e7-442a-a86f-e182e3c0293a")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C5")
 					(unit 1)
@@ -14637,7 +14791,7 @@
 			(uuid "241edae1-89de-4014-a49c-f9d78e574ab3")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J11")
 					(unit 1)
@@ -14753,7 +14907,7 @@
 			(uuid "037048c1-3047-4131-9487-cd63c88b535b")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J6")
 					(unit 1)
@@ -14988,7 +15142,7 @@
 			(uuid "3bed446b-81ec-4e36-ab8a-ef3b79f07cf0")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R14")
 					(unit 1)
@@ -15065,7 +15219,7 @@
 			(uuid "53d65f5e-bc68-4328-a444-5cd041ecff17")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR023")
 					(unit 1)
@@ -15142,7 +15296,7 @@
 			(uuid "9d3d8b16-6296-4895-8df4-042cee6ff072")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR018")
 					(unit 1)
@@ -15219,7 +15373,7 @@
 			(uuid "17f75831-e02b-4991-a556-e9c0e579c1a1")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR05")
 					(unit 1)
@@ -15296,7 +15450,7 @@
 			(uuid "0c31ae6c-a597-4cc2-913d-3203409927b6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR014")
 					(unit 1)
@@ -15374,7 +15528,7 @@
 			(uuid "aa28e426-d339-48c1-b155-558af47219cc")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR039")
 					(unit 1)
@@ -15452,7 +15606,7 @@
 			(uuid "ef406b02-3d61-43db-9aad-f3c89a9ee938")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR030")
 					(unit 1)
@@ -15646,7 +15800,7 @@
 			(uuid "4e7c1ca5-36b7-4170-a85c-b43ffc30a358")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "IC2")
 					(unit 1)
@@ -15724,7 +15878,7 @@
 			(uuid "24cf3fa9-f221-45c7-83d3-5b8a52d75103")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR012")
 					(unit 1)
@@ -15960,7 +16114,7 @@
 			(uuid "2d87ddc1-8295-4da5-9b69-cf8398c87e7f")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "D1")
 					(unit 1)
@@ -15970,7 +16124,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 307.34 170.18 0)
+		(at 280.67 170.18 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -15981,7 +16135,7 @@
 		(fields_autoplaced yes)
 		(uuid "58152346-df81-4d63-b6e7-d8bd15eb4696")
 		(property "Reference" "#PWR048"
-			(at 307.34 176.53 0)
+			(at 280.67 176.53 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15992,7 +16146,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 307.34 175.26 0)
+			(at 280.67 175.26 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16002,7 +16156,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 307.34 170.18 0)
+			(at 280.67 170.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16013,7 +16167,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 307.34 170.18 0)
+			(at 280.67 170.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16024,7 +16178,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 307.34 170.18 0)
+			(at 280.67 170.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16038,7 +16192,7 @@
 			(uuid "d756e241-1d67-4602-8056-72d3f0b301c6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR048")
 					(unit 1)
@@ -16274,7 +16428,7 @@
 			(uuid "54f791c4-c461-4822-9d5e-c512fb2d0447")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C9")
 					(unit 1)
@@ -16352,7 +16506,7 @@
 			(uuid "bf541eee-c7db-4230-b4c1-610458021da5")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J5")
 					(unit 1)
@@ -16587,7 +16741,7 @@
 			(uuid "53642963-b176-4136-af49-802dda5f4623")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C13")
 					(unit 1)
@@ -16665,7 +16819,7 @@
 			(uuid "fa7525fa-89e9-4000-836a-49f4c25ae861")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR027")
 					(unit 1)
@@ -16757,7 +16911,7 @@
 			(uuid "8ecc0a2c-90c0-4deb-a700-cf73682a8193")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R4")
 					(unit 1)
@@ -16849,7 +17003,7 @@
 			(uuid "07d3bce3-7395-48b1-9cb0-432cb8bb30de")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C12")
 					(unit 1)
@@ -16927,7 +17081,7 @@
 			(uuid "0c343734-5a2b-4426-8a3c-8c43c0db1fa4")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR045")
 					(unit 1)
@@ -17004,7 +17158,7 @@
 			(uuid "b1cb58c2-21fd-4032-9c7e-69f005394fc6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR013")
 					(unit 1)
@@ -17082,7 +17236,7 @@
 			(uuid "09cc26bc-e412-4916-b906-24575afcbacc")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J9")
 					(unit 1)
@@ -17092,7 +17246,7 @@
 	)
 	(symbol
 		(lib_id "Driver_FET:UCC27511ADBV")
-		(at 41.91 139.7 0)
+		(at 43.18 139.7 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -17103,7 +17257,7 @@
 		(fields_autoplaced yes)
 		(uuid "77abaf4b-98a4-4218-b10d-30e1b2d06c69")
 		(property "Reference" "U4"
-			(at 44.0533 129.54 0)
+			(at 45.3233 129.54 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17114,7 +17268,7 @@
 			)
 		)
 		(property "Value" "UCC27511ADBV"
-			(at 44.0533 132.08 0)
+			(at 45.3233 132.08 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17125,7 +17279,7 @@
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
-			(at 41.91 151.765 0)
+			(at 43.18 151.765 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17136,7 +17290,7 @@
 			)
 		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/ucc27511a.pdf"
-			(at 41.91 120.65 0)
+			(at 43.18 120.65 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17147,7 +17301,7 @@
 			)
 		)
 		(property "Description" "Single-Channel High-Speed Low-Side Gate Driver With 4-A Peak Source and 8-A Peak Sink, SOT-23-6"
-			(at 41.91 139.7 0)
+			(at 43.18 139.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17158,7 +17312,7 @@
 			)
 		)
 		(property "LCSC" "C2676982"
-			(at 41.91 139.7 0)
+			(at 43.18 139.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17187,7 +17341,7 @@
 			(uuid "cb210c8e-04d7-4de2-bb39-5a0b41c650cb")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "U4")
 					(unit 1)
@@ -17265,7 +17419,7 @@
 			(uuid "ebe35c28-998f-43ab-b871-99023cf600b9")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR040")
 					(unit 1)
@@ -17278,11 +17432,11 @@
 		(at 134.62 231.14 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "79a35156-d120-4766-851d-c69892b9e5bc")
 		(property "Reference" "TP4"
@@ -17344,7 +17498,7 @@
 			(uuid "430772d9-dcd2-4a0d-976e-52e87613943d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "TP4")
 					(unit 1)
@@ -17436,7 +17590,7 @@
 			(uuid "1c5acc00-69f6-452e-8f9b-88fbe94ca4d2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R1")
 					(unit 1)
@@ -17513,7 +17667,7 @@
 			(uuid "1e176ce4-880a-42a3-aac7-731a0836a2c5")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR032")
 					(unit 1)
@@ -17523,7 +17677,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 307.34 153.67 0)
+		(at 280.67 153.67 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -17533,7 +17687,7 @@
 		(dnp no)
 		(uuid "7bf2692d-c70e-4c42-8b79-6f004c622560")
 		(property "Reference" "R18"
-			(at 308.864 152.908 0)
+			(at 282.194 152.908 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17544,7 +17698,7 @@
 			)
 		)
 		(property "Value" "10KΩ"
-			(at 308.864 154.686 0)
+			(at 282.194 154.686 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17555,7 +17709,7 @@
 			)
 		)
 		(property "Footprint" "PCM_JLCPCB:R_0402"
-			(at 305.562 153.67 90)
+			(at 278.892 153.67 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17566,7 +17720,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17577,7 +17731,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17588,7 +17742,7 @@
 			)
 		)
 		(property "Availability" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17599,7 +17753,7 @@
 			)
 		)
 		(property "Check_prices" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17610,7 +17764,7 @@
 			)
 		)
 		(property "Description_1" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17621,7 +17775,7 @@
 			)
 		)
 		(property "MANUFACTURER" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17632,7 +17786,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17643,7 +17797,7 @@
 			)
 		)
 		(property "MF" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17654,7 +17808,7 @@
 			)
 		)
 		(property "MP" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17665,7 +17819,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17676,7 +17830,7 @@
 			)
 		)
 		(property "Package" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17687,7 +17841,7 @@
 			)
 		)
 		(property "Price" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17698,7 +17852,7 @@
 			)
 		)
 		(property "SNAPEDA_PN" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17709,7 +17863,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17720,7 +17874,7 @@
 			)
 		)
 		(property "SnapEDA_Link" ""
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17731,7 +17885,7 @@
 			)
 		)
 		(property "LCSC" "C25744"
-			(at 307.34 153.67 0)
+			(at 280.67 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17748,7 +17902,7 @@
 			(uuid "5b47099a-2a96-4628-9b54-c3bad98fd103")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R18")
 					(unit 1)
@@ -17993,7 +18147,7 @@
 			(uuid "312210a9-555e-412c-994b-2ba707379448")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "IC1")
 					(unit 1)
@@ -18071,7 +18225,7 @@
 			(uuid "30afabaf-7801-4af1-9a11-327286ca5fc7")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR020")
 					(unit 1)
@@ -18318,7 +18472,7 @@
 			(uuid "54a69efe-5664-492d-b278-8b79f5abc9c1")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "LED2")
 					(unit 1)
@@ -18396,7 +18550,7 @@
 			(uuid "842f8c47-e19f-426d-aa73-9ef5a2fdaf9b")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR015")
 					(unit 1)
@@ -18406,7 +18560,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 57.15 142.24 90)
+		(at 58.42 142.24 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -18416,7 +18570,7 @@
 		(dnp no)
 		(uuid "7fcccc58-55c2-4630-b995-e33a807b715b")
 		(property "Reference" "R3"
-			(at 60.96 141.224 90)
+			(at 62.23 141.224 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18426,7 +18580,7 @@
 			)
 		)
 		(property "Value" "2.2Ω"
-			(at 57.15 142.24 90)
+			(at 58.42 142.24 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18436,7 +18590,7 @@
 			)
 		)
 		(property "Footprint" "PCM_JLCPCB:R_0603"
-			(at 57.15 144.018 90)
+			(at 58.42 144.018 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18447,7 +18601,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 57.15 142.24 0)
+			(at 58.42 142.24 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18458,7 +18612,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 57.15 142.24 0)
+			(at 58.42 142.24 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18469,7 +18623,7 @@
 			)
 		)
 		(property "LCSC" "C22939"
-			(at 57.15 142.24 90)
+			(at 58.42 142.24 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18486,9 +18640,244 @@
 			(uuid "a4c28ed8-3ec7-42f3-b846-ea2a6c2e0eb6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 308.61 163.83 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "808c6bd8-9bac-49ce-a84d-cc857a833774")
+		(property "Reference" "R22"
+			(at 311.15 162.5599 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "220K"
+			(at 308.61 166.37 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "PCM_JLCPCB:R_0402"
+			(at 306.832 163.83 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Availability" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Check_prices" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description_1" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MANUFACTURER" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MF" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MP" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "PARTREV" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Package" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Price" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SNAPEDA_PN" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "STANDARD" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SnapEDA_Link" ""
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C2909335"
+			(at 308.61 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "db627120-e98b-4469-a5c7-022ecbb7b2b4")
+		)
+		(pin "2"
+			(uuid "1f09b6cf-820e-4c1b-8f14-8df1516d6b0d")
+		)
+		(instances
+			(project "MistMaker-Battery-Kit-V0-4"
+				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
+					(reference "R22")
 					(unit 1)
 				)
 			)
@@ -18564,7 +18953,7 @@
 			(uuid "c7351e6c-66b0-418d-a392-7ea5daab4b47")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR036")
 					(unit 1)
@@ -18640,7 +19029,7 @@
 			(uuid "add30ba3-9711-4bb9-9966-ae428bd247a1")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR069")
 					(unit 1)
@@ -18875,7 +19264,7 @@
 			(uuid "3b4fbbea-3749-49a7-84a3-131297ee5284")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R17")
 					(unit 1)
@@ -18953,7 +19342,7 @@
 			(uuid "e9cd3c75-d5ae-48ce-84e7-c0e45b5b6d6d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR033")
 					(unit 1)
@@ -19273,7 +19662,7 @@
 			(uuid "1b3b4a12-11c6-4b15-994d-3be24d3923fb")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "L2")
 					(unit 1)
@@ -19351,7 +19740,7 @@
 			(uuid "212177b3-3840-4403-a45c-e363eb38a9eb")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR031")
 					(unit 1)
@@ -19361,7 +19750,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 386.08 57.15 0)
+		(at 386.08 60.96 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -19369,10 +19758,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "8ba87104-727f-4fd0-84ae-fdfa6e76f24c")
 		(property "Reference" "C10"
-			(at 389.89 55.8799 0)
+			(at 388.874 59.69 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19383,7 +19771,7 @@
 			)
 		)
 		(property "Value" "1uF"
-			(at 389.89 58.4199 0)
+			(at 388.874 62.23 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19394,7 +19782,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
-			(at 387.0452 60.96 0)
+			(at 387.0452 64.77 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19405,7 +19793,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 386.08 57.15 0)
+			(at 386.08 60.96 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19416,7 +19804,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 386.08 57.15 0)
+			(at 386.08 60.96 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19427,7 +19815,7 @@
 			)
 		)
 		(property "LCSC" "C14445"
-			(at 386.08 57.15 0)
+			(at 386.08 60.96 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19444,7 +19832,7 @@
 			(uuid "1e7cd7f2-134b-42e1-a25c-25026abc1918")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C10")
 					(unit 1)
@@ -19460,8 +19848,8 @@
 		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "8ec26898-6808-449f-99f2-85d718386d77")
 		(property "Reference" "J12"
 			(at 226.314 126.9999 0)
@@ -19522,7 +19910,7 @@
 			(uuid "2991be05-5fe1-4782-b315-7bd0f8291b94")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J12")
 					(unit 1)
@@ -19535,11 +19923,11 @@
 		(at 25.4 218.44 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "8f477c02-d0fd-4ead-953e-ef028f065943")
 		(property "Reference" "TP1"
@@ -19744,7 +20132,7 @@
 			(uuid "82c84de9-36c4-48c0-9431-e47640d0a2ce")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "TP1")
 					(unit 1)
@@ -19754,7 +20142,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 30.48 160.02 0)
+		(at 31.75 160.02 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -19765,7 +20153,7 @@
 		(fields_autoplaced yes)
 		(uuid "90337e0d-2c8d-435e-9015-80e70d9673b9")
 		(property "Reference" "#PWR08"
-			(at 30.48 166.37 0)
+			(at 31.75 166.37 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19776,7 +20164,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 30.48 165.1 0)
+			(at 31.75 165.1 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19786,7 +20174,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 30.48 160.02 0)
+			(at 31.75 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19797,7 +20185,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 30.48 160.02 0)
+			(at 31.75 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19808,7 +20196,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 30.48 160.02 0)
+			(at 31.75 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19822,7 +20210,7 @@
 			(uuid "a89730b8-3637-48ba-8e29-e1b8bb0a41e5")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR08")
 					(unit 1)
@@ -19900,7 +20288,7 @@
 			(uuid "b40da111-a639-4a7b-9953-c9a6f21777bf")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR09")
 					(unit 1)
@@ -19913,11 +20301,11 @@
 		(at 273.05 129.54 180)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "9bf94ecf-356b-4f64-ad44-43de434c6bd8")
 		(property "Reference" "J7"
 			(at 277.622 115.824 0)
@@ -20137,7 +20525,7 @@
 			(uuid "71687ceb-903d-435c-8c0f-d3990a8470e2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J7")
 					(unit 1)
@@ -20229,7 +20617,7 @@
 			(uuid "b35d53fa-5073-4963-8bf2-10a611c137c8")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C15")
 					(unit 1)
@@ -20238,8 +20626,8 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:R")
-		(at 307.34 163.83 0)
+		(lib_id "power:GND")
+		(at 308.61 170.18 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -20247,31 +20635,31 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "a0ecf52b-276b-4321-8462-a9b5280fb96d")
-		(property "Reference" "R19"
-			(at 308.864 163.068 0)
+		(fields_autoplaced yes)
+		(uuid "9fe88ee8-1d58-4823-8445-66389ac51599")
+		(property "Reference" "#PWR049"
+			(at 308.61 176.53 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
-		(property "Value" "10KΩ"
-			(at 308.864 164.846 0)
+		(property "Value" "GND"
+			(at 308.61 175.26 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
-		(property "Footprint" "PCM_JLCPCB:R_0402"
-			(at 305.562 163.83 90)
+		(property "Footprint" ""
+			(at 308.61 170.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20282,7 +20670,85 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 307.34 163.83 0)
+			(at 308.61 170.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 308.61 170.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "80d98874-eab4-4d7b-b7c6-81a8913c9665")
+		)
+		(instances
+			(project "MistMaker-Battery-Kit-V0-4"
+				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
+					(reference "#PWR049")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 280.67 163.83 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a0ecf52b-276b-4321-8462-a9b5280fb96d")
+		(property "Reference" "R19"
+			(at 282.194 163.068 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10KΩ"
+			(at 282.194 164.846 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "PCM_JLCPCB:R_0402"
+			(at 278.892 163.83 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20293,7 +20759,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20304,7 +20770,7 @@
 			)
 		)
 		(property "Availability" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20315,7 +20781,7 @@
 			)
 		)
 		(property "Check_prices" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20326,7 +20792,7 @@
 			)
 		)
 		(property "Description_1" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20337,7 +20803,7 @@
 			)
 		)
 		(property "MANUFACTURER" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20348,7 +20814,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20359,7 +20825,7 @@
 			)
 		)
 		(property "MF" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20370,7 +20836,7 @@
 			)
 		)
 		(property "MP" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20381,7 +20847,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20392,7 +20858,7 @@
 			)
 		)
 		(property "Package" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20403,7 +20869,7 @@
 			)
 		)
 		(property "Price" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20414,7 +20880,7 @@
 			)
 		)
 		(property "SNAPEDA_PN" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20425,7 +20891,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20436,7 +20902,7 @@
 			)
 		)
 		(property "SnapEDA_Link" ""
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20447,7 +20913,7 @@
 			)
 		)
 		(property "LCSC" "C25744"
-			(at 307.34 163.83 0)
+			(at 280.67 163.83 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20464,7 +20930,7 @@
 			(uuid "d2866872-24fd-436c-89fb-54781bbb9ec6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R19")
 					(unit 1)
@@ -20700,7 +21166,7 @@
 			(uuid "c1df160b-b3dc-483f-b8e5-3877d4e5264c")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C8")
 					(unit 1)
@@ -20713,11 +21179,11 @@
 		(at 134.62 236.22 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "a2658da0-0c48-4869-b1ae-e937c8fb6ec7")
 		(property "Reference" "TP6"
@@ -20779,7 +21245,7 @@
 			(uuid "efeae382-7aa1-44df-9b49-0e2c9b197ea8")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "TP6")
 					(unit 1)
@@ -20857,7 +21323,7 @@
 			(uuid "8f54cc96-8543-4ca0-8354-3b94ce015e66")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR017")
 					(unit 1)
@@ -20935,7 +21401,7 @@
 			(uuid "307ecb11-79b1-4ce1-9901-7f96d6d3eaf8")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR046")
 					(unit 1)
@@ -21258,7 +21724,7 @@
 			(uuid "6c73fe0f-ee9e-499d-b929-f78b2db0121d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "S2")
 					(unit 1)
@@ -21336,7 +21802,7 @@
 			(uuid "f955917c-f6e2-453e-a968-404f97e22d6e")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR026")
 					(unit 1)
@@ -21414,7 +21880,7 @@
 			(uuid "c2fa353d-3bcd-4c42-aea7-8ff08fee47f6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR043")
 					(unit 1)
@@ -21492,7 +21958,7 @@
 			(uuid "fe472092-1723-4b95-9833-78d98535733f")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR022")
 					(unit 1)
@@ -21584,7 +22050,7 @@
 			(uuid "48370943-32e0-4db0-8674-8be413506ce2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R16")
 					(unit 1)
@@ -21594,7 +22060,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 74.93 68.58 0)
+		(at 77.47 68.58 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21605,7 +22071,7 @@
 		(fields_autoplaced yes)
 		(uuid "b959fdd9-af45-4523-b076-3dec78dc78cf")
 		(property "Reference" "#PWR011"
-			(at 74.93 74.93 0)
+			(at 77.47 74.93 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21616,7 +22082,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 74.93 73.66 0)
+			(at 77.47 73.66 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21626,7 +22092,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 74.93 68.58 0)
+			(at 77.47 68.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21637,7 +22103,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 74.93 68.58 0)
+			(at 77.47 68.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21648,7 +22114,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 74.93 68.58 0)
+			(at 77.47 68.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21662,7 +22128,7 @@
 			(uuid "a896449d-b16f-435e-80d6-cd218c3ad1e0")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR011")
 					(unit 1)
@@ -21740,244 +22206,9 @@
 			(uuid "73a4f3ae-43b2-42f2-831e-d270ae14eab5")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR024")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 256.54 46.99 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "c1a72e7f-c547-442f-b6f5-cf9c0ca4a5cf")
-		(property "Reference" "R8"
-			(at 258.064 46.228 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10KΩ"
-			(at 258.064 48.006 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "PCM_JLCPCB:R_0402"
-			(at 254.762 46.99 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Availability" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Check_prices" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description_1" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MANUFACTURER" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MF" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MP" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Package" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Price" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "SNAPEDA_PN" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "STANDARD" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "SnapEDA_Link" ""
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C25744"
-			(at 256.54 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "500884bf-bc55-41ac-bc24-a26c74f9a253")
-		)
-		(pin "2"
-			(uuid "de686974-ee88-4b87-b11e-d0a849d6bec0")
-		)
-		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
-				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
-					(reference "R8")
 					(unit 1)
 				)
 			)
@@ -22302,9 +22533,244 @@
 			(uuid "1b6aab8b-4719-432f-b44d-620d4bf10ac4")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 308.61 153.67 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "c4e2b72f-f9db-437e-af42-5ac70ca0b235")
+		(property "Reference" "R21"
+			(at 311.15 152.3999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100K"
+			(at 308.61 156.21 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "PCM_JLCPCB:R_0402"
+			(at 306.832 153.67 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Availability" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Check_prices" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description_1" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MANUFACTURER" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MF" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MP" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "PARTREV" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Package" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Price" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SNAPEDA_PN" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "STANDARD" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SnapEDA_Link" ""
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C25741"
+			(at 308.61 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2235e8ca-41c4-4760-b486-a68c96d0482f")
+		)
+		(pin "2"
+			(uuid "07cf3c2a-6e79-4613-aecc-57229d4fff4a")
+		)
+		(instances
+			(project "MistMaker-Battery-Kit-V0-4"
+				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
+					(reference "R21")
 					(unit 1)
 				)
 			)
@@ -22553,7 +23019,7 @@
 			(uuid "d8a5b8a9-1ac4-4b8f-ada2-2c7e696f8fa6")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J10")
 					(unit 1)
@@ -22583,7 +23049,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "2KΩ"
+		(property "Value" "5.1KΩ"
 			(at 207.01 229.108 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22770,7 +23236,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C4109"
+		(property "LCSC" "C25905"
 			(at 204.47 231.14 90)
 			(hide yes)
 			(show_name no)
@@ -22788,7 +23254,7 @@
 			(uuid "a54f0fe6-c06b-41fa-8057-4733e340af01")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R7")
 					(unit 1)
@@ -22866,7 +23332,7 @@
 			(uuid "5efb1686-3927-4487-abdb-f9416381afad")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR041")
 					(unit 1)
@@ -22958,7 +23424,7 @@
 			(uuid "5045b31c-3954-4bf9-b96a-fdd5b4e2cbfd")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C16")
 					(unit 1)
@@ -23059,7 +23525,7 @@
 			(uuid "3ca6880d-a7b8-4c4f-92af-ee8842310c1d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R10")
 					(unit 1)
@@ -23136,7 +23602,7 @@
 			(uuid "b96080d4-0e85-4b47-a8d2-cb54ed2f4cd4")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR06")
 					(unit 1)
@@ -23371,7 +23837,7 @@
 			(uuid "79b5ecba-5f58-467c-8959-0d8a1a988d05")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R20")
 					(unit 1)
@@ -23387,8 +23853,8 @@
 		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "d1e39621-9023-4782-9154-8433e98479f5")
 		(property "Reference" "J15"
 			(at 207.264 129.5399 0)
@@ -23449,7 +23915,7 @@
 			(uuid "fb9dbc5d-4147-4eac-b9d0-b7bfbf27a1d0")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J15")
 					(unit 1)
@@ -23540,7 +24006,7 @@
 			(uuid "930e68a4-b775-4241-8492-8c471f456d77")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C1")
 					(unit 1)
@@ -23705,7 +24171,7 @@
 			(uuid "d5c09c7c-0702-4d5a-b4a2-db7659055962")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "U2")
 					(unit 1)
@@ -23953,7 +24419,7 @@
 			(uuid "cffde26c-53cf-408b-b128-b2f71d55563d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J1")
 					(unit 1)
@@ -24188,7 +24654,7 @@
 			(uuid "604f9358-ee08-40f8-9c22-4dc7e486e5fd")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R9")
 					(unit 1)
@@ -24266,7 +24732,7 @@
 			(uuid "85a84cd1-4b55-4756-832b-d97c91041067")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR042")
 					(unit 1)
@@ -24344,7 +24810,7 @@
 			(uuid "d66b5f43-a7a5-4978-a703-c8fa68d2984c")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR035")
 					(unit 1)
@@ -24422,7 +24888,7 @@
 			(uuid "0ec0e868-f4dd-4847-8e8f-7b4693a06bb8")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR037")
 					(unit 1)
@@ -24550,7 +25016,7 @@
 			(uuid "d0b0c9de-23c1-44e9-9ca5-3f32f2fae6f2")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "Q4")
 					(unit 1)
@@ -24563,11 +25029,11 @@
 		(at 134.62 226.06 270)
 		(unit 1)
 		(body_style 1)
-		(exclude_from_sim no)
+		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "e567ae4a-a963-4011-b14b-2a2bf22ea399")
 		(property "Reference" "TP3"
@@ -24629,7 +25095,7 @@
 			(uuid "ad540a25-0f9b-4778-bbbd-0321add3b32e")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "TP3")
 					(unit 1)
@@ -24707,7 +25173,7 @@
 			(uuid "0e336841-565d-4460-a611-ab27c8a6c6bd")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR029")
 					(unit 1)
@@ -24716,8 +25182,8 @@
 		)
 	)
 	(symbol
-		(lib_id "SparkFun-PowerSymbol:5V")
-		(at 41.91 123.19 0)
+		(lib_id "Device:R")
+		(at 256.54 60.96 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -24725,31 +25191,31 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "ed886d30-744f-42b2-959c-9f925a5515d7")
-		(property "Reference" "#PWR025"
-			(at 41.91 127 0)
-			(hide yes)
+		(uuid "ed2e156c-52f2-40bd-a404-1353ee55354a")
+		(property "Reference" "R8"
+			(at 258.064 60.198 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
-		(property "Value" "5V"
-			(at 41.91 119.38 0)
+		(property "Value" "10KΩ"
+			(at 258.064 61.976 0)
 			(show_name no)
-			(do_not_autoplace yes)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
-		(property "Footprint" ""
-			(at 41.91 123.19 0)
+		(property "Footprint" "PCM_JLCPCB:R_0402"
+			(at 254.762 60.96 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24760,7 +25226,242 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 41.91 123.19 0)
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Availability" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Check_prices" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description_1" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MANUFACTURER" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MF" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MP" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "PARTREV" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Package" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Price" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SNAPEDA_PN" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "STANDARD" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "SnapEDA_Link" ""
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C25744"
+			(at 256.54 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "7c48c84d-d237-4754-9e21-149c3f171108")
+		)
+		(pin "2"
+			(uuid "cc9b0267-6f06-4ba6-a949-53728f9ed0d9")
+		)
+		(instances
+			(project "MistMaker-Battery-Kit-V0-4"
+				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
+					(reference "R8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "SparkFun-PowerSymbol:5V")
+		(at 43.18 123.19 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ed886d30-744f-42b2-959c-9f925a5515d7")
+		(property "Reference" "#PWR025"
+			(at 43.18 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "5V"
+			(at 43.18 119.38 0)
+			(show_name no)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 43.18 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 43.18 123.19 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24771,7 +25472,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"5V\""
-			(at 41.91 129.54 0)
+			(at 43.18 129.54 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -24785,7 +25486,7 @@
 			(uuid "e95214ce-1005-449d-b6f1-5532a30ea899")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR025")
 					(unit 1)
@@ -24862,7 +25563,7 @@
 			(uuid "9d5fc752-e060-4218-9eb7-82564ef199af")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR021")
 					(unit 1)
@@ -24957,7 +25658,7 @@
 			(uuid "d7b657a2-70b3-4b8a-bae3-3d17301cd94b")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "Q1")
 					(unit 1)
@@ -25192,7 +25893,7 @@
 			(uuid "1e319f5d-18ed-4e0a-81ec-28e3860c653b")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R13")
 					(unit 1)
@@ -25427,7 +26128,7 @@
 			(uuid "ebc96e2e-245f-43e1-888a-12a8ab2f001c")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C7")
 					(unit 1)
@@ -25519,7 +26220,7 @@
 			(uuid "1beff58c-093d-46c3-9f5f-7fe49da511e4")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R15")
 					(unit 1)
@@ -25597,7 +26298,7 @@
 			(uuid "421e82a7-e4c6-4520-a55a-cf5bafd7e3f1")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR038")
 					(unit 1)
@@ -25924,7 +26625,7 @@
 			(uuid "fcf79ed3-c179-423c-8269-6457332f29b3")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J2")
 					(unit 1)
@@ -26002,7 +26703,7 @@
 			(uuid "122a1ce6-dc01-43a0-b125-80ddec037a95")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR044")
 					(unit 1)
@@ -26102,7 +26803,7 @@
 			(uuid "ce4abae2-7314-478c-887f-50b6968357cd")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "U1")
 					(unit 1)
@@ -26337,7 +27038,7 @@
 			(uuid "1fb36a5e-37ff-4a13-849c-91bb4469010d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "R5")
 					(unit 1)
@@ -26347,7 +27048,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 41.91 160.02 0)
+		(at 43.18 160.02 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -26358,7 +27059,7 @@
 		(fields_autoplaced yes)
 		(uuid "fece992f-e266-437a-9f57-7dfc5cc14e72")
 		(property "Reference" "#PWR034"
-			(at 41.91 166.37 0)
+			(at 43.18 166.37 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -26369,7 +27070,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 41.91 165.1 0)
+			(at 43.18 165.1 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -26379,7 +27080,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 41.91 160.02 0)
+			(at 43.18 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -26390,7 +27091,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 41.91 160.02 0)
+			(at 43.18 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -26401,7 +27102,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 41.91 160.02 0)
+			(at 43.18 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -26415,7 +27116,7 @@
 			(uuid "5ee9419b-3e91-44e8-98ea-337365b1d576")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "#PWR034")
 					(unit 1)
@@ -26431,8 +27132,8 @@
 		(exclude_from_sim yes)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
+		(in_pos_files no)
+		(dnp yes)
 		(uuid "fefd9d6a-268a-4e6d-ba97-ae92fb5f5892")
 		(property "Reference" "J14"
 			(at 207.264 126.9999 0)
@@ -26493,7 +27194,7 @@
 			(uuid "c65fab77-22fe-483a-a3d4-b5501229420d")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "J14")
 					(unit 1)
@@ -26585,7 +27286,7 @@
 			(uuid "d19c6026-8906-495f-9d29-04c0d7b5dc9b")
 		)
 		(instances
-			(project "MistMaker-Battery-Kit-V0-3"
+			(project "MistMaker-Battery-Kit-V0-4"
 				(path "/a7e8ece3-48a7-4e5a-8e95-0d2ed19ea39b"
 					(reference "C6")
 					(unit 1)

@@ -3,7 +3,7 @@
 | File | What |
 |---|---|
 | [`kicad/`](kicad/) | KiCad 10 project (schematic + PCB) |
-| [`MistMaker-Seeed-Expansion_V0-1_SCH.pdf`](MistMaker-Seeed-Expansion_V0-1_SCH.pdf) | Schematic PDF — read this first |
+| [`MistMaker-Seeed-Extension_V0-1_SCH.pdf`](MistMaker-Seeed-Extension_V0-1_SCH.pdf) | Schematic PDF — read this first |
 | [`MistMaker-Seeed-Expansion-V0.1__Assembly.pdf`](MistMaker-Seeed-Expansion-V0.1__Assembly.pdf) | Assembly drawing |
 | [`production/XiaoMistMaker_V0-1.zip`](production/) | Gerbers for JLCPCB |
 | [`production/bom.csv`](production/bom.csv) | BOM with LCSC part numbers (for JLCPCB SMT assembly) |

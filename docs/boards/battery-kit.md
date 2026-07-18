@@ -1,10 +1,13 @@
-# Battery Kit — V0.4
+# Battery Kit — V0.4.1
 
 The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C charging,
 full power path, piezo drive, current sensing, a button, a status LED — and
 **trustworthy battery monitoring**: since V0.4 the board tells the firmware whether
 it is actually running from USB or from the cell, so low-battery logic can never
-false-trigger while you're plugged in.
+false-trigger while you're plugged in. **V0.4.1** is the July 2026 production
+revision — same design, with the power-detect margin widened and the piezo rail
+now defaulting **off** at power-on (details in
+[Revision history](#revision-history)).
 
 **Great for:** installations, performances, kits, and anywhere without a USB cable.
 
@@ -12,13 +15,17 @@ false-trigger while you're plugged in.
     [Battery Kit at shop.byproductlab.com](https://shop.byproductlab.com/kits/battery-kit) —
     every board arrives assembled and tested.
 
+<!-- PHOTO: V0.4.1 board, top side, straight-on — assets/battery-kit-v041-top.jpg -->
+<!-- PHOTO: V0.4.1 board, bottom side — assets/battery-kit-v041-bottom.jpg -->
+<!-- PHOTO: close-up of USB-C + battery connector corner — assets/battery-kit-v041-power-corner.jpg -->
+
 ## Interactive schematic
 
 <script type="module" src="../../assets/vendor/kicanvas.js"></script>
-<kicanvas-embed src="../../assets/hardware/MistMaker-Battery-Kit-V0-3.kicad_sch" controls="basic"></kicanvas-embed>
+<kicanvas-embed src="../../assets/hardware/MistMaker-Battery-Kit-V0-4.kicad_sch" controls="basic"></kicanvas-embed>
 
-*The embed shows V0.3; V0.4 adds the mux-status (ST → D8) divider and a gentler
-charge current — everything else is identical.*
+*The embed shows the as-fabbed V0.4.1 design (the KiCad project keeps the V0-4
+file name; the V0.4.1 changes are in it).*
 [KiCad project & production files on GitHub →](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/battery-kit/hardware)
 
 ## How it works
@@ -82,7 +89,7 @@ VBAT ─► ½ divider ─► D1 (analog fuel gauge)
 On USB the battery node tracks the *charger*, not the state of charge — V0.3
 firmware reading it blindly caused false low-battery shutdowns. V0.4 fixes this in
 hardware: D8 says which source is live, and the
-[MistMaker library](../library.md) (v2.0+) gates itself on it —
+[MistMaker library](../library.md) (v2.1+) gates itself on it —
 `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` when the
 cell is really the source.
 
@@ -95,6 +102,17 @@ cell is really the source.
 
 The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full
 graceful power-off (two consecutive critical readings, radio off, deep sleep).
+
+## Revision history
+
+| Rev | Status | What changed |
+|---|---|---|
+| **V0.4.1** | **Current — July 2026 production run, bench-validated** | R22 150k → 220k: D8's USB-detect logic-high moves ~2.6 V → ~3.1 V (margin 0.2 V → 0.66 V). R8 pull-up → pull-down: the ~5 V piezo rail now boots **OFF** until firmware raises D3, and deep-sleep drain drops to ~0.25 mA. R7 → 5.1 kΩ (LED2 dimming). |
+| V0.4 | Prototype (June 2026, 5 pcs) | TPS2116 ST → D8 mux-status divider (R21/R22) — the "battery monitoring that can't cry wolf" hardware. Charge current derated to ~196 mA (R6 = 5.1 kΩ). |
+| V0.3 | Prototype | First single-PCB battery board. No mux-status pin — firmware must not trust the battery reading on USB ([the V0.3 lesson](#battery-monitoring-that-cant-cry-wolf-v04)). |
+
+Still open for V0.5: delete C14 (redundant bulk), copy the Extension's U4
+100 nF bypass placement, brighter LED3, footprint-name hygiene.
 
 ## Power budget & mist ceiling (measured)
 
@@ -118,13 +136,18 @@ From the 2026-07 bench characterization ([full story on the library page](../lib
 3. Snap in a XIAO ESP32-C6, connect a 1S Li-Po (500 mAh+ recommended).
 4. Flash
    [`BatteryKit_BringUp`](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/battery-kit/firmware/BatteryKit_BringUp)
-   and walk its serial checklist (`h` for help) — including the `u` power-source
-   test and the USB unplug/replug **handoff test** (the sketch counts source
-   switches and reports the reset reason, so you get proof the handoff worked).
-5. Install the MistMaker library (v2.0+) and try the examples — select the board with:
+   and **hold the button ≥ 1.5 s** (or send `a`): the sketch runs an automated
+   self-test — reset reason, power-source sense, battery divider, INA180 zero,
+   boost gating, a classified 50%-duty drive burst — and prints a PASS/FAIL
+   report over serial. Then finish the two hands-on steps it lists: the `u`
+   power-source test and the USB unplug/replug **handoff test** (the sketch
+   counts source switches and reports the reset reason, so you get proof the
+   handoff worked).
+5. Install the MistMaker library (v2.1+) and try the examples — select the board with:
 
 ```cpp
-MistMaker mist(MistMakerBatteryKitV04());   // V0.3 board? MistMakerBatteryKitV03() + disableBattery()
+MistMaker mist(MistMakerBatteryKitV041());  // V0.4 boards: same pins, same preset
+                                            // V0.3 board? MistMakerBatteryKitV03()
 ```
 
 ## Notes
@@ -137,6 +160,7 @@ MistMaker mist(MistMakerBatteryKitV04());   // V0.3 board? MistMakerBatteryKitV0
 - Develop with the battery connected or not — the TPS2116 power mux always prefers
   USB when it's present, so serial enumeration and uploads just work (this fixes the
   power-sequence quirk of the [legacy V1.4 board](legacy-v1-4.md#known-quirks-fixes)).
-- The ~5 V piezo rail is live from power-on (pull-up on the boost enable) until
-  firmware drives D3 — expected on a scope, and harmless: the gate driver holds the
-  piezo off.
+- Piezo rail at power-on differs by revision: on **V0.4** it is live from power-on
+  (pull-up on the boost enable) until firmware drives D3 — expected on a scope, and
+  harmless: the gate driver holds the piezo off. On **V0.4.1** the rail (and LED2)
+  stays **off** until firmware raises D3 — a dark board at plug-in is correct.

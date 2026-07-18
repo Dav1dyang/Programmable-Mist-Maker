@@ -1,8 +1,8 @@
-# Battery Kit — V0.4
+# Battery Kit — V0.4.1
 
-The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C charging, full power path, piezo drive, current sensing, a button, a status LED — and **trustworthy battery monitoring**: V0.4 routes the power mux's status pin to the XIAO (D8), so firmware knows whether it is running from USB or the cell and low-battery logic can never false-trigger while plugged in.
+The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C charging, full power path, piezo drive, current sensing, a button, a status LED — and **trustworthy battery monitoring**: since V0.4 the board routes the power mux's status pin to the XIAO (D8), so firmware knows whether it is running from USB or the cell and low-battery logic can never false-trigger while plugged in.
 
-> The KiCad/production files in this folder are **V0.3**; V0.4 adds the ST→D8 divider (R21/R22), drops the charge current to ~200 mA (R6 = 5.1 kΩ), and is otherwise identical on D0–D7. V0.4 design files live in the project drive and are pending import here.
+> **V0.4.1** is the July 2026 production revision (the boards in the shop): R22 → 220 kΩ widens the D8 USB-detect margin, R8 → pull-down means the ~5 V rail boots **off** (and deep sleep drops to ~0.25 mA), R7 → 5.1 kΩ dims LED2. Same pin map as V0.4. The [`hardware/`](hardware/) folder holds the as-fabbed V0.4.1 KiCad + production files, the design-review memos, and the acceptance-test protocol.
 
 Great for: installations, performances, kits, and anywhere without a USB cable.
 
@@ -10,8 +10,9 @@ Great for: installations, performances, kits, and anywhere without a USB cable.
 
 | Subfolder | Contents |
 |---|---|
-| [`hardware/`](hardware/) | KiCad project, schematic/PCB PDFs, BOM, JLCPCB production files |
-| [`firmware/BatteryKit_BringUp/`](firmware/BatteryKit_BringUp/) | Per-feature test sketch — flash this first on a new board |
+| [`hardware/`](hardware/) | As-fabbed V0.4.1 KiCad project, schematic PDF, BOM, JLCPCB production files, design reviews + acceptance protocol |
+| [`firmware/BatteryKit_BringUp/`](firmware/BatteryKit_BringUp/) | Bring-up sketch — flash first; hold the button ≥ 1.5 s for the **automated self-test** |
+| [`firmware/DutySweep_Test/`](firmware/DutySweep_Test/) | Duty→current characterization tool (the data behind the 50% default) |
 | `enclosure/` | 3D-printable demo enclosure (coming — see [root README](../../README.md#enclosures)) |
 
 ## How it works
@@ -70,18 +71,18 @@ D1 reads the pack through an equal-resistor divider (ratio 2.0). On USB the node
 | < 3.45 V | Low | Warn (LED blink / UI banner) |
 | < 3.20 V | Critical | Mist off → boost off → deep sleep |
 
-The [MistMaker library](https://github.com/owochel/MistMaker) (v2.0+) wraps this and gates it on the D8 source sense — `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` on the cell: `batteryState()`, `batteryPercent()`, `usbPresent()`, `shutdown()`. The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full graceful power-off.
+The [MistMaker library](https://github.com/owochel/MistMaker) (v2.1+) wraps this and gates it on the D8 source sense — `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` on the cell: `batteryState()`, `batteryPercent()`, `usbPresent()`, `shutdown()`. The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full graceful power-off.
 
 ## Build your own
 
 1. Order PCBs with the JLCPCB production files in [`hardware/`](hardware/) (SMT assembly recommended).
 2. Solder the XIAO sockets, piezo connector (PH-2.0), and battery connector (PH-2.0).
 3. Snap in a XIAO ESP32-C6, connect a 1S Li-Po (500 mAh+ recommended).
-4. Flash [`firmware/BatteryKit_BringUp/`](firmware/BatteryKit_BringUp/) and walk its serial checklist (`h` for help). Check `b` (battery volts) with USB unplugged.
-5. Install the MistMaker library and try the examples — select the board with:
+4. Flash [`firmware/BatteryKit_BringUp/`](firmware/BatteryKit_BringUp/) and hold the button ≥ 1.5 s (or send `a`): the **automated self-test** checks reset reason, power-source sense, battery divider, current-sense zero, boost gating, and a classified drive burst, then prints a PASS/FAIL report. Finish with the manual steps it lists (`u` power-source test, USB unplug/replug handoff).
+5. Install the MistMaker library (v2.1+) and try the examples — select the board with:
 
 ```cpp
-MistMaker mist(MistMakerBatteryKitV03());
+MistMaker mist(MistMakerBatteryKitV041());  // V0.4: same preset; V0.3: MistMakerBatteryKitV03()
 ```
 
 ## Notes

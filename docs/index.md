@@ -36,7 +36,7 @@ First presented as a hands-on workshop at the **Open Hardware Summit 2025**.
 | Board | Power | Best for | Status |
 |---|---|---|---|
 | [Extension Kit](boards/extension-kit.md) | USB-C | First builds, desks, classrooms | V0.1 — hardware + firmware ready |
-| [Battery Kit](boards/battery-kit.md) | Li-Po + USB-C | Portable builds, installations | V0.3 — hardware + firmware ready |
+| [Battery Kit](boards/battery-kit.md) | Li-Po + USB-C | Portable builds, installations | **V0.4.1 — in production, bench-validated** |
 | [Block Kit](boards/block-kit.md) | Li-Po + USB-C | Drop-in container UX, 14 LEDs | V0.1 — demoed at OHS 2026 |
 | [I2C MultiPack](boards/i2c-multipack.md) | TBD | Multi-emitter installations | In design |
 | [Legacy V1.4](boards/legacy-v1-4.md) | USB / Li-Po | Reproducing the original workshop kit | Shipped, frozen |

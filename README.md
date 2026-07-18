@@ -21,7 +21,7 @@ explore mist as a material. First presented as a hands-on workshop at the
 | Board | Power | Best for | Status |
 |---|---|---|---|
 | [**Extension Kit**](variants/xiao-extension-kit/) | USB-C | First builds, desks, classrooms | V0.1 — hardware + firmware ready |
-| [**Battery Kit**](variants/battery-kit/) | Li-Po + USB-C | Portable builds, installations | V0.3 — hardware + firmware ready |
+| [**Battery Kit**](variants/battery-kit/) | Li-Po + USB-C | Portable builds, installations | **V0.4.1 — in production, bench-validated** |
 | [**Block Kit**](variants/block-kit/) | Li-Po + USB-C | Drop-in container UX, 14 LEDs | V0.1 — demoed at OHS 2026 |
 | [**I2C MultiPack**](variants/i2c-multipack-kit/) | TBD | Multi-emitter installations | In design |
 | [**Legacy V1.4**](legacy/v1-4/) | USB / Li-Po | Reproducing the original workshop kit | Shipped, frozen |

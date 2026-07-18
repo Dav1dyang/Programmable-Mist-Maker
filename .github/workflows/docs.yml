@@ -34,8 +34,8 @@ jobs:
       - name: Copy KiCad files for KiCanvas embeds
         run: |
           mkdir -p docs/assets/hardware
-          cp variants/xiao-extension-kit/hardware/kicad/MistMaker-Seeed-Expansion-V0.1.kicad_sch docs/assets/hardware/
-          cp variants/battery-kit/hardware/kicad/MistMaker-Battery-Kit-V0-3.kicad_sch docs/assets/hardware/
+          cp variants/xiao-extension-kit/hardware/kicad/MistMaker-Seeed-Extension-V0.1.kicad_sch docs/assets/hardware/
+          cp variants/battery-kit/hardware/kicad/MistMaker-Battery-Kit-V0-4.kicad_sch docs/assets/hardware/
           cp legacy/v1-4/hardware/MistMakerV1-4.kicad_sch docs/assets/hardware/
       - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
