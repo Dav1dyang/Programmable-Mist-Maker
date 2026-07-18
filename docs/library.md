@@ -6,7 +6,7 @@ power-source awareness behind one friendly API. Treat mist like an LED.
 
 ## Install
 
-Arduino IDE → **Library Manager** → search "MistMaker" (v2.0+), or clone
+Arduino IDE → **Library Manager** → search "MistMaker" (v2.1+), or clone
 [owochel/MistMaker](https://github.com/owochel/MistMaker) into your libraries folder.
 
 Every tuning value the library assumes lives in one documented place:
@@ -18,8 +18,9 @@ Every tuning value the library assumes lives in one documented place:
 #include <MistMaker.h>
 
 // One line per board — pick yours:
-MistMaker mist(MistMakerBatteryKitV04());   // ST on D8 gates battery vs USB
-// MistMaker mist(MistMakerBatteryKitV03()); // V0.3: also call mist.disableBattery()
+MistMaker mist(MistMakerBatteryKitV041());  // current production board (V0.4: same preset)
+// MistMaker mist(MistMakerBatteryKitV04());  // identical pins — either name works
+// MistMaker mist(MistMakerBatteryKitV03()); // V0.3: battery sensing off by default
 // MistMaker mist(MistMakerExtensionV01());
 // MistMaker mist(MistMakerBlockKitV01());
 // MistMaker mist(MistMakerLegacyV1());
