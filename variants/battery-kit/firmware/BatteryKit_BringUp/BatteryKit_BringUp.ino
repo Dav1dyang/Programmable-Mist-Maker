@@ -309,6 +309,13 @@ static void runSelfTest(bool startedByButton) {
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  // USB plugged in but no port open: the CDC TX buffer fills and every print
+  // blocks ~100 ms waiting for a host that isn't reading — the loop turns
+  // sluggish and button taps get eaten. Drop output instead of blocking; with
+  // a port open and draining, nothing is lost.
+  Serial.setTxTimeoutMs(0);
+#endif
   delay(1000);
 
   pinMode(PIN_CURRENT_ADC, INPUT);   // raw analogRead for current sense; do NOT
