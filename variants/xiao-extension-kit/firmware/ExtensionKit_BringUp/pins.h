@@ -58,8 +58,13 @@ constexpr uint16_t ST_BTN_WAIT_MS = 5000;   // BOOT-press window (serial start)
 constexpr float ST_IDLE_MAX_MA  = 10.0f;    // PWM off: INA180 zero + leakage
 constexpr float ST_LOAD_MIN_MA  = 10.0f;    // below at full drive -> no disc
 constexpr float ST_DRY_MIN_MA   = 60.0f;    // 60-115 = dry-disc band
-constexpr float ST_WATER_MIN_MA = 115.0f;   // 115-280 = disc-in-water band
-constexpr float ST_LOAD_MAX_MA  = 280.0f;   // above at 50% duty -> investigate
+constexpr float ST_WATER_MIN_MA = 115.0f;   // 115-450 = disc-in-water band
+// Water-band ceiling: coupling varies with wick placement / water level — a
+// well-coupled disc measured a stable ~372 mA WITH a strong plume (V0.4.1
+// bench, 2026-07-18, enclosure swap changed the wick contact), vs ~180 mA
+// lighter-coupled minutes earlier on the same board. Real drive-stage faults
+// live much higher (sweep: 480 mA only at 62% duty, ~1.1 A at 75%).
+constexpr float ST_LOAD_MAX_MA  = 450.0f;   // above at 50% duty -> investigate
 
 // Row results. Lives here (not the .ino) so the Arduino builder's auto-hoisted
 // prototypes see the type. skip = couldn't run, info = no pass criterion,
