@@ -49,6 +49,9 @@ constexpr uint32_t SERIAL_BAUD = 115200;
 // mA conversion at the default 50% duty. One Extension-specific note: its
 // INA180 runs from 3V3, so readings clip near ~1.07 A (irrelevant at 50%
 // duty, matters only in sweeps).
+// The bands are duplicated in BatteryKit_BringUp/pins.h by design —
+// standalone sketches, same physical truth. Re-characterize? Edit BOTH
+// pins.h files together.
 // ---------------------------------------------------------------------------
 constexpr uint16_t ST_BTN_WAIT_MS = 5000;   // BOOT-press window (serial start)
 

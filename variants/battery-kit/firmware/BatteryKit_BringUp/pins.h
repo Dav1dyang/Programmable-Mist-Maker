@@ -73,6 +73,10 @@ constexpr uint32_t SERIAL_BAUD = 115200;
 // taken at the default 50% duty with THIS sketch's raw-ADC mA conversion.
 // Deliberately NOT recalibrated to analogReadMilliVolts(): the bands and the
 // conversion were measured together; changing one invalidates the other.
+// The current bands are the same physical truth as the Extension Kit's (same
+// disc, same drive + sense chain) and are duplicated there by design —
+// standalone sketches. Re-characterize? Edit BOTH pins.h files together:
+// this one and ExtensionKit_BringUp/pins.h.
 // ---------------------------------------------------------------------------
 constexpr uint16_t BTN_LONGPRESS_MS = 1500;  // hold this long -> self-test
 constexpr uint16_t ST_BTN_WAIT_MS   = 5000;  // button-test window (serial start)
