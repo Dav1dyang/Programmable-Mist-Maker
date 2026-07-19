@@ -71,7 +71,7 @@ D1 reads the pack through an equal-resistor divider (ratio 2.0). On USB the node
 | < 3.45 V | Low | Warn (LED blink / UI banner) |
 | < 3.20 V | Critical | Mist off → boost off → deep sleep |
 
-The [MistMaker library](https://github.com/owochel/MistMaker) (v2.1+) wraps this and gates it on the D8 source sense — `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` on the cell: `batteryState()`, `batteryPercent()`, `usbPresent()`, `shutdown()`. The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full graceful power-off.
+The [MistMaker library](https://github.com/owochel/MistMaker) (v2.1+) wraps this and gates it on the D8 source sense — `batteryState()` returns `CHARGING` on USB and only ever `LOW`/`CRITICAL` on the cell: `batteryState()`, `batteryPercent()`, `usbPresent()`, `shutdown()`. The library README's battery section shows the full graceful power-off pattern (two consecutive critical readings, radio off, deep sleep).
 
 ## Build your own
 

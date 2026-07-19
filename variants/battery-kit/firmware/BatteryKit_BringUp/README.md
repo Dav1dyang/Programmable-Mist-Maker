@@ -76,4 +76,4 @@ The TPS2116 switches sources **break-before-make**: for ~1.3 ms neither input dr
 - Charge current is **~196 mA** (R6 = 5.1 kΩ on the LP4060) — a deliberate thermal derate from the 500 mA design. LED1 (green) lit = charging; a 500 mAh cell takes ≈ 3 h from empty.
 - The battery divider (R18/R19) is hard-wired and draws a constant **~210 µA** from the cell — negligible in use, but don't expect shelf-storage battery life with a cell left plugged in.
 
-Pass everything? Move on to the [MistMaker library](https://github.com/owochel/MistMaker) (≥ 2.1.0) examples — `WiFiPhoneControl` re-enables graceful low-battery shutdown, now gated on the D8 mux status.
+Pass everything? Move on to the [MistMaker library](https://github.com/owochel/MistMaker) (≥ 2.2.0) examples — start with `Blink`; battery monitoring there self-gates on the same D8 mux status this sketch just verified.

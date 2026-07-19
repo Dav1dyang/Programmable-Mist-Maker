@@ -21,8 +21,8 @@ First presented as a hands-on workshop at the **Open Hardware Summit 2025**.
    under the **Boards** tab.
 2. **Flash the BringUp sketch** for your board to verify the hardware feature by
    feature.
-3. **Install the [MistMaker library](library.md)** (v1.1+) and work through the
-   examples: `MistBlink` → `MistDimming` → `WaterDetect` → `WiFiPhoneControl`.
+3. **Install the [MistMaker library](library.md)** (v2.2+) and work through the
+   examples: `Blink` → `Breath` → `WaterDetect` → `PhoneDemo`.
 4. **Smart home?** The Home Assistant examples need no code at all — see the
    [library page](library.md#examples).
 

@@ -66,8 +66,8 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
 4. Flash
    [`ExtensionKit_BringUp`](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/xiao-extension-kit/firmware/ExtensionKit_BringUp)
    and walk its serial checklist (`h` for help).
-5. Install the [MistMaker library](../library.md) (v1.1+) and try the examples:
-   `MistBlink` → `MistDimming` → `WaterDetect` → `WiFiPhoneControl`.
+5. Install the [MistMaker library](../library.md) (v2.2+) and try the examples:
+   `Blink` → `Breath` → `WaterDetect` → `PhoneDemo`.
 
 In library examples select the board with:
 
