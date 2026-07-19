@@ -36,12 +36,11 @@ schematics** live on the [documentation site](https://docs.byproductlab.com/).
    is the easiest first build; the [Battery Kit](https://docs.byproductlab.com/boards/battery-kit/)
    cuts the cord. (Or [buy one assembled and tested](https://shop.byproductlab.com).)
 2. **Flash the variant's BringUp sketch** to verify the hardware feature by feature.
-3. **Install the [MistMaker Arduino library](https://github.com/owochel/MistMaker)** (v1.1+)
-   and work through the examples: `MistBlink` → `MistDimming` → `WaterDetect` →
-   `WiFiPhoneControl` (control it from your phone).
+3. **Install the [MistMaker Arduino library](https://github.com/owochel/MistMaker)** (v2.2+)
+   and work through the examples: `Blink` → `Breath` → `WaterDetect` →
+   `PhoneDemo` (control it from your phone).
 4. **Smart home?** [`firmware-examples/home-assistant/`](firmware-examples/home-assistant/)
-   joins Home Assistant with no code at all (ESPHome), or use the `HomeAssistant_MQTT`
-   library example.
+   joins Home Assistant with no code at all (ESPHome).
 
 ## How it works
 

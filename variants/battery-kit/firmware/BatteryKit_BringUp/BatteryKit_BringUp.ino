@@ -314,7 +314,7 @@ static void runSelfTest(bool startedByButton) {
                 g_tCount[T_CHECK]);
   Serial.println("[TEST] not covered here (see V04-Acceptance-Test protocol):");
   Serial.println("[TEST]   multimeter Vbatt cross-check | USB-unplug mux handoff (u)");
-  Serial.println("[TEST]   charge-LED behavior | PhoneSensors radio test | duty sweep (DutySweep_Test)");
+  Serial.println("[TEST]   charge-LED behavior | PhoneDemo radio test | duty sweep (DutySweep_Test)");
   Serial.println();
 }
 

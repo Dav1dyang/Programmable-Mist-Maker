@@ -111,12 +111,13 @@ Your sketch's `setLevel(0..255)` scale is unaffected by the cap — 255 always m
 
 | Example | What it shows |
 |---|---|
-| `MistBlink` | Hello-world: 6 s ON / 3 s OFF cycle |
-| `MistDimming` | Organic "breathing" mist with `setLevel()` |
-| `WaterDetect` | Disc + water detection, auto-calibration, auto-recovery |
-| `WiFiPhoneControl` | Phone control via WiFi AP + web UI, graceful low-battery shutdown |
-| `HomeAssistant_MQTT` | Native Home Assistant device via MQTT Discovery |
-| `PhoneSensors` | Phone mic / light / motion / face / **music** drive the mist over the internet ([relay + web app included](https://github.com/owochel/MistMaker/tree/main/extras/phone-app)) |
+| `Blink` | Hello-world: mist 6 s on / 3 s off, LED follows |
+| `Breath` | Mist that breathes — smooth fade in, hold, fade out with `setLevel()` |
+| `WaterDetect` | Self-minding mist: stops when water runs out or the disc comes off, resumes by itself |
+| `PhoneDemo` | Phone mic / light / motion / face / **music** drive the mist over the internet ([relay + web app included](https://github.com/owochel/MistMaker/tree/main/extras/phone-app)) |
+
+Retired examples (MQTT/Home Assistant, ESP-NOW, WiFi-AP control) live in the
+[v2.1.0 release](https://github.com/owochel/MistMaker/releases/tag/v2.1.0).
 
 ## Home Assistant without code
 

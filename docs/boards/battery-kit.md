@@ -100,8 +100,8 @@ cell is really the source.
 | < 3.45 V | Low | Warn (LED blink / UI banner) |
 | < 3.20 V | Critical | Mist off → boost off → deep sleep |
 
-The `WiFiPhoneControl` and `HomeAssistant_MQTT` examples implement the full
-graceful power-off (two consecutive critical readings, radio off, deep sleep).
+The full graceful power-off pattern (two consecutive critical readings, radio
+off, deep sleep) is documented on the [library page](../library.md).
 
 ## Revision history
 

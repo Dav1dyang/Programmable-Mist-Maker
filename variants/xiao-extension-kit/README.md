@@ -48,7 +48,7 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
 2. Solder the PH-2.0 piezo connector and XIAO headers.
 3. Mount a XIAO ESP32-C6.
 4. Flash [`firmware/ExtensionKit_BringUp/`](firmware/ExtensionKit_BringUp/) and walk its serial checklist (`h` for help).
-5. Install the [MistMaker library](https://github.com/owochel/MistMaker) (v1.1+) and try the examples: `MistBlink` → `MistDimming` → `WaterDetect` → `WiFiPhoneControl`.
+5. Install the [MistMaker library](https://github.com/owochel/MistMaker) (v2.2+) and try the examples: `Blink` → `Breath` → `WaterDetect` → `PhoneDemo`.
 
 In library examples select the board with:
 

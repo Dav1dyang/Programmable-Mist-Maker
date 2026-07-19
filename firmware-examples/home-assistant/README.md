@@ -13,10 +13,10 @@ The YAML targets the **Battery Kit V0.3**. For the Extension (BFF) V0.2, delete 
 
 ## Option B — Arduino + MQTT
 
-Prefer to stay in the Arduino ecosystem (or to customize behavior)? Use the **`HomeAssistant_MQTT`** example in the [MistMaker library](https://github.com/owochel/MistMaker) (v1.1+):
+Prefer to stay in the Arduino ecosystem (or to customize behavior)? The **`HomeAssistant_MQTT`** sketch was retired from the library's curated examples in v2.2 — download it from the [v2.1.0 release](https://github.com/owochel/MistMaker/releases/tag/v2.1.0) (`examples/HomeAssistant_MQTT/`), then:
 
 1. Run an MQTT broker (the Mosquitto add-on) and HA's MQTT integration.
-2. `File > Examples > MistMaker > HomeAssistant_MQTT`, fill in WiFi + broker credentials, flash.
+2. Open the sketch, fill in WiFi + broker credentials, flash.
 3. The sketch publishes MQTT Discovery configs — the device appears automatically with mist light, battery %, and water-status entities, plus offline detection via LWT.
 
 ## Automation ideas
