@@ -167,9 +167,13 @@ jack.
 library catching a pin that can't make 108.7 kHz. Move the mist wire and the
 `MIST_PIN` constant to a pin from the table above.
 
-**Mist worked, then got weak and erratic.** Check the water level — the disc
-needs to sit in water, and low water is exactly what the water-detection
-variation below is for.
+**Mist worked, then got weak and erratic.** Two usual suspects. First, the
+water level — the disc needs water contact, and running low is exactly what
+the water-detection variation below is for. Second, the wick's fit: it needs
+to sit **right on the disc, just touching**. Too far away and the disc loses
+its water supply; pressed too tight and the wick damps the piezo's vibration.
+Either way the mist weakens — reseat the wick so it rests against the disc
+without squeezing it.
 
 **Current reads 0 mA / WaterDetect says "no disc found" with a disc right
 there.** The kit's sense amplifier has no power. In USB mode it's fed by the
