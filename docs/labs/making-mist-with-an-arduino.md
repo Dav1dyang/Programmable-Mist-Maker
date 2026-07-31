@@ -70,17 +70,19 @@ holes, labeled on the silkscreen. Four wires make mist:
 | 3 | yellow | 9 | D0 | the 108.7 kHz mist signal |
 | 4 | green | 7 | D3 | boost enable — the kit's ~5 V drive rail is OFF until this goes HIGH |
 
-<!-- figure slot: breadboard-style wiring view, Uno -->
-> **Wiring, in words (Uno):** a red wire runs from the Uno's 5V pin to the
-> kit's 5V-in pad, and a black wire from the Uno's GND to the kit's GND pad,
-> directly beside it. A yellow wire runs from the Uno's pin 9 to the kit's D0
-> pad, and a green wire from pin 7 to the kit's D3 pad. The piezo disc cable
-> plugs into the kit's disc connector.
+![Uno wired to the Battery Kit](img/uno-usb-mode.svg)
 
-<!-- figure slot: breadboard-style wiring view, Nano 33 IoT / BLE -->
-> **Nano 33 IoT / BLE:** identical pads, identical pin numbers — 5V to 5V-in
-> (after bridging VUSB, see the note below), GND to GND, pin 9 to D0, pin 7
-> to D3.
+_Figure 1. Uno wiring. A red wire runs from the Uno's 5V pin to the kit's 5V
+pad, and a black wire from the Uno's GND to the kit's GND pad, directly
+beside it. A yellow wire runs from the Uno's pin 9 to the kit's D0 pad, and
+a green wire from pin 7 to the kit's D3 pad. The piezo disc cable plugs into
+the kit's disc connector._
+
+![Nano wired to the Battery Kit](img/nano33iot-usb-mode.svg)
+
+_Figure 2. Nano wiring (33 IoT and BLE are identical) — same pads, same pin
+numbers: 5V to the kit's 5V pad (after bridging VUSB, see the note below),
+GND to GND, pin 9 to D0, pin 7 to D3._
 
 ### Note on Power
 
@@ -237,6 +239,12 @@ makes the wiring even shorter:
 | red | 5V | 5V | powers the drive rail directly |
 | black | GND | GND | shared ground |
 | yellow | 9 | D0 | the 108.7 kHz mist signal |
+
+![Uno wired to the Extension Kit](img/extension-3wire.svg)
+
+_Figure 3. Extension Kit wiring: red from the Uno's 5V to the kit's 5V pad,
+black from GND to GND directly below it, yellow from pin 9 to the kit's D0
+pad. No enable wire — the drive rail is live whenever power arrives._
 
 Three wires, no enable. In code, use the Extension preset (or pass `-1` for
 the enable pin):
