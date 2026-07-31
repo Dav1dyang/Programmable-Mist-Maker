@@ -175,6 +175,12 @@ its water supply; pressed too tight and the wick damps the piezo's vibration.
 Either way the mist weakens — reseat the wick so it rests against the disc
 without squeezing it.
 
+If water and wick check out and the mist is still dim, **swap in a fresh
+piezo disc**. Discs wear out — and in particular, a disc that runs for long
+stretches **without water can be permanently damaged** and never mist well
+again. (That's the practical reason for the water-detection variation below:
+it stops the drive before a dry run hurts the disc.)
+
 **Current reads 0 mA / WaterDetect says "no disc found" with a disc right
 there.** The kit's sense amplifier has no power. In USB mode it's fed by the
 orange 3.3V wire (Arduino 3.3V → kit 3V3 pad) — without it every current
