@@ -57,5 +57,7 @@ nav:
       - boards/i2c-multipack.md
       - boards/legacy-v1-4.md
   - MistMaker Library: library.md
+  - Labs:
+      - labs/making-mist-with-an-arduino.md
   - Buy a Kit: https://shop.byproductlab.com
   - Contact: contact.md
