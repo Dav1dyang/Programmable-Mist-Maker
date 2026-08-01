@@ -63,24 +63,38 @@ with the same hint on the Serial Monitor.
 Unplug everything first. Find the kit's empty XIAO socket — two rows of seven
 holes, labeled on the silkscreen. Four wires make mist:
 
-| # | Wire color | From Arduino | To kit pad | What it does |
-|---|---|---|---|---|
-| 1 | red | 5V | 5V-in | powers the kit |
-| 2 | black | GND | GND | shared ground |
-| 3 | yellow | 9 | D0 | the 108.7 kHz mist signal |
-| 4 | green | 7 | D3 | boost enable — the kit's ~5 V drive rail is OFF until this goes HIGH |
+- Connect **Arduino 5V** to the kit's **5V pad** (red wire) — powers the kit.
+- Connect **Arduino GND** to the kit's **GND pad** (black wire) — shared ground.
+- Connect **Arduino 9** to the kit's **D0 pad** (yellow wire) — the 108.7 kHz
+  mist signal.
+- Connect **Arduino 7** to the kit's **D3 pad** (green wire) — boost enable;
+  the kit's ~5 V drive rail stays OFF until this pin goes HIGH.
 
-<!-- figure slot: breadboard-style wiring view, Uno -->
-> **Wiring, in words (Uno):** a red wire runs from the Uno's 5V pin to the
-> kit's 5V-in pad, and a black wire from the Uno's GND to the kit's GND pad,
-> directly beside it. A yellow wire runs from the Uno's pin 9 to the kit's D0
-> pad, and a green wire from pin 7 to the kit's D3 pad. The piezo disc cable
-> plugs into the kit's disc connector.
+![Uno wired to the Battery Kit](img/uno-usb-mode.svg)
 
-<!-- figure slot: breadboard-style wiring view, Nano 33 IoT / BLE -->
-> **Nano 33 IoT / BLE:** identical pads, identical pin numbers — 5V to 5V-in
-> (after bridging VUSB, see the note below), GND to GND, pin 9 to D0, pin 7
-> to D3.
+_Figure 1. Uno wiring. The kit stands on its side, so its socket rows run
+vertically. A red wire runs from the Uno's 5V pin to the kit's 5V pad at the
+bottom of the near column, and a black wire from GND to the kit's GND pad
+directly above it. A yellow wire runs from pin 9 to the kit's D0 pad at the
+bottom of the far column, and a green wire from pin 7 to the D3 pad three
+sockets above it. The piezo disc's red-and-black cable leaves the kit's DISC
+connector at the top and runs to the disc, which rests in a container of
+water on the right._
+
+<!-- photo slot: staged photo of the real Uno + Battery Kit wiring -->
+_A real build of this wiring._
+
+![Nano wired to the Battery Kit](img/nano33iot-usb-mode.svg)
+
+_Figure 2. Nano wiring — a classic Nano is pictured (Fritzing has no
+Nano 33 IoT part), but the 33 IoT and BLE use the same positions for all
+four pins. The Nano straddles the breadboard's center divide at the left
+end, USB pointing left. A yellow wire leaves row g directly above the
+Nano's D9 pin (column 4) and a green wire leaves row g above D7 (column 6);
+they arc over to the kit's D0 and D3 pads. A red wire leaves row a below
+the Nano's 5V pin (column 12) and a black wire leaves row a below GND
+(column 14); they run to the kit's 5V and GND pads. The disc's cable leaves
+the kit's DISC connector and runs to the disc in its water container._
 
 ### Note on Power
 
@@ -190,7 +204,12 @@ itself.
 ## Variation: Run on Battery
 
 The Battery Kit powers itself from its own cell — then the Arduino only
-supplies signals. Wiring drops to three wires: **GND, 9 → D0, 7 → D3**.
+supplies signals. Wiring drops to three wires:
+
+- Connect **Arduino GND** to the kit's **GND pad** (black wire).
+- Connect **Arduino 9** to the kit's **D0 pad** (yellow wire).
+- Connect **Arduino 7** to the kit's **D3 pad** (green wire).
+
 Remove the red 5V wire, and if you added the 3.3V wire from the
 water-detection variation, remove that too (on battery the kit drives its
 own 3.3 V rail).
@@ -200,10 +219,10 @@ own 3.3 V rail).
 The kit measures the disc's current draw, and from it can tell a disc in
 water from a dry disc from no disc at all. Two more wires:
 
-| Wire color | From Arduino | To kit pad | What it does |
-|---|---|---|---|
-| orange | 3.3V | 3V3 | powers the kit's sense amplifier (USB mode only) |
-| blue | A1 | D2 | current-sense signal |
+- Connect **Arduino 3.3V** to the kit's **3V3 pad** (orange wire) — powers the
+  kit's sense amplifier (USB mode only; remove on battery power).
+- Connect **Arduino A1** to the kit's **D2 pad** (blue wire) — the
+  current-sense signal.
 
 Change the constructor's first `-1` to `A1`, or use the full preset (below).
 Then run the **WaterDetect** example: it probes the disc in every off-window,
@@ -227,19 +246,31 @@ source, battery voltage, and charge state live.
 
 ## Using the Extension Kit
 
-The Extension Kit works over jumpers too — it just ships without a header,
-so first solder 2.54 mm pin headers into its XIAO footprint. It has no
-battery and no boost enable (its drive rail is live whenever powered), which
-makes the wiring even shorter:
+The Extension Kit rides the breadboard. It ships with bare through-hole
+pads on its XIAO footprint — solder in **male 2.54 mm header pins** and it
+mounts straddling the breadboard's center divide, exactly like a Nano (its
+two pin columns are the same 0.6 in apart). It has no battery and no boost
+enable (its drive rail is live whenever powered), so three wires make mist:
 
-| Wire color | From Arduino | To kit pad | What it does |
-|---|---|---|---|
-| red | 5V | 5V | powers the drive rail directly |
-| black | GND | GND | shared ground |
-| yellow | 9 | D0 | the 108.7 kHz mist signal |
+- Connect **Arduino 5V** to the breadboard row beside the kit's **5V pin**
+  (red wire) — powers the drive rail directly.
+- Connect **Arduino GND** to the breadboard row beside the kit's **GND pin**
+  (black wire) — shared ground.
+- Connect **Arduino 9** to the breadboard row beside the kit's **D0 pin**
+  (yellow wire) — the 108.7 kHz mist signal.
 
-Three wires, no enable. In code, use the Extension preset (or pass `-1` for
-the enable pin):
+![Uno wired to the Extension Kit on a breadboard](img/extension-3wire.svg)
+
+_Figure 3. Extension Kit wiring. The kit, soldered to male header pins,
+mounts on the breadboard straddling the center divide with its pins in rows
+f and b (columns 8–14). A red wire runs from the Uno's 5V to row g directly
+above the kit's 5V pin (column 8), a black wire from GND to row g above the
+kit's GND pin (column 9), and a yellow wire from pin 9 to row a directly
+below the kit's D0 pin (column 8). No enable wire — the drive rail is live
+whenever power arrives. The disc's cable runs from the kit's DISC pads to
+the disc in its water container._
+
+In code, use the Extension preset (or pass `-1` for the enable pin):
 
 ```cpp
 MistMaker mist(MistMakerExtensionV01());
