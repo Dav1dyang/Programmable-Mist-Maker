@@ -285,8 +285,12 @@ The same power and heat notes apply.
 ## The Uno vs the Nano 33 IoT vs the Uno R4 vs the Nano 33 BLE
 
 - **Logic levels.** The Uno R3 and R4 are 5 V boards; the Nano 33 IoT and
-  BLE are 3.3 V. The kit accepts both on its inputs, so the same wiring
-  works — but never wire the kit's 5V-in to a Nano output pin.
+  BLE are 3.3 V. The kit's signal pads (D0 and D3) are inputs that accept
+  either, which is why one wiring diagram serves every board here.
+- **The 5V pad is power, not signal.** It feeds the mist driver and draws up
+  to half an amp, so it belongs on your board's 5V supply pin — never on a
+  GPIO. A GPIO can't source that much current, and on a 3.3 V Nano, 5 V on
+  an I/O pin can destroy it.
 - **Mist resolution.** The mist signal has 147 brightness steps on the R3
   and BLE, and 442 on the Nano 33 IoT and R4 (their timers run faster).
   You'll only notice in slow fades at the dimmest levels.
