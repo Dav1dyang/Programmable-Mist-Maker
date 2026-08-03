@@ -70,31 +70,27 @@ holes, labeled on the silkscreen. Four wires make mist:
 - Connect **Arduino 7** to the kit's **D3 pad** (green wire) — boost enable;
   the kit's ~5 V drive rail stays OFF until this pin goes HIGH.
 
-![Uno wired to the Battery Kit](img/uno-usb-mode.svg)
+![Uno wired to the Battery Kit](img/uno-to-battery-kit.png)
 
-_Figure 1. Uno wiring. The kit stands on its side, so its socket rows run
-vertically. A red wire runs from the Uno's 5V pin to the kit's 5V pad at the
-bottom of the near column, and a black wire from GND to the kit's GND pad
-directly above it. A yellow wire runs from pin 9 to the kit's D0 pad at the
-bottom of the far column, and a green wire from pin 7 to the D3 pad three
-sockets above it. The piezo disc's red-and-black cable leaves the kit's DISC
-connector at the top and runs to the disc, which rests in a container of
-water on the right._
+_Figure 1. Uno wired to the Battery Kit. The Uno's headers take jumper ends
+directly, so no breadboard is needed. A red wire runs from the Uno's 5V pin
+to the kit's 5V pad and a black wire from GND to the kit's GND pad — both on
+the kit's top row. A yellow wire runs from pin 9 to the kit's D0 pad and a
+green wire from pin 7 to its D3 pad, both on the bottom row. The piezo disc's
+red-and-black cable plugs into the kit's DISC connector on the right._
 
 <!-- photo slot: staged photo of the real Uno + Battery Kit wiring -->
 _A real build of this wiring._
 
-![Nano wired to the Battery Kit](img/nano33iot-usb-mode.svg)
+![Nano wired to the Battery Kit](img/nano-to-battery-kit.png)
 
-_Figure 2. Nano wiring — a classic Nano is pictured (Fritzing has no
-Nano 33 IoT part), but the 33 IoT and BLE use the same positions for all
-four pins. The Nano straddles the breadboard's center divide at the left
-end, USB pointing left. A yellow wire leaves row g directly above the
-Nano's D9 pin (column 4) and a green wire leaves row g above D7 (column 6);
-they arc over to the kit's D0 and D3 pads. A red wire leaves row a below
-the Nano's 5V pin (column 12) and a black wire leaves row a below GND
-(column 14); they run to the kit's 5V and GND pads. The disc's cable leaves
-the kit's DISC connector and runs to the disc in its water container._
+_Figure 2. Nano wired to the Battery Kit — a classic Nano is pictured
+(Fritzing has no Nano 33 IoT part), but the 33 IoT and BLE use the same
+positions for all four pins. The Nano straddles the breadboard's center
+divide at the left end, USB pointing left; the kit sits beside the
+breadboard. Yellow runs from the row beside D9 to the kit's D0 pad, green
+from D7 to D3, red from the Nano's 5V to the kit's 5V, and black from GND to
+GND. The disc plugs into the DISC connector on the right._
 
 ### Note on Power
 
@@ -259,16 +255,23 @@ enable (its drive rail is live whenever powered), so three wires make mist:
 - Connect **Arduino 9** to the breadboard row beside the kit's **D0 pin**
   (yellow wire) — the 108.7 kHz mist signal.
 
-![Uno wired to the Extension Kit on a breadboard](img/extension-3wire.svg)
+![Uno wired to the Extension Kit on a breadboard](img/uno-to-extension-kit.png)
 
-_Figure 3. Extension Kit wiring. The kit, soldered to male header pins,
-mounts on the breadboard straddling the center divide with its pins in rows
-f and b (columns 8–14). A red wire runs from the Uno's 5V to row g directly
-above the kit's 5V pin (column 8), a black wire from GND to row g above the
-kit's GND pin (column 9), and a yellow wire from pin 9 to row a directly
-below the kit's D0 pin (column 8). No enable wire — the drive rail is live
-whenever power arrives. The disc's cable runs from the kit's DISC pads to
-the disc in its water container._
+_Figure 3. Uno wired to the Extension Kit. The kit, soldered to male header
+pins, mounts on the breadboard straddling the center divide. A red wire runs
+from the Uno's 5V to the breadboard row beside the kit's 5V pin, a black wire
+from GND to the row beside GND, and a yellow wire from pin 9 to the row
+beside D0. No enable wire — the drive rail is live whenever power arrives.
+The disc plugs into the kit's piezo connector on the right._
+
+![Nano wired to the Extension Kit on a breadboard](img/nano-to-extension-kit.png)
+
+_Figure 4. Nano wired to the Extension Kit — both boards share one
+breadboard, each straddling the center divide. Yellow runs from the row
+beside the Nano's D9 to the row beside the kit's D0, red from 5V to 5V, and
+black from GND to GND. (A green wire from D7 to the kit's D3 is also
+pictured; the Extension Kit has no boost to enable, so it does nothing here —
+three wires are all this kit needs.)_
 
 In code, use the Extension preset (or pass `-1` for the enable pin):
 
