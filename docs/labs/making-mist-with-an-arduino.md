@@ -197,97 +197,6 @@ orange 3.3V wire (Arduino 3.3V → kit 3V3 pad) — without it every current
 reading is zero. Add the wire; on battery mode the kit powers the amplifier
 itself.
 
-## Variation: Run on Battery
-
-The Battery Kit powers itself from its own cell — then the Arduino only
-supplies signals. Wiring drops to three wires:
-
-- Connect **Arduino GND** to the kit's **GND pad** (black wire).
-- Connect **Arduino 9** to the kit's **D0 pad** (yellow wire).
-- Connect **Arduino 7** to the kit's **D3 pad** (green wire).
-
-Remove the red 5V wire, and if you added the 3.3V wire from the
-water-detection variation, remove that too (on battery the kit drives its
-own 3.3 V rail).
-
-## Variation: Water Detection
-
-The kit measures the disc's current draw, and from it can tell a disc in
-water from a dry disc from no disc at all. Two more wires:
-
-- Connect **Arduino 3.3V** to the kit's **3V3 pad** (orange wire) — powers the
-  kit's sense amplifier (USB mode only; remove on battery power).
-- Connect **Arduino A1** to the kit's **D2 pad** (blue wire) — the
-  current-sense signal.
-
-Change the constructor's first `-1` to `A1`, or use the full preset (below).
-Then run the **WaterDetect** example: it probes the disc in every off-window,
-stops when the water runs out, and resumes when you refill. Run
-`autoCalibrateSense()` once (send `'c'` in the Serial Monitor) — your
-Arduino's ADC differs a little from the board the default thresholds were
-measured on.
-
-## Variation: Battery and Power Source
-
-Plug a LiPo cell into the kit's BATT connector and two more wires tell you
-how full it is — and whether the kit is running on it at all:
-
-- Connect **Arduino A0** to the kit's **D1 pad** (purple wire) — battery
-  voltage, through a divider on the kit.
-- Connect **Arduino A2** to the kit's **D8 pad** (white wire) — power status:
-  high on USB, low on the cell.
-
-Why both: with USB plugged in, the cell is charging, so its voltage says
-nothing about how much charge is left. The status wire is what lets the
-library tell the two situations apart.
-
-```cpp
-mist.readBatteryVolts();   // volts at the cell
-mist.batteryPercent();     // rough state of charge
-mist.usbPresent();         // true on USB, false on the cell
-```
-
-Run the **BatteryPowerTest** example to watch all of it live.
-
-## Variation: The Kit's Button and LED
-
-The Battery Kit has its own button and white LED. Two wires bring them in:
-
-- Connect **Arduino 2** to the kit's **D6 pad** (grey wire) — the button. It
-  reads high while pressed; the kit has its own pull-down, so nothing else
-  is needed.
-- Connect **Arduino 4** to the kit's **D7 pad** (brown wire) — the LED. The
-  library lights it whenever the mist is on.
-
-```cpp
-if (mist.buttonPressed()) mist.turnOn();
-else                      mist.turnOff();
-```
-
-The **ButtonPressToMist** and **ButtonOn-Off** examples build on this.
-
-## Variation: Everything Wired
-
-All nine wires at once — use the preset instead of listing pins, it's the
-same map on every board here:
-
-```cpp
-MistMaker mist(MistMakerBatteryKitV041());
-```
-
-| Kit pad | Arduino pin | Wire | What it does |
-|---|---|---|---|
-| 5V | 5V | red | powers the kit |
-| GND | GND | black | shared ground |
-| D0 | 9 | yellow | mist signal |
-| D3 | 7 | green | boost enable |
-| 3V3 | 3.3V | orange | powers the sense amp (USB mode) |
-| D2 | A1 | blue | current sense |
-| D1 | A0 | purple | battery voltage |
-| D8 | A2 | white | power status (USB vs cell) |
-| D6 | 2 | grey | button |
-| D7 | 4 | brown | LED |
-
 ## Using the Extension Kit
 
 The Extension Kit rides the breadboard. It ships with bare through-hole
@@ -357,6 +266,103 @@ and have the mist breathe back (`Breath` example). Put mist on a doorway
 with a distance sensor. Cross two misting doorways. The `setLevel()` scale
 makes mist a dimmable material, like light — what does a *gesture* of mist
 look like?
+
+## Going Further
+
+Everything so far is the whole build. The rest is optional — each
+add-on is a couple more wires and one more thing the kit can tell you
+or do.
+
+### Run on Battery
+
+The Battery Kit powers itself from its own cell — then the Arduino only
+supplies signals. Wiring drops to three wires:
+
+- Connect **Arduino GND** to the kit's **GND pad** (black wire).
+- Connect **Arduino 9** to the kit's **D0 pad** (yellow wire).
+- Connect **Arduino 7** to the kit's **D3 pad** (green wire).
+
+Remove the red 5V wire, and if you added the 3.3V wire from the
+water-detection variation, remove that too (on battery the kit drives its
+own 3.3 V rail).
+
+### Water Detection
+
+The kit measures the disc's current draw, and from it can tell a disc in
+water from a dry disc from no disc at all. Two more wires:
+
+- Connect **Arduino 3.3V** to the kit's **3V3 pad** (orange wire) — powers the
+  kit's sense amplifier (USB mode only; remove on battery power).
+- Connect **Arduino A1** to the kit's **D2 pad** (blue wire) — the
+  current-sense signal.
+
+Change the constructor's first `-1` to `A1`, or use the full preset (below).
+Then run the **WaterDetect** example: it probes the disc in every off-window,
+stops when the water runs out, and resumes when you refill. Run
+`autoCalibrateSense()` once (send `'c'` in the Serial Monitor) — your
+Arduino's ADC differs a little from the board the default thresholds were
+measured on.
+
+### Battery and Power Source
+
+Plug a LiPo cell into the kit's BATT connector and two more wires tell you
+how full it is — and whether the kit is running on it at all:
+
+- Connect **Arduino A0** to the kit's **D1 pad** (purple wire) — battery
+  voltage, through a divider on the kit.
+- Connect **Arduino A2** to the kit's **D8 pad** (white wire) — power status:
+  high on USB, low on the cell.
+
+Why both: with USB plugged in, the cell is charging, so its voltage says
+nothing about how much charge is left. The status wire is what lets the
+library tell the two situations apart.
+
+```cpp
+mist.readBatteryVolts();   // volts at the cell
+mist.batteryPercent();     // rough state of charge
+mist.usbPresent();         // true on USB, false on the cell
+```
+
+Run the **BatteryPowerTest** example to watch all of it live.
+
+### The Kit's Button and LED
+
+The Battery Kit has its own button and white LED. Two wires bring them in:
+
+- Connect **Arduino 2** to the kit's **D6 pad** (grey wire) — the button. It
+  reads high while pressed; the kit has its own pull-down, so nothing else
+  is needed.
+- Connect **Arduino 4** to the kit's **D7 pad** (brown wire) — the LED. The
+  library lights it whenever the mist is on.
+
+```cpp
+if (mist.buttonPressed()) mist.turnOn();
+else                      mist.turnOff();
+```
+
+The **ButtonPressToMist** and **ButtonOn-Off** examples build on this.
+
+### Everything Wired
+
+All nine wires at once — use the preset instead of listing pins, it's the
+same map on every board here:
+
+```cpp
+MistMaker mist(MistMakerBatteryKitV041());
+```
+
+| Kit pad | Arduino pin | Wire | What it does |
+|---|---|---|---|
+| 5V | 5V | red | powers the kit |
+| GND | GND | black | shared ground |
+| D0 | 9 | yellow | mist signal |
+| D3 | 7 | green | boost enable |
+| 3V3 | 3.3V | orange | powers the sense amp (USB mode) |
+| D2 | A1 | blue | current sense |
+| D1 | A0 | purple | battery voltage |
+| D8 | A2 | white | power status (USB vs cell) |
+| D6 | 2 | grey | button |
+| D7 | 4 | brown | LED |
 
 ---
 
