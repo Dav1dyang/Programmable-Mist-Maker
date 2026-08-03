@@ -16,7 +16,7 @@ maker needs a very particular kind of pin to work at all.
 
 - [Digital input and output](https://itp.nyu.edu/physcomp/labs/labs-arduino-digital-and-analog/digital-input-and-output-with-an-arduino/)
 - [Analog input](https://itp.nyu.edu/physcomp/labs/labs-arduino-digital-and-analog/analog-in-with-an-arduino/)
-- What [PWM](https://itp.nyu.edu/physcomp/labs/labs-arduino-digital-and-analog/analog-out-with-an-arduino/) is
+- What [PWM](https://itp.nyu.edu/physcomp/lessons/analog-output/) is
 
 ### Things You'll Need
 
