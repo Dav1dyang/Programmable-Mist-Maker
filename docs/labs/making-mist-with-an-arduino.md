@@ -268,10 +268,10 @@ The disc plugs into the kit's piezo connector on the right._
 
 _Figure 4. Nano wired to the Extension Kit — both boards share one
 breadboard, each straddling the center divide. Yellow runs from the row
-beside the Nano's D9 to the row beside the kit's D0, red from 5V to 5V, and
-black from GND to GND. (A green wire from D7 to the kit's D3 is also
-pictured; the Extension Kit has no boost to enable, so it does nothing here —
-three wires are all this kit needs.)_
+beside the Nano's D9 to the row beside the kit's D0, red from the Nano's 5V
+to the kit's 5V, and black from GND to GND. Three wires, no enable — the
+drive rail is live whenever power arrives. The disc plugs into the kit's
+piezo connector on the right._
 
 In code, use the Extension preset (or pass `-1` for the enable pin):
 
