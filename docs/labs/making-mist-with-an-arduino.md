@@ -227,18 +227,66 @@ stops when the water runs out, and resumes when you refill. Run
 Arduino's ADC differs a little from the board the default thresholds were
 measured on.
 
+## Variation: Battery and Power Source
+
+Plug a LiPo cell into the kit's BATT connector and two more wires tell you
+how full it is — and whether the kit is running on it at all:
+
+- Connect **Arduino A0** to the kit's **D1 pad** (purple wire) — battery
+  voltage, through a divider on the kit.
+- Connect **Arduino A2** to the kit's **D8 pad** (white wire) — power status:
+  high on USB, low on the cell.
+
+Why both: with USB plugged in, the cell is charging, so its voltage says
+nothing about how much charge is left. The status wire is what lets the
+library tell the two situations apart.
+
+```cpp
+mist.readBatteryVolts();   // volts at the cell
+mist.batteryPercent();     // rough state of charge
+mist.usbPresent();         // true on USB, false on the cell
+```
+
+Run the **BatteryPowerTest** example to watch all of it live.
+
+## Variation: The Kit's Button and LED
+
+The Battery Kit has its own button and white LED. Two wires bring them in:
+
+- Connect **Arduino 2** to the kit's **D6 pad** (grey wire) — the button. It
+  reads high while pressed; the kit has its own pull-down, so nothing else
+  is needed.
+- Connect **Arduino 4** to the kit's **D7 pad** (brown wire) — the LED. The
+  library lights it whenever the mist is on.
+
+```cpp
+if (mist.buttonPressed()) mist.turnOn();
+else                      mist.turnOff();
+```
+
+The **ButtonPressToMist** and **ButtonOn-Off** examples build on this.
+
 ## Variation: Everything Wired
 
-For battery readouts, USB-vs-battery detection, the kit's button and LED, add
-the remaining wires and use the preset — it's the same map on all the boards:
+All nine wires at once — use the preset instead of listing pins, it's the
+same map on every board here:
 
 ```cpp
 MistMaker mist(MistMakerBatteryKitV041());
-// kit D0->9  D3->7  D6->2  D7->4  D1->A0  D2->A1  D8->A2
 ```
 
-With A0 and A2 wired, the **BatteryPowerTest** example reports the power
-source, battery voltage, and charge state live.
+| Kit pad | Arduino pin | Wire | What it does |
+|---|---|---|---|
+| 5V | 5V | red | powers the kit |
+| GND | GND | black | shared ground |
+| D0 | 9 | yellow | mist signal |
+| D3 | 7 | green | boost enable |
+| 3V3 | 3.3V | orange | powers the sense amp (USB mode) |
+| D2 | A1 | blue | current sense |
+| D1 | A0 | purple | battery voltage |
+| D8 | A2 | white | power status (USB vs cell) |
+| D6 | 2 | grey | button |
+| D7 | 4 | brown | LED |
 
 ## Using the Extension Kit
 
@@ -280,7 +328,8 @@ MistMaker mist(MistMakerExtensionV01());
 ```
 
 Water detection works here too: orange 3.3V → 3V3 pad, blue A1 → D2 pad.
-The same power and heat notes apply.
+The battery, button, and LED variations are Battery-Kit only — this board
+has none of that hardware. The same power and heat notes apply.
 
 ## The Uno vs the Nano 33 IoT vs the Uno R4 vs the Nano 33 BLE
 
