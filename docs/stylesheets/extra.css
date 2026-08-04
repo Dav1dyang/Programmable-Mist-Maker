@@ -19,3 +19,20 @@ kicanvas-embed {
   overflow: hidden;
   margin: 1em 0;
 }
+
+/* Photo rows — collapse to one column on phones */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin: 1em 0;
+}
+
+.photo-grid p {
+  margin: 0;
+}
+
+.photo-grid img {
+  width: 100%;
+  border-radius: 0.3rem;
+}

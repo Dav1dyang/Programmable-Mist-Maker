@@ -6,8 +6,12 @@ power-source awareness behind one friendly API. Treat mist like an LED.
 
 ## Install
 
-Arduino IDE → **Library Manager** → search "MistMaker" (v2.1+), or clone
+Arduino IDE → **Library Manager** → search "MistMaker", or clone
 [owochel/MistMaker](https://github.com/owochel/MistMaker) into your libraries folder.
+
+Minimum version depends on your board: **v2.1+** for the
+[Battery Kit](boards/battery-kit.md) and [Legacy V1.4](boards/legacy-v1-4.md),
+**v2.2+** for the [Extension Kit](boards/extension-kit.md). Newest is always safe.
 
 Every tuning value the library assumes lives in one documented place:
 `namespace MistMakerDefaults` at the top of `MistMaker.h`.

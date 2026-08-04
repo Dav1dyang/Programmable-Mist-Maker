@@ -53,6 +53,7 @@ nav:
   - Boards:
       - boards/extension-kit.md
       - boards/battery-kit.md
+      - boards/battery-kit-enclosure.md
       - boards/block-kit.md
       - boards/i2c-multipack.md
       - boards/legacy-v1-4.md
