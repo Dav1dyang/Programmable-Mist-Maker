@@ -4,7 +4,10 @@
 [shuang cai](https://shuangcai.cargo.site/) and [David Yang](https://davidyang.work/)
 at ByProduct Lab.
 
-![Assembled mist maker](https://raw.githubusercontent.com/Dav1dyang/Programmable-Mist-Maker/main/assets/2025-05-22_V1-4_Assembled.jpg)
+![A Battery Kit board with a XIAO ESP32-C6 and a Li-Po cell, driving a piezo disc that is actively misting](assets/photos/battery-kit-hero-wide.jpg)
+
+*The whole device: a XIAO ESP32-C6, one board, a 1S Li-Po, and a piezo disc — misting
+with nothing else attached.*
 
 This [Open Source Hardware Certified](https://certification.oshwa.org/us002742.html)
 project (OSHWA **US002742**) turns a piezo disc, a custom PCB, and any small container
@@ -23,8 +26,11 @@ First presented as a hands-on workshop at the **Open Hardware Summit 2025**.
    feature.
 3. **Install the [MistMaker library](library.md)** (v2.2+) and work through the
    examples: `Blink` → `Breath` → `WaterDetect` → `PhoneDemo`.
-4. **Smart home?** The Home Assistant examples need no code at all — see the
-   [library page](library.md#examples).
+4. **Put it in something.** The Battery Kit's reference enclosure — printed frame,
+   glass vial, cotton stick — is documented step by step on the
+   [Enclosure & Assembly](boards/battery-kit-enclosure.md) page.
+5. **Smart home?** The Home Assistant examples need no code at all — see the
+   [library page](library.md#home-assistant-without-code).
 
 !!! tip "Don't want to solder?"
     Assembled and tested kits are available at

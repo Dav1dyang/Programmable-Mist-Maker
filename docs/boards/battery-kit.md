@@ -15,9 +15,23 @@ now defaulting **off** at power-on (details in
     [Battery Kit at shop.byproductlab.com](https://shop.byproductlab.com/kits/battery-kit) —
     every board arrives assembled and tested.
 
-<!-- PHOTO: V0.4.1 board, top side, straight-on — assets/battery-kit-v041-top.jpg -->
-<!-- PHOTO: V0.4.1 board, bottom side — assets/battery-kit-v041-bottom.jpg -->
-<!-- PHOTO: close-up of USB-C + battery connector corner — assets/battery-kit-v041-power-corner.jpg -->
+![The Battery Kit board held on a stand against a blue field, tapped inductor at center and the JST connectors along its edge](../assets/photos/battery-kit-board-studio.jpg)
+
+## The board
+
+<div class="photo-grid" markdown>
+
+![Battery Kit V0.4.1, top side: tapped inductor at center, QWIIC / DISC / BATT connectors and the button along the right edge](../assets/photos/battery-kit-v041-top.jpg)
+
+![Battery Kit V0.4.1, bottom side: net labels, the V0.4.1 revision mark, and the OSHWA US002742 logo](../assets/photos/battery-kit-v041-bottom.jpg)
+
+![A XIAO ESP32-C6 seated in the Battery Kit's sockets, USB-C facing out](../assets/photos/battery-kit-v041-xiao.jpg)
+
+</div>
+
+*As-fabbed V0.4.1: top, bottom, and with a XIAO ESP32-C6 seated. The bottom silkscreen
+names the pins and test points, the drive frequency, the revision, and the OSHWA
+`US002742` certification — the board documents itself once it's out of the box.*
 
 ## Interactive schematic
 
@@ -129,6 +143,10 @@ From the 2026-07 bench characterization ([full story on the library page](../lib
 
 ## Build your own
 
+![The Battery Kit maker pack laid out: two atomizing discs on JST leads, header strips, a XIAO ESP32-C6, the board, and three cotton sticks](../assets/photos/battery-kit-maker-pack.jpg)
+
+*Everything the maker pack puts in the box — bring your own 1S Li-Po and a container.*
+
 1. Order PCBs with the JLCPCB production files in
    [`hardware/`](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/battery-kit/hardware)
    (SMT assembly recommended).
@@ -149,6 +167,16 @@ From the 2026-07 bench characterization ([full story on the library page](../lib
 MistMaker mist(MistMakerBatteryKitV041());  // V0.4 boards: same pins, same preset
                                             // V0.3 board? MistMakerBatteryKitV03()
 ```
+
+## Enclosure
+
+![The finished enclosure on a blue backdrop: white frame, studded light-blue face plate with the duck cut into it, dark-blue cap, and the glass vial alongside](../assets/photos/enclosure-finished.jpg)
+
+The reference enclosure wraps this board in a printed frame with a snap-on face plate,
+a disc holder that doubles as the mist nozzle, and a glass vial that a cotton stick
+wicks water out of — electronics on one side, water on the other. The full parts list
+and an eleven-step build are on the
+[Enclosure & Assembly](battery-kit-enclosure.md) page.
 
 ## Notes
 

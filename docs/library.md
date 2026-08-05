@@ -6,8 +6,12 @@ power-source awareness behind one friendly API. Treat mist like an LED.
 
 ## Install
 
-Arduino IDE → **Library Manager** → search "MistMaker" (v2.1+), or clone
+Arduino IDE → **Library Manager** → search "MistMaker", or clone
 [owochel/MistMaker](https://github.com/owochel/MistMaker) into your libraries folder.
+
+Minimum version depends on your board: **v2.1+** for the
+[Battery Kit](boards/battery-kit.md) and [Legacy V1.4](boards/legacy-v1-4.md),
+**v2.2+** for the [Extension Kit](boards/extension-kit.md). Newest is always safe.
 
 Every tuning value the library assumes lives in one documented place:
 `namespace MistMakerDefaults` at the top of `MistMaker.h`.
@@ -41,6 +45,17 @@ Custom wiring? Use the pin constructor: `MistMaker mist(mistPin, enPin, sensePin
 The boards measure piezo current through a shunt + INA180A3. A missing disc, a dry
 disc, and a disc in water each draw distinctly different current — one ADC pin gives
 you disc detection *and* a water sensor for free.
+
+!!! warning "Disc detection is solid; water level is not settled yet"
+    **Disc presence is stable** — a missing or disconnected disc is a large, obvious
+    current difference, and `MIST_DISC_MISSING` / `MIST_DISC_DISCONNECTED` are
+    dependable on every board.
+
+    **Water-level detection is still in development.** The margin between a wet disc
+    and a low one is much narrower and it moves with disc wear, water depth, wick
+    condition, and supply voltage — so `MIST_WATER_OK` / `MIST_WATER_LOW` need
+    per-build testing and calibration before you rely on them. Treat them as a hint,
+    not a float switch, and don't gate anything safety-critical on them.
 
 ```cpp
 float ma = mist.readCurrentMa();        // live current in mA

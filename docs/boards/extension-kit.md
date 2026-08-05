@@ -12,6 +12,26 @@ converter — just the piezo drive stage and an INA180 current-sense amp so your
     [Extension Kit at shop.byproductlab.com](https://shop.byproductlab.com/kits/extension-kit) —
     every board arrives assembled and tested.
 
+![The Extension Kit board held on a stand, showing the tapped inductor and the PH-2.0 piezo connector](../assets/photos/extension-kit-board-studio.jpg)
+
+*The whole board: a gate driver, a MOSFET, a current-sense amp, and that tapped
+inductor. No boost converter, no charger — the XIAO's USB-C 5 V goes straight to work.*
+
+## The board
+
+<div class="photo-grid" markdown>
+
+![Extension Kit V0.1, top side: tapped inductor bottom-left, PH-2.0 piezo connector on the right, header rows top and bottom](../assets/photos/extension-kit-v01-top.jpg)
+
+![Extension Kit V0.1, bottom side: net labels, the V0.1 revision mark, and the OSHWA US002742 logo](../assets/photos/extension-kit-v01-bottom.jpg)
+
+</div>
+
+<!-- PHOTO: Extension Kit V0.1 with a XIAO ESP32-C6 mounted, straight-on — assets/photos/extension-kit-v01-xiao.jpg -->
+
+*Both sides of V0.1. The bottom silkscreen names the three pins you need — `D0 PWM`,
+`D2 CS`, and the `QWIIC` I2C breakout — beside the OSHWA `US002742` stamp.*
+
 ## Interactive schematic
 
 Explore the actual KiCad schematic right here — scroll to zoom, drag to pan:
@@ -29,7 +49,9 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
                 └─► 30 mΩ shunt ─► INA180A3 ─► D2 (analog)          5 V to ~80 Vpp)
 ```
 
-- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at up to 50% duty.
+- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at 50% duty by
+  default — the efficient cap, not a hard ceiling
+  ([why 50%](../how-it-works.md#the-resonant-drive-5-v-in-80-vpp-out)).
 - The MOSFET switches the tapped-inductor + piezo loop; LC resonance boosts the 5 V
   rail to the ~80 Vpp the disc needs (measured on the V1.4 circuit; same topology here).
 - The **INA180A3** (100 V/V) reads the voltage across a 30 mΩ shunt — 3.0 V per amp
@@ -57,6 +79,11 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
 | PH-2.0 connector | Piezo disc |
 
 ## Build your own
+
+![The Extension Kit maker pack laid out: three cotton sticks, a XIAO ESP32-C6, four header strips, the Extension Kit board, and two atomizing discs on JST leads](../assets/photos/extension-kit-maker-pack.jpg)
+
+*Everything the maker pack puts in the box — two discs, because discs are consumables.
+Bring a container.*
 
 1. Order PCBs with the JLCPCB production files in
    [`hardware/`](https://github.com/Dav1dyang/Programmable-Mist-Maker/tree/main/variants/xiao-extension-kit/hardware)
