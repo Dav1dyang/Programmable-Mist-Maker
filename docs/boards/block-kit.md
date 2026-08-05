@@ -5,6 +5,11 @@ container" UX**: insert the magnetic water container and misting starts automati
 lift it off and it stops. A single button provides manual override and LED brightness
 control. Demoed at the Open Hardware Summit 2026.
 
+![Two white Block Kit units standing on a windowsill at a demo desk, water containers docked and mist rising, with trees visible through the window behind](../assets/photos/block-kit-ohs2026-demo.jpg)
+
+*Two Block Kits running at the Open Hardware Summit 2026 demo desk — containers
+dropped in, misting on their own, with the LED column lit through the glass.*
+
 ## The three PCBs
 
 | PCB | Role |
