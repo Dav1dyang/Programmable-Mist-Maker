@@ -4,13 +4,18 @@ The simplest way to drive mist from a [Seeed XIAO ESP32-C6](https://www.seeedstu
 
 Great for: desks, breadboard experiments, classrooms, and anyone's first mist build.
 
+📖 **[Full guide with interactive schematic](https://docs.byproductlab.com/boards/extension-kit/)** ·
+🛒 **[Buy it assembled](https://shop.byproductlab.com/kits/extension-kit)**
+
+![Extension Kit V0.1, top side: tapped inductor bottom-left, PH-2.0 piezo connector on the right, header rows top and bottom](../../docs/assets/photos/extension-kit-v01-top.jpg)
+
 ## What's in this folder
 
 | Subfolder | Contents |
 |---|---|
 | [`hardware/`](hardware/) | KiCad project, schematic/assembly PDFs, BOM, JLCPCB production files |
 | [`firmware/ExtensionKit_BringUp/`](firmware/ExtensionKit_BringUp/) | Per-feature test sketch — flash this first on a new board |
-| `enclosure/` | 3D-printable demo enclosure (coming — see [root README](../../README.md#enclosures)) |
+| `enclosure/` | 3D-printable demo enclosure (not published yet) |
 
 ## How it works
 
@@ -20,8 +25,8 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
                 └─► 30 mΩ shunt ─► INA180A3 ─► D2 (analog)          5 V to ~80 Vpp)
 ```
 
-- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at up to 50% duty.
-- The MOSFET switches the tapped-inductor + piezo loop; LC resonance boosts the 5 V rail to the ~80 Vpp the disc needs (measured on the V1.4 circuit; same topology here).
+- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at 50% duty by default — the efficient cap, not a hard ceiling ([why 50%](https://docs.byproductlab.com/how-it-works/#the-resonant-drive-5-v-in-80-vpp-out)).
+- The MOSFET switches the tapped-inductor + piezo loop; LC resonance boosts the 5 V rail to the ~80 Vpp the disc needs (measured on the Legacy V1.4 circuit; same topology here).
 - The **INA180A3** (100 V/V) reads the voltage across a 30 mΩ shunt — 3.0 V per amp into D2. A dry disc draws visibly less than a wet one, which is how disc-presence and water-level detection work.
 
 ## Pin map

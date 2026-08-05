@@ -8,7 +8,7 @@
 📜 [OSHWA certified US002742](https://certification.oshwa.org/us002742.html) ·
 ✍️ [Build story on Hackster](https://www.hackster.io/dav1dyang/waste-into-wonder-making-programmable-mist-makers-fe3ae7)
 
-![Assembled mist maker board with piezo disc and Li-Po battery](assets/2025-05-22_V1-4_Assembled.jpg)
+![A Battery Kit board with a XIAO ESP32-C6 and a Li-Po cell, driving a piezo disc that is actively misting](docs/assets/photos/battery-kit-hero-wide.jpg)
 
 Most mist-maker circuits online are undocumented black boxes. This project fills that
 gap: tested reference circuits, full KiCad sources, an Arduino library, and honest
@@ -25,6 +25,13 @@ explore mist as a material. First presented as a hands-on workshop at the
 | [**Block Kit**](variants/block-kit/) | Li-Po + USB-C | Drop-in container UX, 14 LEDs | V0.1 — demoed at OHS 2026 |
 | [**I2C MultiPack**](variants/i2c-multipack-kit/) | TBD | Multi-emitter installations | In design |
 | [**Legacy V1.4**](legacy/v1-4/) | USB / Li-Po | Reproducing the original workshop kit | Shipped, frozen |
+
+<p align="center">
+  <img src="docs/assets/photos/extension-kit-v01-top.jpg" alt="Extension Kit V0.1, top side" width="49%">
+  <img src="docs/assets/photos/battery-kit-v041-top.jpg" alt="Battery Kit V0.4.1, top side" width="49%">
+</p>
+
+<p align="center"><em>The two shipping boards: Extension Kit V0.1 (left) and Battery Kit V0.4.1 (right).</em></p>
 
 Each variant folder has its own README with pin maps, an order-ready BOM + JLCPCB
 production files, and build instructions. Board-by-board guides with **interactive
@@ -59,7 +66,8 @@ verified alternative circuit — is at
 | `variants/<board>/` | Per-board KiCad project, BOM, production files, BringUp firmware, enclosure |
 | `legacy/v1-4/` | The original workshop kit, preserved as documented (incl. duck & UFO enclosure STLs) |
 | `firmware-examples/` | ESPHome / Home Assistant configs |
-| `assets/` | Photos and media |
+| `docs/` | The [documentation site](https://docs.byproductlab.com/) (MkDocs), incl. `docs/assets/photos/` |
+| `assets/` | Legacy V1.4 photos and the design-progress GIFs |
 
 > [!NOTE]
 > Reproducing the **legacy V1.4 board**? It has a few quirks the V0.x boards designed
@@ -70,7 +78,7 @@ verified alternative circuit — is at
 
 > [!WARNING]
 > Water + electronics + time = biology. Use distilled or clean tap water, clean the
-> container regularly, and let cotton wick sticks dry between uses. Never run a disc
+> container regularly, and let cotton sticks dry between uses. Never run a disc
 > dry for long, and never drive the circuit without a disc attached. Full notes in the
 > [docs](https://docs.byproductlab.com/how-it-works/#use-and-care).
 
