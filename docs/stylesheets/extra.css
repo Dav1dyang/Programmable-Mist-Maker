@@ -20,12 +20,22 @@ kicanvas-embed {
   margin: 1em 0;
 }
 
-/* Photo rows — collapse to one column on phones */
+/* Photo rows — always one row; stack only on phones.
+   grid-auto-flow: column keeps every child in the same row regardless of how
+   narrow the content column gets, so the row can't silently wrap mid-width. */
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 0.6rem;
   margin: 1em 0;
+}
+
+@media screen and (max-width: 44.9em) {
+  .photo-grid {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+  }
 }
 
 .photo-grid p {

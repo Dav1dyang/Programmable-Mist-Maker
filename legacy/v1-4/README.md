@@ -4,6 +4,10 @@ This folder is the original (and only) released revision of the Programmable Mis
 
 It has been **superseded** by the modular variant tree under [`../../variants/`](../../variants/). New work targets one of the four V0.x variants (Xiao Extension Kit, Battery Kit, Block Kit, I2C MultiPack Kit). V1.4 will not receive new firmware features.
 
+📖 **[Full guide, including the quirks and their fixes](https://docs.byproductlab.com/boards/legacy-v1-4/)**
+
+![The V1.4 board, the original single-PCB workshop kit](../../assets/2025-05-22_V1-4_Board_Only.jpg)
+
 Contents:
 
 - `hardware/` — KiCad project, schematic + PCB PDFs, BOM.

@@ -1,6 +1,10 @@
-# Block Kit
+# Block Kit — V0.1
 
-A 3-PCB build of the Programmable Mist Maker designed around a modular "drop-in container" UX: insert the magnetic water container and misting starts automatically; lift it off and it stops. A single button provides manual override and LED brightness control.
+A 3-PCB build of the Programmable Mist Maker designed around a modular "drop-in container" UX: insert the magnetic water container and misting starts automatically; lift it off and it stops. A single button provides manual override and LED brightness control. Demoed at the Open Hardware Summit 2026.
+
+📖 **[Full guide](https://docs.byproductlab.com/boards/block-kit/)**
+
+![Two white Block Kit units standing on a windowsill at a demo desk, water containers docked and mist rising, with trees visible through the window behind](../../docs/assets/photos/block-kit-ohs2026-demo.jpg)
 
 ## What's in this folder
 

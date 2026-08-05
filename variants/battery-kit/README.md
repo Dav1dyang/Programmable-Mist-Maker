@@ -6,6 +6,12 @@ The portable, single-PCB "grab and go" Mist Maker: Li-Po battery + USB-C chargin
 
 Great for: installations, performances, kits, and anywhere without a USB cable.
 
+📖 **[Full guide with interactive schematic](https://docs.byproductlab.com/boards/battery-kit/)** ·
+🧰 **[Enclosure & assembly](https://docs.byproductlab.com/boards/battery-kit-enclosure/)** ·
+🛒 **[Buy it assembled](https://shop.byproductlab.com/kits/battery-kit)**
+
+![Battery Kit V0.4.1, top side: tapped inductor at center, QWIIC / DISC / BATT connectors and the button along the right edge](../../docs/assets/photos/battery-kit-v041-top.jpg)
+
 ## What's in this folder
 
 | Subfolder | Contents |
@@ -13,7 +19,7 @@ Great for: installations, performances, kits, and anywhere without a USB cable.
 | [`hardware/`](hardware/) | As-fabbed V0.4.1 KiCad project, schematic PDF, BOM, JLCPCB production files, design reviews + acceptance protocol |
 | [`firmware/BatteryKit_BringUp/`](firmware/BatteryKit_BringUp/) | Bring-up sketch — flash first; hold the button ≥ 1.5 s for the **automated self-test** |
 | [`firmware/DutySweep_Test/`](firmware/DutySweep_Test/) | Duty→current characterization tool (the data behind the 50% default) |
-| `enclosure/` | 3D-printable demo enclosure (coming — see [root README](../../README.md#enclosures)) |
+| `enclosure/` | 3D-printable demo enclosure — print files not published yet; the build is documented step by step in [Enclosure & Assembly](https://docs.byproductlab.com/boards/battery-kit-enclosure/) |
 
 ## How it works
 

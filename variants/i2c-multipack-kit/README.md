@@ -4,4 +4,6 @@ A multi-emitter variant that drives several piezo discs from a single XIAO ESP32
 
 **Status:** in design — the next variant up. Chainable I2C mist drivers (6 PWM channels per node) so one controller can orchestrate many discs. Hardware, firmware, and enclosure files will land here as the variant is brought up.
 
+📖 **[What's planned](https://docs.byproductlab.com/boards/i2c-multipack/)** — and if you'd build something with it, [tell us](mailto:contact@byproductlab.com).
+
 Safety, cleaning, and known-issues notes live in the [root README](../../README.md).
