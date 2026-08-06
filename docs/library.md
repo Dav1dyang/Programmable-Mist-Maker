@@ -120,6 +120,24 @@ The duty cap was bench-characterized on real V0.4 hardware (2026-07 sweep, 0→9
 Your sketch's `setLevel(0..255)` scale is unaffected by the cap — 255 always means
 "my current maximum."
 
+!!! note "`setLevel()` is a ratio of the cap, not a clamp against it"
+    The level is rescaled onto the cap — `duty = level / 255 × dutyMax` — so
+    raising the cap makes **every** level stronger, not just the ones that used to
+    clip:
+
+    | `setLevel()` | duty at the default cap (127) | duty at `DUTY_TURBO` (178) |
+    |---|---|---|
+    | 255 | 127 (50%) | 178 (70%) |
+    | 128 | 64 (~25%) | 89 (~35%) |
+    | 64 | 32 (~13%) | 45 (~18%) |
+
+    So `setLevel(128)` means "half of what this board is currently allowed to
+    make," not a fixed 25% duty. `setMaxDuty()` re-applies the current level
+    immediately, so changing it mid-mist takes effect at once. Two edges worth
+    knowing: `setLevel(0)` is special-cased to `turnOff()` (it drops the enable
+    pin and LED, not just duty), and any nonzero level floors at `duty = 1`, so a
+    low level can never silently round down to off.
+
 ## Examples
 
 `File → Examples → MistMaker` — work through them in order:
