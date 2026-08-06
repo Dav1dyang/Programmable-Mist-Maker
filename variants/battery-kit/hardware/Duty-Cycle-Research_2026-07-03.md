@@ -88,6 +88,13 @@ lost and switching losses rise (98.4% efficiency at D = 0.5 with optimum load)
 
 ## Practical guidance
 
+> **Superseded on point 1 (2026-08):** the library default moved to
+> `dutyMax = 85` (33%) in MistMaker v2.6 after bench testing found it gives a
+> good amount of mist with L1 staying cool on long runs. That is consistent with
+> this sweep's mist-per-watt finding above (peaks at or below 50%) — it moves the
+> default toward that peak rather than away from it. The rest of this memo stands
+> as measured; it is kept unedited as the 2026-07-03 record.
+
 1. **Keep `dutyMax = 127` as the library default** (efficiency, USB budget,
    L1 thermals, brownout margin).
 2. A supervised **"turbo" band ~143–160 (56–63%)** exists for short bursts on

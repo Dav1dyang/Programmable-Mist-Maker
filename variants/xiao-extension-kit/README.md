@@ -25,7 +25,7 @@ XIAO USB-C 5V ──┬─► UCC27511 gate driver ─► DMT10H009 MOSFET ─�
                 └─► 30 mΩ shunt ─► INA180A3 ─► D2 (analog)          5 V to ~80 Vpp)
 ```
 
-- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at 50% duty by default — the efficient cap, not a hard ceiling ([why 50%](https://docs.byproductlab.com/how-it-works/#the-resonant-drive-5-v-in-80-vpp-out)).
+- The ESP32 outputs a **108.7 kHz PWM** (the disc's resonant frequency) at 33% duty by default — the thermal sweet spot, not a hard ceiling ([why](https://docs.byproductlab.com/how-it-works/#the-resonant-drive-5-v-in-80-vpp-out)).
 - The MOSFET switches the tapped-inductor + piezo loop; LC resonance boosts the 5 V rail to the ~80 Vpp the disc needs (measured on the Legacy V1.4 circuit; same topology here).
 - The **INA180A3** (100 V/V) reads the voltage across a 30 mΩ shunt — 3.0 V per amp into D2. A dry disc draws visibly less than a wet one, which is how disc-presence and water-level detection work.
 

@@ -132,8 +132,12 @@ Still open for V0.5: delete C14 (redundant bulk), copy the Extension's U4
 
 From the 2026-07 bench characterization ([full story on the library page](../library.md)):
 
-- **Default drive (50% duty):** ~0.23 A on the 5 V rail, ~0.3 A from the cell —
-  runs cool, sustainable on any supply. This is the library default.
+- **50% duty:** ~0.23 A on the 5 V rail, ~0.3 A from the cell — runs cool,
+  sustainable on any supply. This was the library default through v2.5.
+- **33% duty** is the library default from **v2.6** — bench-tested as a good
+  amount of mist with the tapped inductor staying cool on long runs. It sits
+  below the 50% figures above, so everything here still bounds it; the rail and
+  cell currents at 33% haven't been separately characterized yet.
 - **Peak mist (~70% duty, `DUTY_TURBO`):** ~0.83 A on the rail — wall-adapter
   territory (≥ 2 A recommended); a fully-charged cell can just reach it.
 - The mux switches sources **break-before-make (~1.3 ms)** — a graceful handoff
