@@ -11,7 +11,16 @@ Arduino IDE → **Library Manager** → search "MistMaker", or clone
 
 Minimum version depends on your board: **v2.1+** for the
 [Battery Kit](boards/battery-kit.md) and [Legacy V1.4](boards/legacy-v1-4.md),
-**v2.2+** for the [Extension Kit](boards/extension-kit.md). Newest is always safe.
+**v2.2+** for the [Extension Kit](boards/extension-kit.md), **v2.5+** to drive a kit
+from an [Arduino over jumper wires](labs/making-mist-with-an-arduino.md). Newest is
+always safe.
+
+!!! warning "v2.6 changed how hard the boards drive by default"
+    The default duty cap dropped from 127 (50%) to **85 (33%)** — bench-tested as a
+    good amount of mist with the tapped inductor staying cool on long runs. Because
+    [`setLevel()` is a ratio of the cap](#how-hard-can-it-drive-measured), **every
+    level now drives ~33% less than on v2.5.x**, not just the top end. To get the
+    old output back, set the cap explicitly: `mist.setMaxDuty(127);`
 
 Every tuning value the library assumes lives in one documented place:
 `namespace MistMakerDefaults` at the top of `MistMaker.h`.
@@ -113,12 +122,31 @@ The duty cap was bench-characterized on real V0.4 hardware (2026-07 sweep, 0→9
 
 | Cap | What you get |
 |---|---|
-| **default (50% duty)** | ~90% of practical mist at ~¼ of peak power; cool components; battery-sustainable. |
+| **default (33% duty, cap 85)** | The thermal sweet spot: a good amount of mist with the tapped inductor staying cool over long runs; easily battery-sustainable. |
+| 50% duty (cap 127) | The pre-2.6 default. More mist, still safe; ~0.23 A on the 5 V rail, ~0.3 A from the cell. `mist.setMaxDuty(127)`. |
 | `mist.setMaxDuty(MistMakerDefaults::DUTY_TURBO)` (**~70%**) | The measured **true mist maximum** — ~4× the input power; wall adapter (≥ 2 A) territory. |
 | above ~75% | Mist *declines* and turns unstable while current climbs — the library hard-limits at 90% of full scale. |
 
 Your sketch's `setLevel(0..255)` scale is unaffected by the cap — 255 always means
 "my current maximum."
+
+!!! note "`setLevel()` is a ratio of the cap, not a clamp against it"
+    The level is rescaled onto the cap — `duty = level / 255 × dutyMax` — so
+    raising the cap makes **every** level stronger, not just the ones that used to
+    clip:
+
+    | `setLevel()` | duty at the default cap (85) | duty at `DUTY_TURBO` (178) |
+    |---|---|---|
+    | 255 | 85 (33%) | 178 (70%) |
+    | 128 | 43 (~17%) | 89 (~35%) |
+    | 64 | 21 (~8%) | 45 (~18%) |
+
+    So `setLevel(128)` means "half of what this board is currently allowed to
+    make," not a fixed duty. `setMaxDuty()` re-applies the current level
+    immediately, so changing it mid-mist takes effect at once. Two edges worth
+    knowing: `setLevel(0)` is special-cased to `turnOff()` (it drops the enable
+    pin and LED, not just duty), and any nonzero level floors at `duty = 1`, so a
+    low level can never silently round down to off.
 
 ## Examples
 
