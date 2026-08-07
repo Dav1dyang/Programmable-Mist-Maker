@@ -340,7 +340,10 @@ if (mist.buttonPressed()) mist.turnOn();
 else                      mist.turnOff();
 ```
 
-The **ButtonPressToMist** and **ButtonOn-Off** examples build on this.
+The **ToggleSwitch** and **PushButton** examples build on this — `ToggleSwitch`
+follows the level like the snippet above (a latching switch runs the mist until
+you flip it off), while `PushButton` debounces the press edge so each press of a
+momentary button flips the mist on or off.
 
 ### Everything Wired
 
