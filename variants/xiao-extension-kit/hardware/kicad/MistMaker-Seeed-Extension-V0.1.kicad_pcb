@@ -1922,7 +1922,7 @@
 			(uuid "6faad098-106c-40b4-8db0-699277bd48cd")
 		)
 		(embedded_fonts no)
-		(model "/Users/davidyang/Documents/GitHub/David_KiCad_Library/Components_Used/LIB_DMT10H009LCG-7/DMT10H009LCG-7/3D/DMT10H009LCG-7.stp"
+		(model "${DAVID_KICAD_LIB}/3dmodels/DMT10H009LCG-7.stp"
 			(offset
 				(xyz 0 0 0.01999999925)
 			)
@@ -5700,7 +5700,7 @@
 			(uuid "3859a652-b3ca-427a-8499-43bc4e117fad")
 		)
 		(embedded_fonts no)
-		(model "/Users/davidyang/Documents/GitHub/David_KiCad_Library/Components_Used/XRCD75-250K/footprint/packages3d/IND-SMD_3P-L8.0-W7.0_L10-500UH.step"
+		(model "${DAVID_KICAD_LIB}/3dmodels/IND-SMD_3P-L8.0-W7.0_L10-500UH.step"
 			(offset
 				(xyz 0 0.5 0)
 			)
