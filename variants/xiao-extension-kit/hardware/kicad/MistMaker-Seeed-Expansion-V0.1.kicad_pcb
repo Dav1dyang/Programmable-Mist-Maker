@@ -3131,7 +3131,7 @@
 			)
 		)
 	)
-	(footprint "DavidLib_MCU_Xiao:XIAO-Add-On_No_Edge"
+	(footprint "DavidLib_IC:XIAO-Add-On_No_Edge"
 		(locked yes)
 		(layer "F.Cu")
 		(uuid "64bc912b-2148-44a3-9a07-15b83d8b77a8")
@@ -6668,7 +6668,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "DavidLib_Graphics:DUCKY-LOGO"
+	(footprint "DavidLib_Mechanical:DUCKY-LOGO"
 		(layer "B.Cu")
 		(uuid "0b8ffcae-ce59-487e-b73d-0b21564468e0")
 		(at 144.207232 115.210716 180)
