@@ -852,7 +852,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "DavidLib_Mux:TPS2116DRLR"
+		(symbol "DavidLib_Power:TPS2116DRLR"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -880,7 +880,7 @@
 					(justify left top)
 				)
 			)
-			(property "Footprint" "DavidLib_Mux:TPS62932DRLR"
+			(property "Footprint" "DavidLib_Power:TPS62932DRLR"
 				(at 29.21 -94.92 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -15615,7 +15615,7 @@
 		)
 	)
 	(symbol
-		(lib_id "DavidLib_Mux:TPS2116DRLR")
+		(lib_id "DavidLib_Power:TPS2116DRLR")
 		(at 116.84 36.83 0)
 		(unit 1)
 		(body_style 1)
@@ -15645,7 +15645,7 @@
 				)
 			)
 		)
-		(property "Footprint" "DavidLib_Mux:TPS62932DRLR"
+		(property "Footprint" "DavidLib_Power:TPS62932DRLR"
 			(at 146.05 131.75 0)
 			(hide yes)
 			(show_name no)

@@ -14521,7 +14521,7 @@
 			)
 		)
 	)
-	(footprint "DavidLib_Mux:TPS62932DRLR"
+	(footprint "DavidLib_Power:TPS62932DRLR"
 		(layer "F.Cu")
 		(uuid "aa49da73-a73e-46e8-aeb2-34dc0ca01d52")
 		(at 124.162738 103.665448 -90)
