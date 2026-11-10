@@ -8,7 +8,10 @@ on:
 
 jobs:
   bringup:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: compile-sketches v1 (v1.1.3) installs exactly
+    # Python 3.12.4, which has no Ubuntu 26.04 build. Back to ubuntu-latest once
+    # a compile-sketches release after v1.1.3 asks for a Python built for 26.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Compile BringUp sketches (XIAO ESP32-C6)
